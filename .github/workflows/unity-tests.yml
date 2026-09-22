@@ -9,12 +9,13 @@
 #
 # See https://game.ci/docs/github/activation. Until those secrets exist, run the
 # tests locally from TestProject (see TestProject/README.md).
+#
+# Trigger: manual only, so the repository does not show a failing run before a
+# licence is configured. Add `push: branches: [main]` once the secrets are set.
 name: Unity Tests
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
 
 permissions:
   contents: read
