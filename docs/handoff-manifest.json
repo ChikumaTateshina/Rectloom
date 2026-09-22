@@ -1,0 +1,37 @@
+{
+  "project": "HTML/CSS to Unity UI Compiler",
+  "document_set_version": "1.0-draft",
+  "documents": [
+    "00_INDEX.md",
+    "01_PRODUCT_REQUIREMENTS.md",
+    "02_ARCHITECTURE_AND_INTERNAL_API.md",
+    "03_HTML_CSS_LANGUAGE_SPEC.md",
+    "04_LAYOUT_AND_UGUI_MAPPING.md",
+    "05_INCREMENTAL_COMPILATION.md",
+    "06_COMPONENT_BINDER_AND_EXTENSION_API.md",
+    "07_VRCHAT_VPM_VCC_DISTRIBUTION.md",
+    "08_DIAGNOSTICS_AND_SECURITY.md",
+    "09_TEST_AND_ACCEPTANCE_PLAN.md",
+    "10_IMPLEMENTATION_ISSUES.md",
+    "11_CODING_AGENT_RULES.md",
+    "12_ADR_TEMPLATE.md",
+    "README.md"
+  ],
+  "implementation_order": [
+    "Foundation",
+    "HTML/CSS parsing",
+    "Layout",
+    "Unity IR/uGUI backend",
+    "Incremental compilation",
+    "Extension API",
+    "VRChat/VPM distribution"
+  ],
+  "hard_constraints": [
+    "No JavaScript",
+    "Editor-time static compilation",
+    "Core must not depend on VRChat",
+    "HTML/CSS -> DOM/Style/Layout/IR -> Backend",
+    "Update compile must preserve user-owned Unity data",
+    "External libraries must use adapters/extensions"
+  ]
+}

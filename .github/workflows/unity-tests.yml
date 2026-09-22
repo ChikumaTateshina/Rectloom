@@ -1,0 +1,65 @@
+# Unity EditMode tests.
+#
+# Requires a Unity licence in repository secrets before it can run:
+#
+#   UNITY_LICENSE        contents of a personal .ulf licence file, or
+#   UNITY_SERIAL         a Unity Pro serial, plus
+#   UNITY_EMAIL          account e-mail
+#   UNITY_PASSWORD       account password
+#
+# See https://game.ci/docs/github/activation. Until those secrets exist, run the
+# tests locally from TestProject (see TestProject/README.md).
+name: Unity Tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: unity-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  editmode:
+    name: EditMode tests
+    runs-on: ubuntu-latest
+    env:
+      UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+      UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+      UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+    steps:
+      - name: Require a Unity licence
+        run: |
+          if [ -z "${UNITY_LICENSE}" ] && [ -z "${UNITY_EMAIL}" ]; then
+            echo "::error::No Unity licence configured. Add UNITY_LICENSE (or UNITY_EMAIL + UNITY_PASSWORD) to repository secrets."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - uses: actions/cache@v4
+        with:
+          path: TestProject/Library
+          key: Library-${{ hashFiles('Packages/**/*.cs', 'TestProject/Packages/manifest.json') }}
+          restore-keys: Library-
+
+      - uses: game-ci/unity-test-runner@v4
+        id: tests
+        with:
+          projectPath: TestProject
+          unityVersion: 2022.3.22f1
+          testMode: editmode
+          artifactsPath: TestResults
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: editmode-test-results
+          path: ${{ steps.tests.outputs.artifactsPath }}

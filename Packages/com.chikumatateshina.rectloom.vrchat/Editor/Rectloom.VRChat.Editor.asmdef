@@ -1,0 +1,19 @@
+{
+  "name": "Rectloom.VRChat.Editor",
+  "rootNamespace": "Rectloom.VRChat",
+  "references": [
+    "Rectloom.Core.Editor",
+    "Rectloom.Ugui.Editor"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

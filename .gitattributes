@@ -1,0 +1,17 @@
+* text=auto eol=lf
+
+*.cs      text diff=csharp
+*.md      text
+*.json    text
+*.asmdef  text
+*.yml     text
+*.meta    text
+
+*.png binary
+*.jpg binary
+*.ttf binary
+*.otf binary
+*.dll binary
+*.unity   -text merge=binary
+*.prefab  -text merge=binary
+*.asset   -text merge=binary

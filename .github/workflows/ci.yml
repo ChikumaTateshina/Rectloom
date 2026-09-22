@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-packages:
+    name: Validate package layout
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Structural guards: package naming, version agreement, Editor-only assemblies,
+      # and the MUST requirement that the core package never depends on VRChat.
+      - name: Validate packages
+        run: python .github/scripts/validate_packages.py
+
+  lint-docs:
+    name: Check documentation links
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check that referenced repository files exist
+        shell: bash
+        run: |
+          set -euo pipefail
+          status=0
+          # Only relative markdown links to paths inside the repository are checked.
+          while IFS=: read -r file link; do
+            target="${link%%#*}"
+            [ -z "$target" ] && continue
+            if [ ! -e "$target" ]; then
+              echo "::error file=$file::broken link to '$target'"
+              status=1
+            fi
+          done < <(
+            grep -rnoE '\]\((docs|Packages|TestProject|\.github)/[^)#]*' --include='*.md' . \
+              | sed -E 's/^\.\/([^:]*):[0-9]+:\]\((.*)$/\1:\2/'
+          )
+          exit $status

@@ -1,0 +1,31 @@
+{
+  "name": "com.chikumatateshina.rectloom.vrchat",
+  "displayName": "Rectloom for VRChat",
+  "version": "0.0.1",
+  "unity": "2022.3",
+  "description": "VRChat adapter for Rectloom. Adds VRChat-specific validation and vrc- CSS properties on top of the generic uGUI backend. The compiler stays Editor-only: nothing is added to the world build.",
+  "keywords": [
+    "html",
+    "css",
+    "ugui",
+    "vrchat",
+    "udon",
+    "editor"
+  ],
+  "author": {
+    "name": "ChikumaTateshina",
+    "url": "https://github.com/ChikumaTateshina"
+  },
+  "license": "MIT",
+  "documentationUrl": "https://github.com/ChikumaTateshina/Rectloom/tree/main/docs",
+  "changelogUrl": "https://github.com/ChikumaTateshina/Rectloom/blob/main/CHANGELOG.md",
+  "licensesUrl": "https://github.com/ChikumaTateshina/Rectloom/blob/main/LICENSE",
+  "dependencies": {
+    "com.chikumatateshina.rectloom.core": "0.0.1",
+    "com.chikumatateshina.rectloom.ugui": "0.0.1"
+  },
+  "vpmDependencies": {
+    "com.vrchat.worlds": ">=3.5.0"
+  },
+  "hideInEditor": false
+}

@@ -1,0 +1,24 @@
+{
+  "name": "com.chikumatateshina.rectloom.core",
+  "displayName": "Rectloom Core",
+  "version": "0.0.1",
+  "unity": "2022.3",
+  "description": "Editor-time compiler core for Rectloom: HTML/CSS parsing, cascade, layout, Unity UI IR, diagnostics and the extension API. Contains no runtime code and no VRChat dependency.",
+  "keywords": [
+    "html",
+    "css",
+    "ui",
+    "ugui",
+    "compiler",
+    "editor"
+  ],
+  "author": {
+    "name": "ChikumaTateshina",
+    "url": "https://github.com/ChikumaTateshina"
+  },
+  "license": "MIT",
+  "documentationUrl": "https://github.com/ChikumaTateshina/Rectloom/tree/main/docs",
+  "changelogUrl": "https://github.com/ChikumaTateshina/Rectloom/blob/main/CHANGELOG.md",
+  "licensesUrl": "https://github.com/ChikumaTateshina/Rectloom/blob/main/LICENSE",
+  "hideInEditor": false
+}
