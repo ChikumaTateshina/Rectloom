@@ -40,12 +40,12 @@ Canvas
 
 ## 状態
 
-**開発初期 (Stage A: Foundation)。まだ UI を生成できません。**
+**開発中 (Stage B 完了)。HTML/CSS の解析は動きますが、まだ Unity UI は生成しません。**
 
 | Stage | 内容 | 状態 |
 |---|---|---|
-| A | Repository / Packages / asmdef / Diagnostics | 進行中 |
-| B | HTML / DOM / CSS / Selector / Cascade / ComputedStyle | 未着手 |
+| A | Repository / Packages / asmdef / Diagnostics | 完了 |
+| B | HTML / DOM / CSS / Selector / Cascade / ComputedStyle | 完了 |
 | C | Box Model / Flex Layout / LayoutResult | 未着手 |
 | D | Unity IR / uGUI Backend / TMP / Button / Image | 未着手 |
 | E | Stable ID / Metadata / Update Compile / Ownership | 未着手 |
