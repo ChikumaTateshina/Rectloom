@@ -16,3 +16,4 @@
 | ADR | Title | Status |
 |---|---|---|
 | [0001](0001-rectloom-naming.md) | Rectloom naming for packages, assemblies and namespaces | Accepted |
+| [0002](0002-subset-html-parser.md) | Own subset HTML parser behind `IHtmlParser` | Accepted |
