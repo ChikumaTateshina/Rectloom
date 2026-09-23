@@ -12,15 +12,16 @@ IR を Unity オブジェクトへ変換するのは `com.chikumatateshina.rectl
 
 ## 実装状況
 
-Stage B (Parsing / CSS) まで完了。以下が実装済みです。
+Stage C (Layout) まで完了。以下が実装済みです。
 
 - `Rectloom.Core.Diagnostics` — `SourceLocation` / `CompilerDiagnostic` / `DiagnosticSink` / 診断コード登録
 - `Rectloom.Core.Compilation` — `IHtmlUiCompiler` / `CompileRequest` / `CompileResult` などの公開契約
 - `Rectloom.Core.Dom` — 内部 DOM (`DomDocument` / `DomElement` / `DomText`)
 - `Rectloom.Core.Parsing` — `IHtmlParser` と寛容な HTML パーサー
 - `Rectloom.Core.Css` — CSS パーサー、セレクタ照合、カスケード、`ComputedStyle`、`@import` 解決
+- `Rectloom.Core.Layout` — Box Model、Flex、absolute 配置、`ITextMeasurer`、`LayoutResult`
 
-Layout Solver (Stage C) 以降は未実装です。
+Unity UI IR と uGUI バックエンド (Stage D) 以降は未実装です。
 
 ## ドキュメント
 

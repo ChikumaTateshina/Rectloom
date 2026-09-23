@@ -38,9 +38,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Built-in user-agent stylesheet, so markup with no CSS still produces a usable UI.
 - ADR-0002 choosing a subset HTML parser behind `IHtmlParser` over an external HTML5 parser.
 
+#### Stage C — Layout
+
+- Box model with `box-sizing: border-box`, percentage resolution, margins, padding, borders and
+  `min-*`/`max-*` clamping (Issue #11).
+- Block flow, and flex layout for `row` and `column` with `justify-content`, `align-items` and
+  `gap` (Issues #12, #13, #14).
+- `position: absolute` removed from normal flow and placed inside the parent content box, plus
+  `position: relative` offsets that do not move siblings (Issue #15).
+- `ITextMeasurer` so the core can size text without depending on TextMeshPro, with the
+  deterministic `ApproximateTextMeasurer` as the built-in implementation (Issue #16).
+- `LayoutTreeBuilder`, which drops hidden subtrees and turns text beside element children into
+  anonymous boxes, and `TextCollapse` for the `white-space` rules.
+- Layout golden tests over whole documents (Issue #17).
+- ADR-0003 recording the layout model and what it deliberately leaves out.
+
 ### Notes
 
-- Nothing generates Unity objects yet. Stage B ends at the computed style tree; the layout solver
-  (Stage C) and the uGUI backend (Stage D) come next.
+- Nothing generates Unity objects yet. Stage C ends at `LayoutResult`; the Unity IR and the uGUI
+  backend (Stage D) come next.
+- The layout engine does not collapse adjacent margins, has no inline formatting context and does
+  not support `flex-grow`. See ADR-0003.
 
 [Unreleased]: https://github.com/ChikumaTateshina/Rectloom/commits/main
