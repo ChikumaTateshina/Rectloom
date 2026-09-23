@@ -58,6 +58,15 @@ namespace Rectloom.Core.Diagnostics
 
             /// <summary>An element is not part of the supported element set.</summary>
             public const string UnknownElement = "HTML1003";
+
+            /// <summary>An element was still open at the end of the file or was closed implicitly.</summary>
+            public const string UnclosedElement = "HTML1004";
+
+            /// <summary>A tag is malformed, for example unterminated at the end of the file.</summary>
+            public const string MalformedTag = "HTML1005";
+
+            /// <summary>A start tag repeats an attribute name. The first occurrence is kept.</summary>
+            public const string DuplicateAttribute = "HTML1006";
         }
 
         /// <summary>CSS parsing, cascade and value codes.</summary>
