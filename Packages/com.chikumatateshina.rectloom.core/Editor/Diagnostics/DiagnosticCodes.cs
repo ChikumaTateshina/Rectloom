@@ -83,6 +83,15 @@ namespace Rectloom.Core.Diagnostics
 
             /// <summary>An <c>@import</c> chain refers back to a stylesheet already being imported.</summary>
             public const string CircularImport = "CSS1004";
+
+            /// <summary>An at-rule is outside the supported set and was skipped.</summary>
+            public const string UnsupportedAtRule = "CSS1005";
+
+            /// <summary>A block is not closed before the end of the file.</summary>
+            public const string UnterminatedBlock = "CSS1006";
+
+            /// <summary>An <c>@import</c> appears after the first style rule and was skipped.</summary>
+            public const string MisplacedImport = "CSS1007";
         }
 
         /// <summary>Layout solver codes.</summary>
