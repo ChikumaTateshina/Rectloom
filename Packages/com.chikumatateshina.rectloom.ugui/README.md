@@ -10,4 +10,15 @@ CSS セレクタやカスケードをここで再評価することはありま�
 
 ## 実装状況
 
-Stage A (Foundation)。asmdef の雛形のみで、バックエンドは未実装です (Stage D)。
+Stage D (uGUI Backend) まで完了。
+
+- `Rectloom.Ugui.Backend` — `UguiBackend`、`RectTransformBaker`、`TmpTextApplier`、
+  `TmpTextMeasurer`、`RoundedBoxSpriteLibrary`
+- `Rectloom.Ugui.Compilation` — `UguiHtmlUiCompiler` (`IHtmlUiCompiler` 実装、Prefab / Scene 出力)
+- `Rectloom.Ugui.Windows` — Editor Window (**Tools → Rectloom → Compiler**)
+
+座標系の変換 (レイアウトは左上原点 / +Y 下、Unity は左下原点 / +Y 上) を行うのは
+`RectTransformBaker` だけです。
+
+`CompileMode.Update` は差分コンパイル (Stage E) 実装まで拒否されます。
+再生成するとユーザーが設定した UnityEvent や Component を壊すためです。

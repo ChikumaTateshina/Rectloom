@@ -53,10 +53,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Layout golden tests over whole documents (Issue #17).
 - ADR-0003 recording the layout model and what it deliberately leaves out.
 
+#### Stage D — Unity IR and the uGUI backend
+
+- Unity UI IR: `UiNode`, `UiNodeKind`, `UiRect`, `UiVisualStyle`, `UiTextStyle`, `AssetReference`
+  and `ComponentRequest`, built by `UiTreeBuilder` (Issue #18).
+- Stable IDs from an explicit HTML `id`, or a structural path such as `root/div[0]/button[2]`,
+  with a fallback when an id is ambiguous.
+- `IAssetResolver` and an asset-database implementation, so references resolve without the backend
+  owning asset lookup.
+- uGUI backend: containers, TextMeshPro text, images, buttons and the canvas root, with rectangles
+  baked onto `RectTransform`s (Issues #19 to #23).
+- Rounded corners and borders through generated nine-sliced sprites, cached by appearance.
+- `TmpTextMeasurer`, so layout measures with the font that will actually render the text.
+- `UguiHtmlUiCompiler`, the `IHtmlUiCompiler` implementation, with prefab and scene output and a
+  staged commit that writes nothing when a pass reports errors (Issues #24, #25).
+- Editor window at **Tools → Rectloom → Compiler**, with Validate, Compile and Rebuild, and a
+  diagnostics list that opens the source file on double click (Issue #26).
+
+### Changed
+
+- `background-image` URLs are now resolved against the stylesheet that declared them while the
+  computed style is built, so `ComputedStyle.Visual.BackgroundImage` holds a project asset path.
+- `ICssSourceLoader` is now `ISourceTextLoader` in `Rectloom.Core.Compilation`, and
+  `FileCssSourceLoader` is now `FileSourceTextLoader`. The loader reads HTML as well as CSS, so the
+  CSS-specific name no longer described it.
+
 ### Notes
 
-- Nothing generates Unity objects yet. Stage C ends at `LayoutResult`; the Unity IR and the uGUI
-  backend (Stage D) come next.
+- `CompileMode.Update` is refused for now: regenerating the hierarchy instead would discard the
+  UnityEvents and components an update exists to preserve. Use `Create` or `Rebuild` until
+  incremental compilation lands in Stage E.
 - The layout engine does not collapse adjacent margins, has no inline formatting context and does
   not support `flex-grow`. See ADR-0003.
 

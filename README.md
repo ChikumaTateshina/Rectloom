@@ -40,14 +40,15 @@ Canvas
 
 ## 状態
 
-**開発中 (Stage C 完了)。HTML/CSS の解析とレイアウト計算は動きますが、まだ Unity UI は生成しません。**
+**開発中 (Stage D 完了)。HTML/CSS から Prefab / Scene オブジェクトを生成できます。**
+差分コンパイル (Stage E) は未実装のため、`Update` モードは意図的に拒否されます。
 
 | Stage | 内容 | 状態 |
 |---|---|---|
 | A | Repository / Packages / asmdef / Diagnostics | 完了 |
 | B | HTML / DOM / CSS / Selector / Cascade / ComputedStyle | 完了 |
 | C | Box Model / Flex Layout / LayoutResult | 完了 |
-| D | Unity IR / uGUI Backend / TMP / Button / Image | 未着手 |
+| D | Unity IR / uGUI Backend / TMP / Button / Image | 完了 |
 | E | Stable ID / Metadata / Update Compile / Ownership | 未着手 |
 | F | Component Binder / Extension API | 未着手 |
 | G | VRChat Adapter / VPM / External UI Adapter | 未着手 |
