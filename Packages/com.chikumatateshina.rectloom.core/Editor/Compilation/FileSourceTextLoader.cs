@@ -4,21 +4,21 @@ using System;
 using System.IO;
 using UnityEngine;
 
-namespace Rectloom.Core.Css.Parsing
+namespace Rectloom.Core.Compilation
 {
     /// <summary>
-    /// Reads stylesheets from disk, resolving asset paths against the project root.
+    /// Reads source files from disk, resolving asset paths against the project root.
     /// </summary>
     /// <remarks>
     /// Asset paths such as <c>Assets/UI/theme.css</c> are relative to the folder that contains the
     /// project's <c>Assets</c> directory, which is how Unity itself addresses them.
     /// <para>
-    /// Reading through the file system rather than the asset database means a stylesheet can be
+    /// Reading through the file system rather than the asset database means a source file can be
     /// loaded before Unity has imported it, which matters when a compile is triggered from an asset
     /// post-processor.
     /// </para>
     /// </remarks>
-    public sealed class FileCssSourceLoader : ICssSourceLoader
+    public sealed class FileSourceTextLoader : ISourceTextLoader
     {
         private readonly string _projectRoot;
 
@@ -29,7 +29,7 @@ namespace Rectloom.Core.Css.Parsing
         /// Folder that contains the project's <c>Assets</c> directory, or null to use the project
         /// this Editor has open.
         /// </param>
-        public FileCssSourceLoader(string? projectRoot = null)
+        public FileSourceTextLoader(string? projectRoot = null)
         {
             _projectRoot = projectRoot ?? GetDefaultProjectRoot();
         }

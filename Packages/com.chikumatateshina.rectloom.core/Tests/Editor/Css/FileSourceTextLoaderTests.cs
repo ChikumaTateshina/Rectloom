@@ -3,11 +3,12 @@
 using System;
 using System.IO;
 using NUnit.Framework;
+using Rectloom.Core.Compilation;
 using Rectloom.Core.Css.Parsing;
 
 namespace Rectloom.Core.Tests.Css
 {
-    public sealed class FileCssSourceLoaderTests
+    public sealed class FileSourceTextLoaderTests
     {
         private string _root = null!;
 
@@ -31,7 +32,7 @@ namespace Rectloom.Core.Tests.Css
         [Test]
         public void TryLoad_ReadsAnAssetPathRelativeToTheProjectRoot()
         {
-            var loader = new FileCssSourceLoader(_root);
+            var loader = new FileSourceTextLoader(_root);
 
             Assert.That(loader.TryLoad("Assets/UI/theme.css", out string source), Is.True);
             Assert.That(source, Is.EqualTo("div { color: red; }"));
@@ -40,7 +41,7 @@ namespace Rectloom.Core.Tests.Css
         [Test]
         public void TryLoad_ReportsAMissingFileWithoutThrowing()
         {
-            var loader = new FileCssSourceLoader(_root);
+            var loader = new FileSourceTextLoader(_root);
 
             Assert.That(loader.TryLoad("Assets/UI/missing.css", out string source), Is.False);
             Assert.That(source, Is.Empty);
@@ -49,7 +50,7 @@ namespace Rectloom.Core.Tests.Css
         [Test]
         public void TryLoad_WithNullPath_Throws()
         {
-            var loader = new FileCssSourceLoader(_root);
+            var loader = new FileSourceTextLoader(_root);
 
             Assert.Throws<ArgumentNullException>(() => loader.TryLoad(null!, out _));
         }
@@ -57,7 +58,7 @@ namespace Rectloom.Core.Tests.Css
         [Test]
         public void ProjectRoot_DefaultsToTheOpenProject()
         {
-            var loader = new FileCssSourceLoader();
+            var loader = new FileSourceTextLoader();
 
             Assert.That(loader.ProjectRoot, Is.Not.Empty);
             Assert.That(Directory.Exists(Path.Combine(loader.ProjectRoot, "Assets")), Is.True);
@@ -71,7 +72,7 @@ namespace Rectloom.Core.Tests.Css
                 "@import \"./theme.css\";\np { color: blue; }");
 
             var diagnostics = new Rectloom.Core.Diagnostics.DiagnosticSink();
-            var resolver = new CssImportResolver(new FileCssSourceLoader(_root));
+            var resolver = new CssImportResolver(new FileSourceTextLoader(_root));
 
             var sheets = resolver.Resolve(new[] { "Assets/UI/entry.css" }, diagnostics);
 

@@ -3,28 +3,11 @@
 using System;
 using System.Collections.Generic;
 using Rectloom.Core.Css.Ast;
+using Rectloom.Core.Compilation;
 using Rectloom.Core.Diagnostics;
 
 namespace Rectloom.Core.Css.Parsing
 {
-    /// <summary>
-    /// Reads the text of a source file.
-    /// </summary>
-    /// <remarks>
-    /// The import resolver depends on this rather than on the file system or the asset database, so
-    /// that stylesheet loading can be exercised without a project on disk.
-    /// </remarks>
-    public interface ICssSourceLoader
-    {
-        /// <summary>
-        /// Loads a source file.
-        /// </summary>
-        /// <param name="assetPath">Normalised asset path of the file.</param>
-        /// <param name="source">The file contents when the file exists.</param>
-        /// <returns><see langword="true"/> when the file was loaded.</returns>
-        bool TryLoad(string assetPath, out string source);
-    }
-
     /// <summary>
     /// Loads stylesheets and everything they import, in cascade order.
     /// </summary>
@@ -34,14 +17,14 @@ namespace Rectloom.Core.Css.Parsing
     /// </remarks>
     public sealed class CssImportResolver
     {
-        private readonly ICssSourceLoader _loader;
+        private readonly ISourceTextLoader _loader;
 
         /// <summary>
         /// Creates a resolver.
         /// </summary>
         /// <param name="loader">Loader used to read stylesheet text.</param>
         /// <exception cref="ArgumentNullException"><paramref name="loader"/> is null.</exception>
-        public CssImportResolver(ICssSourceLoader loader)
+        public CssImportResolver(ISourceTextLoader loader)
         {
             _loader = loader ?? throw new ArgumentNullException(nameof(loader));
         }

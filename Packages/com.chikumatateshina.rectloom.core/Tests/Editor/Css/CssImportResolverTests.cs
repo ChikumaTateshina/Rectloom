@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
+using Rectloom.Core.Compilation;
 using Rectloom.Core.Css.Ast;
 using Rectloom.Core.Css.Parsing;
 using Rectloom.Core.Diagnostics;
@@ -218,7 +219,7 @@ namespace Rectloom.Core.Tests.Css
         /// An in-memory stylesheet loader, so import behaviour can be exercised without a project
         /// on disk.
         /// </summary>
-        private sealed class DictionaryLoader : ICssSourceLoader
+        private sealed class DictionaryLoader : ISourceTextLoader
         {
             private readonly Dictionary<string, string> _files =
                 new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
