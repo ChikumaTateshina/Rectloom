@@ -311,7 +311,10 @@ namespace Rectloom.Core.Tests.Css
                     + " opacity: 0.5; border-width: 2px; border-color: red; border-radius: 6px; }");
 
             Assert.That((Color32)style.Visual.BackgroundColor!.Value, Is.EqualTo(new Color32(16, 32, 48, 255)));
-            Assert.That(style.Visual.BackgroundImage, Is.EqualTo("./icon.png"));
+            Assert.That(
+                style.Visual.BackgroundImage,
+                Is.EqualTo("Assets/UI/icon.png"),
+                "a url is resolved against the stylesheet that wrote it");
             Assert.That(style.Visual.Opacity, Is.EqualTo(0.5f).Within(0.0001f));
             Assert.That(style.Visual.BorderWidth, Is.EqualTo(2f));
             Assert.That(style.Visual.BorderRadius, Is.EqualTo(6f));

@@ -23,10 +23,20 @@ namespace Rectloom.Core.Css.Computed
         public Color? BackgroundColor { get; internal set; }
 
         /// <summary>
-        /// Background image reference as written in the stylesheet, or <see langword="null"/> when
-        /// the element has none. Resolving it to an asset happens in the backend.
+        /// Background image as a project asset path or GUID, or <see langword="null"/> when the
+        /// element has none. Loading the asset happens in the backend.
         /// </summary>
+        /// <remarks>
+        /// A relative <c>url()</c> is resolved against the stylesheet that wrote it while the
+        /// computed style is built, because that is the last point where the origin file is known.
+        /// </remarks>
         public string? BackgroundImage { get; internal set; }
+
+        /// <summary>
+        /// Position of the <c>background-image</c> declaration, so a missing asset can be reported
+        /// against the stylesheet line rather than against the element.
+        /// </summary>
+        public Diagnostics.SourceLocation BackgroundImageSource { get; internal set; }
 
         /// <summary>
         /// Opacity from 0 to 1. Initial value is 1.
@@ -69,6 +79,7 @@ namespace Rectloom.Core.Css.Computed
             {
                 BackgroundColor = BackgroundColor,
                 BackgroundImage = BackgroundImage,
+                BackgroundImageSource = BackgroundImageSource,
                 Opacity = Opacity,
                 BorderWidth = BorderWidth,
                 BorderColor = BorderColor,

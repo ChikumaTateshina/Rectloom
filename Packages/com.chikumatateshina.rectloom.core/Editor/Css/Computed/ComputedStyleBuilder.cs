@@ -4,8 +4,10 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using Rectloom.Core.Css.Ast;
+using Rectloom.Core.Css.Parsing;
 using Rectloom.Core.Css.Values;
 using Rectloom.Core.Diagnostics;
+using Rectloom.Core.Ir;
 using UnityEngine;
 
 namespace Rectloom.Core.Css.Computed
@@ -375,6 +377,7 @@ namespace Rectloom.Core.Css.Computed
             if (string.Equals(value, "none", StringComparison.OrdinalIgnoreCase))
             {
                 style.Visual.BackgroundImage = null;
+                style.Visual.BackgroundImageSource = SourceLocation.None;
                 return;
             }
 
@@ -386,7 +389,20 @@ namespace Rectloom.Core.Css.Computed
                 return;
             }
 
-            style.Visual.BackgroundImage = reference;
+            // A relative path is relative to the stylesheet that wrote it, and this is the last
+            // point where that file is known, so it is resolved here rather than in the backend.
+            string? resolved = AssetReference.LooksLikeGuid(reference)
+                ? reference
+                : CssPathResolver.Resolve(declaration.Source.FilePath, reference);
+
+            if (resolved == null)
+            {
+                ReportInvalidValue(declaration, diagnostics, "a path inside the project");
+                return;
+            }
+
+            style.Visual.BackgroundImage = resolved;
+            style.Visual.BackgroundImageSource = declaration.Source;
         }
 
         private static void ApplyBoxSizing(

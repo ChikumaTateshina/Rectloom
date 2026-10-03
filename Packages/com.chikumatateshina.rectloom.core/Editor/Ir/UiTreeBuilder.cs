@@ -1,0 +1,290 @@
+#nullable enable
+
+using System;
+using System.Collections.Generic;
+using Rectloom.Core.Compilation;
+using Rectloom.Core.Css.Computed;
+using Rectloom.Core.Css.Parsing;
+using Rectloom.Core.Diagnostics;
+using Rectloom.Core.Dom;
+using Rectloom.Core.Layout;
+
+namespace Rectloom.Core.Ir
+{
+    /// <summary>
+    /// Turns a solved layout tree into the Unity UI intermediate representation.
+    /// </summary>
+    /// <remarks>
+    /// This is where an element name finally becomes a kind of UI object, and the only place that
+    /// decision is made. It is also where unsupported elements are reported, because deciding what
+    /// the compiler supports is a compilation question rather than a parsing one.
+    /// <para>
+    /// No Unity object is created here. The IR stays plain data so that it can be compared against
+    /// a previous compile and written to metadata.
+    /// </para>
+    /// </remarks>
+    public sealed class UiTreeBuilder
+    {
+        private readonly CompilerOptions _options;
+        private readonly IDiagnosticSink _diagnostics;
+        private readonly string _documentPath;
+
+        /// <summary>
+        /// Creates a builder.
+        /// </summary>
+        /// <param name="documentPath">
+        /// Asset path of the HTML source, used to resolve relative <c>src</c> attributes.
+        /// </param>
+        /// <param name="options">Compiler options, or null for defaults.</param>
+        /// <param name="diagnostics">Sink for unsupported-element and asset diagnostics.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="diagnostics"/> is null.</exception>
+        public UiTreeBuilder(string? documentPath, CompilerOptions? options, IDiagnosticSink diagnostics)
+        {
+            _options = options ?? new CompilerOptions();
+            _diagnostics = diagnostics ?? throw new ArgumentNullException(nameof(diagnostics));
+            _documentPath = documentPath ?? string.Empty;
+        }
+
+        /// <summary>
+        /// Builds the IR of a solved document.
+        /// </summary>
+        /// <param name="root">Root of the solved layout tree.</param>
+        /// <returns>The root IR node.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="root"/> is null.</exception>
+        public UiNode Build(LayoutResult root)
+        {
+            if (root == null)
+            {
+                throw new ArgumentNullException(nameof(root));
+            }
+
+            var allocator = new StableId.Allocator();
+            return BuildNode(root, parentId: null, siblingIndex: 0, allocator);
+        }
+
+        private UiNode BuildNode(
+            LayoutResult result,
+            string? parentId,
+            int siblingIndex,
+            StableId.Allocator allocator)
+        {
+            LayoutBox box = result.Box;
+            bool isRoot = parentId == null;
+            string tagName = box.Element?.TagName ?? "text";
+
+            string fallbackId = isRoot
+                ? StableId.RootId
+                : StableId.Structural(parentId!, tagName, siblingIndex);
+
+            string stableId = allocator.Allocate(box.Element?.Id, fallbackId);
+            UiNodeKind kind = ResolveKind(box, isRoot);
+            string name = box.Element?.Id ?? (box.IsAnonymous ? "Text" : tagName);
+
+            var node = new UiNode(stableId, kind, name, box.Source)
+            {
+                Rect = new UiRect(
+                    result.X,
+                    result.Y,
+                    result.Width,
+                    result.Height,
+                    result.ContentX,
+                    result.ContentY,
+                    result.ContentWidth,
+                    result.ContentHeight),
+                TextContent = box.TextContent,
+                Visual = UiStyleFactory.FromComputed(box.Style.Visual),
+                TextStyle = UiStyleFactory.FromComputed(box.Style.Text),
+                Asset = ResolveAsset(box),
+                ExtensionProperties = box.Style.ExtensionProperties,
+            };
+
+            AddComponentRequests(node, box.Element);
+
+            int emitted = 0;
+
+            foreach (LayoutResult child in result.Children)
+            {
+                if (ShouldSkip(child.Box))
+                {
+                    continue;
+                }
+
+                node.AddChild(BuildNode(child, stableId, emitted, allocator));
+                emitted++;
+            }
+
+            return node;
+        }
+
+        /// <summary>
+        /// Decides whether a box produces an object at all.
+        /// </summary>
+        /// <remarks>
+        /// A line break produces nothing: the layout tree already split the text around it, which is
+        /// the whole effect, so emitting an empty zero-height object would only add noise to the
+        /// hierarchy.
+        /// </remarks>
+        private static bool ShouldSkip(LayoutBox box)
+        {
+            return box.Element != null
+                && string.Equals(box.Element.TagName, HtmlElements.LineBreak, StringComparison.Ordinal);
+        }
+
+        private UiNodeKind ResolveKind(LayoutBox box, bool isRoot)
+        {
+            if (isRoot)
+            {
+                return UiNodeKind.Root;
+            }
+
+            if (box.IsAnonymous)
+            {
+                return UiNodeKind.Text;
+            }
+
+            string tagName = box.Element!.TagName;
+
+            if (string.Equals(tagName, HtmlElements.Button, StringComparison.Ordinal))
+            {
+                return UiNodeKind.Button;
+            }
+
+            if (string.Equals(tagName, HtmlElements.Image, StringComparison.Ordinal))
+            {
+                return UiNodeKind.Image;
+            }
+
+            if (string.Equals(tagName, HtmlElements.Paragraph, StringComparison.Ordinal)
+                || HtmlElements.IsHeading(tagName))
+            {
+                return UiNodeKind.Text;
+            }
+
+            if (!HtmlElements.IsSupported(tagName))
+            {
+                ReportUnsupportedElement(box, tagName);
+            }
+
+            // A box whose only content is text renders that text itself, whatever its tag. Wrapping
+            // it in an empty container would double the object count for no gain.
+            return box.IsTextBox ? UiNodeKind.Text : UiNodeKind.Container;
+        }
+
+        private void ReportUnsupportedElement(LayoutBox box, string tagName)
+        {
+            string message = "<" + tagName + "> is not a supported element. It compiles to a plain "
+                + "container, and its own behaviour is not reproduced.";
+
+            if (_options.StrictMode)
+            {
+                _diagnostics.Error(
+                    DiagnosticCodes.Html.UnknownElement,
+                    message,
+                    box.Source,
+                    "Use a supported element, or turn strict mode off.");
+                return;
+            }
+
+            _diagnostics.Warning(
+                DiagnosticCodes.Html.UnknownElement,
+                message,
+                box.Source,
+                "Use div, span, p, h1 to h6, button or img.");
+        }
+
+        /// <summary>
+        /// Picks the image a node paints.
+        /// </summary>
+        /// <remarks>
+        /// An <c>img</c> source wins over a <c>background-image</c>, because a node paints one
+        /// graphic and the element's own source is the more specific intent.
+        /// </remarks>
+        private AssetReference ResolveAsset(LayoutBox box)
+        {
+            if (box.Element != null
+                && string.Equals(box.Element.TagName, HtmlElements.Image, StringComparison.Ordinal)
+                && box.Element.TryGetAttribute("src", out DomAttribute src))
+            {
+                return BuildReference(src.Value, src.Source, relativeToFile: _documentPath);
+            }
+
+            string? background = box.Style.Visual.BackgroundImage;
+
+            if (background == null)
+            {
+                return AssetReference.None;
+            }
+
+            // The stylesheet path was already applied while the computed style was built.
+            return AssetReference.LooksLikeGuid(background)
+                ? AssetReference.FromGuid(background, box.Style.Visual.BackgroundImageSource)
+                : AssetReference.FromPath(background, box.Style.Visual.BackgroundImageSource);
+        }
+
+        private AssetReference BuildReference(string? value, SourceLocation source, string relativeToFile)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return AssetReference.None;
+            }
+
+            string reference = value!.Trim();
+
+            if (AssetReference.LooksLikeGuid(reference))
+            {
+                return AssetReference.FromGuid(reference, source);
+            }
+
+            string? resolved = CssPathResolver.Resolve(relativeToFile, reference);
+
+            if (resolved == null)
+            {
+                _diagnostics.Error(
+                    DiagnosticCodes.Asset.NotFound,
+                    "'" + reference + "' is not a usable path inside the project.",
+                    source,
+                    "Use a path relative to this file, or one starting at Assets/.");
+                return AssetReference.None;
+            }
+
+            return AssetReference.FromPath(resolved, source);
+        }
+
+        private void AddComponentRequests(UiNode node, DomElement? element)
+        {
+            if (element == null || !element.TryGetAttribute(ComponentRequest.TypeAttributeName, out DomAttribute type))
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(type.Value))
+            {
+                _diagnostics.Warning(
+                    DiagnosticCodes.Extension.RequiredExtensionNotInstalled,
+                    "The component attribute has no type name and was ignored.",
+                    type.Source,
+                    "Write component=\"Namespace.TypeName\".");
+                return;
+            }
+
+            var properties = new Dictionary<string, string>(StringComparer.Ordinal);
+
+            foreach (DomAttribute attribute in element.Attributes)
+            {
+                if (!attribute.Name.StartsWith(ComponentRequest.PropertyAttributePrefix, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                string property = attribute.Name.Substring(ComponentRequest.PropertyAttributePrefix.Length);
+
+                if (property.Length > 0)
+                {
+                    properties[property] = attribute.Value;
+                }
+            }
+
+            node.AddComponent(new ComponentRequest(type.Value, properties, type.Source));
+        }
+    }
+}

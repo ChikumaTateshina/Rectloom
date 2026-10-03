@@ -52,6 +52,20 @@ namespace Rectloom.Core.Compilation
         /// </summary>
         public bool AllowRawImageFallback { get; set; } = true;
 
+        /// <summary>Default folder for assets the compiler generates.</summary>
+        public const string DefaultGeneratedAssetFolder = "Assets/Rectloom/Generated";
+
+        /// <summary>
+        /// Project folder the compiler writes generated assets into, such as the sprites it builds
+        /// for rounded corners and borders.
+        /// </summary>
+        /// <remarks>
+        /// Generated assets have to be real project assets, because a prefab cannot reference a
+        /// texture that exists only in memory. They are shared and cached by appearance, so the same
+        /// corner radius and border never produce a second file.
+        /// </remarks>
+        public string GeneratedAssetFolder { get; set; } = DefaultGeneratedAssetFolder;
+
         /// <summary>
         /// Creates an independent copy of these options.
         /// </summary>
@@ -69,6 +83,7 @@ namespace Rectloom.Core.Compilation
                 UseDefaultStyleSheet = UseDefaultStyleSheet,
                 PreserveModifiedGeneratedObjects = PreserveModifiedGeneratedObjects,
                 AllowRawImageFallback = AllowRawImageFallback,
+                GeneratedAssetFolder = GeneratedAssetFolder,
             };
         }
     }

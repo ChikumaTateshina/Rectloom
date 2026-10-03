@@ -118,6 +118,19 @@ namespace Rectloom.Core.Diagnostics
 
             /// <summary>A compile transaction was rolled back and no output was committed.</summary>
             public const string TransactionRollback = "UNITY1003";
+
+            /// <summary>
+            /// An update compile was requested before incremental compilation is available.
+            /// </summary>
+            /// <remarks>
+            /// Reported instead of regenerating the hierarchy, because regenerating would discard
+            /// the UnityEvents and components an update exists to preserve. Retired once metadata
+            /// based updates land.
+            /// </remarks>
+            public const string IncrementalCompileUnavailable = "UNITY1004";
+
+            /// <summary>Create mode was asked to write output that already exists.</summary>
+            public const string OutputAlreadyExists = "UNITY1005";
         }
 
         /// <summary>Asset resolution codes.</summary>
