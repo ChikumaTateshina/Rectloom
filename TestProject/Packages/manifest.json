@@ -13,6 +13,7 @@
     "com.unity.modules.uielements": "1.0.0"
   },
   "testables": [
-    "com.chikumatateshina.rectloom.core"
+    "com.chikumatateshina.rectloom.core",
+    "com.chikumatateshina.rectloom.ugui"
   ]
 }
