@@ -151,8 +151,20 @@ def check_asmdefs() -> None:
             fail(f"{rel}: assembly name '{name}' already used by {seen[name]}")
         seen[name] = rel
 
-        if asmdef.get("includePlatforms") != ["Editor"]:
-            fail(f"{rel}: compiler assemblies must set includePlatforms to [\"Editor\"]")
+        # Everything that ships must be Editor-only, so nothing of the compiler can reach a
+        # player build. A test-support assembly may be a runtime one -- Unity refuses to attach a
+        # MonoBehaviour from an Editor-only assembly, so a binder test needs one -- but only if a
+        # define constraint keeps it out of builds entirely.
+        is_test_runtime = "Tests" in asmdef_path.parts and "Runtime" in asmdef_path.parts
+
+        if is_test_runtime:
+            if "UNITY_INCLUDE_TESTS" not in (asmdef.get("defineConstraints") or []):
+                fail(
+                    f"{rel}: a runtime test assembly must constrain itself to "
+                    f"UNITY_INCLUDE_TESTS so it cannot ship in a build"
+                )
+        elif asmdef.get("includePlatforms") != ["Editor"]:
+            fail(f"{rel}: shipped assemblies must set includePlatforms to [\"Editor\"]")
 
 
 def check_test_project(versions: dict[str, str]) -> None:
