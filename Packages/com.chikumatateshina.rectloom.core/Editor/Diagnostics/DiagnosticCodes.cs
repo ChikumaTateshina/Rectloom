@@ -120,17 +120,31 @@ namespace Rectloom.Core.Diagnostics
             public const string TransactionRollback = "UNITY1003";
 
             /// <summary>
-            /// An update compile was requested before incremental compilation is available.
+            /// Retired. Was reported when an update compile was requested before incremental
+            /// compilation existed.
             /// </summary>
             /// <remarks>
-            /// Reported instead of regenerating the hierarchy, because regenerating would discard
-            /// the UnityEvents and components an update exists to preserve. Retired once metadata
-            /// based updates land.
+            /// Kept so the number is never reused for something else. Update compilation works
+            /// now, and nothing reports this.
             /// </remarks>
-            public const string IncrementalCompileUnavailable = "UNITY1004";
+            public const string RetiredIncrementalCompileUnavailable = "UNITY1004";
 
             /// <summary>Create mode was asked to write output that already exists.</summary>
             public const string OutputAlreadyExists = "UNITY1005";
+
+            /// <summary>
+            /// A generated object left the source but was kept because someone had worked on it.
+            /// </summary>
+            public const string GeneratedObjectPreserved = "UNITY1006";
+
+            /// <summary>
+            /// A generated object that someone had worked on was deleted, because preserving
+            /// modified generated objects is switched off.
+            /// </summary>
+            public const string GeneratedObjectRemoved = "UNITY1007";
+
+            /// <summary>An update compile could not find the output or metadata it needed.</summary>
+            public const string UpdateTargetNotFound = "UNITY1008";
         }
 
         /// <summary>Asset resolution codes.</summary>

@@ -32,7 +32,7 @@ namespace Rectloom.Ugui.Windows
         [SerializeField] private List<string> _cssPaths = new List<string>();
         [SerializeField] private CompileOutputType _outputType = CompileOutputType.Prefab;
         [SerializeField] private string _outputPath = "Assets/UI/Generated.prefab";
-        [SerializeField] private CompileMode _compileMode = CompileMode.Create;
+        [SerializeField] private CompileMode _compileMode = CompileMode.Update;
         [SerializeField] private LayoutMode _layoutMode = LayoutMode.Bake;
         [SerializeField] private Vector2 _referenceResolution = CompilerOptions.DefaultReferenceResolution;
         [SerializeField] private bool _useDefaultStyleSheet = true;
@@ -87,9 +87,10 @@ namespace Rectloom.Ugui.Windows
             {
                 case CompileMode.Update:
                     EditorGUILayout.HelpBox(
-                        "Update compilation is not available yet. Use Create for new output, or "
-                            + "Rebuild to replace existing output.",
-                        MessageType.Warning);
+                        "Update keeps what you have wired up: events, object references and "
+                            + "components you added by hand survive. It needs output this compiler "
+                            + "generated before, with its metadata asset still beside it.",
+                        MessageType.Info);
                     break;
 
                 case CompileMode.Rebuild:

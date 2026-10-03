@@ -73,8 +73,23 @@ namespace Rectloom.Core.Ir
         /// <summary>What kind of UI object this node compiles to.</summary>
         public UiNodeKind Kind { get; }
 
-        /// <summary>Name to give the generated object.</summary>
+        /// <summary>
+        /// Name to give the generated object, unique among its siblings.
+        /// </summary>
+        /// <remarks>
+        /// Uniqueness matters because an update compile finds an existing object by the path of
+        /// names from the generated root, and two siblings with one name would be
+        /// indistinguishable.
+        /// </remarks>
         public string Name { get; }
+
+        /// <summary>
+        /// Tag name of the element this node came from, or an empty string for a generated object.
+        /// </summary>
+        /// <remarks>
+        /// Recorded in metadata, where it tells a developer what a structural identity refers to.
+        /// </remarks>
+        public string SourceTag { get; internal set; } = string.Empty;
 
         /// <summary>Baked rectangle of this node.</summary>
         public UiRect Rect { get; internal set; }

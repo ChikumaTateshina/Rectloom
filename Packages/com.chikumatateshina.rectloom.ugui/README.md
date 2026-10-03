@@ -20,5 +20,8 @@ Stage D (uGUI Backend) まで完了。
 座標系の変換 (レイアウトは左上原点 / +Y 下、Unity は左下原点 / +Y 上) を行うのは
 `RectTransformBaker` だけです。
 
-`CompileMode.Update` は差分コンパイル (Stage E) 実装まで拒否されます。
-再生成するとユーザーが設定した UnityEvent や Component を壊すためです。
+`CompileMode.Update` は既存の階層を新しい IR と突き合わせて更新します。
+Compiler が所有するプロパティだけを書き換えるので、`Button.onClick`、UnityEvent、
+ユーザーが手で追加した Component は保持されます。
+前回のコンパイル記録 (metadata アセット) が見つからない場合は、
+どこがユーザーのものか判別できないため更新を拒否します。

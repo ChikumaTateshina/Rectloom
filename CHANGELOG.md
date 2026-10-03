@@ -70,6 +70,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Editor window at **Tools → Rectloom → Compiler**, with Validate, Compile and Rebuild, and a
   diagnostics list that opens the source file on double click (Issue #26).
 
+#### Stage E — Incremental compilation
+
+- `RectloomDocumentMetadata`, an Editor-only asset recording the sources, the compiler version, a
+  source hash and one entry per generated object (Issues #27, #28).
+- `OwnershipInspector`, which tells compiler-owned data from a user's own work by looking for
+  unmanaged components, unmanaged children and wired UnityEvents (Issue #29).
+- `CompileMode.Update`: the existing hierarchy is reconciled against the new IR instead of being
+  regenerated, so a stylesheet change repaints a button without discarding what is wired to it
+  (Issue #30).
+- Removed-node policy: an object the compiler owns outright is deleted, and one someone has worked
+  on is kept and reported, or deleted when `PreserveModifiedGeneratedObjects` is switched off
+  (Issue #31).
+- Prefab updates load the asset's contents, reconcile them and save back, so a failed update leaves
+  the prefab untouched. Scene updates register one undo entry.
+- Incremental regression tests for the three scenarios docs/09 section 7 requires (Issue #33).
+
 ### Changed
 
 - `background-image` URLs are now resolved against the stylesheet that declared them while the
@@ -80,9 +96,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Notes
 
-- `CompileMode.Update` is refused for now: regenerating the hierarchy instead would discard the
-  UnityEvents and components an update exists to preserve. Use `Create` or `Rebuild` until
-  incremental compilation lands in Stage E.
+- `CompileMode.Update` needs output this compiler generated before, with its metadata asset still
+  beside it. Without that record it refuses rather than guessing which parts are yours. `UNITY1004`
+  is retired and its number reserved.
 - The layout engine does not collapse adjacent margins, has no inline formatting context and does
   not support `flex-grow`. See ADR-0003.
 

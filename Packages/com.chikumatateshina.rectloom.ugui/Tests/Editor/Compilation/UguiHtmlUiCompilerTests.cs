@@ -173,7 +173,7 @@ namespace Rectloom.Ugui.Tests.Compilation
         }
 
         [Test]
-        public void UpdateMode_IsRefusedWithoutTouchingAnything()
+        public void UpdateWithNothingToUpdate_IsRefusedWithoutTouchingAnything()
         {
             CompileResult result = Compiler().Compile(Request(mode: CompileMode.Update));
 
@@ -181,9 +181,24 @@ namespace Rectloom.Ugui.Tests.Compilation
             Assert.That(result.RootObject, Is.Null);
             Assert.That(
                 result.Diagnostics.Single().Code,
-                Is.EqualTo(DiagnosticCodes.Unity.IncrementalCompileUnavailable),
-                "regenerating would discard the very data an update exists to preserve");
+                Is.EqualTo(DiagnosticCodes.Unity.UpdateTargetNotFound),
+                "with no record of a previous pass, there is no way to tell which parts are the user's");
             Assert.That(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath), Is.Null);
+        }
+
+        [Test]
+        public void UpdateAfterCreate_KeepsTheSameAsset()
+        {
+            Assert.That(Compiler().Compile(Request()).Success, Is.True);
+
+            string guidBefore = AssetDatabase.AssetPathToGUID(PrefabPath);
+            CompileResult updated = Compiler().Compile(Request(mode: CompileMode.Update));
+
+            Assert.That(updated.Success, Is.True, Describe(updated));
+            Assert.That(
+                AssetDatabase.AssetPathToGUID(PrefabPath),
+                Is.EqualTo(guidBefore),
+                "an update edits the prefab in place, so anything referencing it keeps working");
         }
 
         [Test]

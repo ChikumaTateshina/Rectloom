@@ -99,7 +99,7 @@ namespace Rectloom.Ugui.Tests.Backend
             UiNode ir = new UiTreeBuilder(HtmlPath, _options, _diagnostics).Build(solved);
 
             var backend = new UguiBackend(assets ?? new EmptyAssetResolver(), _options, _diagnostics);
-            GameObject root = backend.Build(ir, parent: null);
+            GameObject root = backend.Build(ir, parent: null).Root;
             _created.Add(root);
             return root;
         }
@@ -163,7 +163,8 @@ namespace Rectloom.Ugui.Tests.Backend
             UiNode ir = new UiTreeBuilder(HtmlPath, _options, _diagnostics).Build(solved);
 
             GameObject root = new UguiBackend(new EmptyAssetResolver(), _options, _diagnostics)
-                .Build(ir, host.transform);
+                .Build(ir, host.transform)
+                .Root;
 
             Assert.That(root.GetComponent<Canvas>(), Is.Null);
             Assert.That(root.transform.parent, Is.EqualTo(host.transform));

@@ -40,8 +40,8 @@ Canvas
 
 ## 状態
 
-**開発中 (Stage D 完了)。HTML/CSS から Prefab / Scene オブジェクトを生成できます。**
-差分コンパイル (Stage E) は未実装のため、`Update` モードは意図的に拒否されます。
+**開発中 (Stage E 完了)。HTML/CSS から Prefab / Scene オブジェクトを生成し、差分更新できます。**
+再コンパイルしても `Button.onClick`、UnityEvent、ユーザー追加 Component は保持されます。
 
 | Stage | 内容 | 状態 |
 |---|---|---|
@@ -49,7 +49,7 @@ Canvas
 | B | HTML / DOM / CSS / Selector / Cascade / ComputedStyle | 完了 |
 | C | Box Model / Flex Layout / LayoutResult | 完了 |
 | D | Unity IR / uGUI Backend / TMP / Button / Image | 完了 |
-| E | Stable ID / Metadata / Update Compile / Ownership | 未着手 |
+| E | Stable ID / Metadata / Update Compile / Ownership | 完了 |
 | F | Component Binder / Extension API | 未着手 |
 | G | VRChat Adapter / VPM / External UI Adapter | 未着手 |
 

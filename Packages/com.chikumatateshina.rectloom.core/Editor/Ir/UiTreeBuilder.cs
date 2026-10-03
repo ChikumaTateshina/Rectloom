@@ -59,14 +59,15 @@ namespace Rectloom.Core.Ir
             }
 
             var allocator = new StableId.Allocator();
-            return BuildNode(root, parentId: null, siblingIndex: 0, allocator);
+            return BuildNode(root, parentId: null, siblingIndex: 0, allocator, new NameAllocator());
         }
 
         private UiNode BuildNode(
             LayoutResult result,
             string? parentId,
             int siblingIndex,
-            StableId.Allocator allocator)
+            StableId.Allocator allocator,
+            NameAllocator names)
         {
             LayoutBox box = result.Box;
             bool isRoot = parentId == null;
@@ -78,7 +79,7 @@ namespace Rectloom.Core.Ir
 
             string stableId = allocator.Allocate(box.Element?.Id, fallbackId);
             UiNodeKind kind = ResolveKind(box, isRoot);
-            string name = box.Element?.Id ?? (box.IsAnonymous ? "Text" : tagName);
+            string name = names.Allocate(box.Element?.Id ?? (box.IsAnonymous ? "Text" : tagName));
 
             var node = new UiNode(stableId, kind, name, box.Source)
             {
@@ -96,11 +97,13 @@ namespace Rectloom.Core.Ir
                 TextStyle = UiStyleFactory.FromComputed(box.Style.Text),
                 Asset = ResolveAsset(box),
                 ExtensionProperties = box.Style.ExtensionProperties,
+                SourceTag = box.Element?.TagName ?? string.Empty,
             };
 
             AddComponentRequests(node, box.Element);
 
             int emitted = 0;
+            var childNames = new NameAllocator();
 
             foreach (LayoutResult child in result.Children)
             {
@@ -109,11 +112,44 @@ namespace Rectloom.Core.Ir
                     continue;
                 }
 
-                node.AddChild(BuildNode(child, stableId, emitted, allocator));
+                node.AddChild(BuildNode(child, stableId, emitted, allocator, childNames));
                 emitted++;
             }
 
             return node;
+        }
+
+        /// <summary>
+        /// Hands out object names that are unique among one parent's children.
+        /// </summary>
+        /// <remarks>
+        /// An update compile finds an existing object by its path of names, so two siblings sharing
+        /// a name would be indistinguishable. Repeats get a numeric suffix, following the
+        /// convention the Editor itself uses when duplicating an object.
+        /// </remarks>
+        private sealed class NameAllocator
+        {
+            private readonly HashSet<string> _used = new HashSet<string>(StringComparer.Ordinal);
+
+            internal string Allocate(string preferred)
+            {
+                string name = string.IsNullOrWhiteSpace(preferred) ? "Node" : preferred;
+
+                if (_used.Add(name))
+                {
+                    return name;
+                }
+
+                for (int suffix = 1; ; suffix++)
+                {
+                    string candidate = name + " (" + suffix.ToString() + ")";
+
+                    if (_used.Add(candidate))
+                    {
+                        return candidate;
+                    }
+                }
+            }
         }
 
         /// <summary>

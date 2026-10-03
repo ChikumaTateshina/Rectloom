@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using Rectloom.Core;
 using Rectloom.Core.Assets;
 using Rectloom.Core.Compilation;
 using Rectloom.Core.Css;
@@ -14,6 +15,7 @@ using Rectloom.Core.Diagnostics;
 using Rectloom.Core.Dom;
 using Rectloom.Core.Ir;
 using Rectloom.Core.Layout;
+using Rectloom.Core.Metadata;
 using Rectloom.Core.Parsing;
 using Rectloom.Ugui.Backend;
 using UnityEditor;
@@ -31,6 +33,11 @@ namespace Rectloom.Ugui.Compilation
     /// <para>
     /// Output is built detached first and committed only once the pass has produced no errors, so a
     /// failed compile cannot leave a half-written prefab behind.
+    /// </para>
+    /// <para>
+    /// An update pass reconciles the existing hierarchy against the new IR instead of regenerating
+    /// it, which is what lets a stylesheet change repaint a button without discarding the events
+    /// someone wired to it.
     /// </para>
     /// </remarks>
     public sealed class UguiHtmlUiCompiler : IHtmlUiCompiler
@@ -115,8 +122,7 @@ namespace Rectloom.Ugui.Compilation
 
             if (!ValidateRequest(request, commitOutput, diagnostics))
             {
-                statistics.TotalMilliseconds = total.Elapsed.TotalMilliseconds;
-                return CompileResult.Failed(diagnostics.ToArray(), statistics);
+                return Fail(diagnostics, statistics, total);
             }
 
             var parse = Stopwatch.StartNew();
@@ -129,8 +135,7 @@ namespace Rectloom.Ugui.Compilation
                     SourceLocation.None,
                     "Check the path, and that the file is inside the project.");
 
-                statistics.TotalMilliseconds = total.Elapsed.TotalMilliseconds;
-                return CompileResult.Failed(diagnostics.ToArray(), statistics);
+                return Fail(diagnostics, statistics, total);
             }
 
             DomDocument document = new HtmlParser().Parse(request.HtmlAssetPath!, html, diagnostics);
@@ -145,8 +150,7 @@ namespace Rectloom.Ugui.Compilation
                     SourceLocation.FileStart(request.HtmlAssetPath!),
                     "Add a body element with some content.");
 
-                statistics.TotalMilliseconds = total.Elapsed.TotalMilliseconds;
-                return CompileResult.Failed(diagnostics.ToArray(), statistics);
+                return Fail(diagnostics, statistics, total);
             }
 
             foreach (DomElement _ in document.Elements())
@@ -182,8 +186,7 @@ namespace Rectloom.Ugui.Compilation
                     document.DocumentElement.Source,
                     "Remove display: none from the body element.");
 
-                statistics.TotalMilliseconds = total.Elapsed.TotalMilliseconds;
-                return CompileResult.Failed(diagnostics.ToArray(), statistics);
+                return Fail(diagnostics, statistics, total);
             }
 
             var layout = Stopwatch.StartNew();
@@ -215,7 +218,7 @@ namespace Rectloom.Ugui.Compilation
                         : CompileResult.Create(null, diagnostics.ToArray(), statistics);
                 }
 
-                return Emit(request, options, ir, diagnostics, statistics, total);
+                return Emit(request, options, ir, html, diagnostics, statistics, total);
             }
             finally
             {
@@ -227,6 +230,21 @@ namespace Rectloom.Ugui.Compilation
             CompileRequest request,
             CompilerOptions options,
             UiNode ir,
+            string html,
+            DiagnosticSink diagnostics,
+            CompileStatistics statistics,
+            Stopwatch total)
+        {
+            return request.CompileMode == CompileMode.Update
+                ? EmitUpdate(request, options, ir, html, diagnostics, statistics, total)
+                : EmitCreate(request, options, ir, html, diagnostics, statistics, total);
+        }
+
+        private CompileResult EmitCreate(
+            CompileRequest request,
+            CompilerOptions options,
+            UiNode ir,
+            string html,
             DiagnosticSink diagnostics,
             CompileStatistics statistics,
             Stopwatch total)
@@ -235,35 +253,275 @@ namespace Rectloom.Ugui.Compilation
             var backend = new UguiBackend(_assets, options, diagnostics);
 
             // Built detached so that an error found while generating leaves nothing behind.
-            GameObject staged = backend.Build(ir, parent: null);
+            BackendResult staged = backend.Build(ir, parent: null);
 
             backendTimer.Stop();
-            statistics.BackendMilliseconds = backendTimer.Elapsed.TotalMilliseconds;
-            statistics.CreatedObjectCount = backend.CreatedObjectCount;
+            Record(statistics, staged, backendTimer);
 
             if (diagnostics.HasErrors)
             {
-                UnityEngine.Object.DestroyImmediate(staged);
-
-                diagnostics.Warning(
-                    DiagnosticCodes.Unity.TransactionRollback,
-                    "No output was written because generation reported errors.",
-                    SourceLocation.None,
-                    "Fix the errors above and compile again.");
-
-                statistics.TotalMilliseconds = total.Elapsed.TotalMilliseconds;
-                return CompileResult.Failed(diagnostics.ToArray(), statistics);
+                return Rollback(staged.Root, diagnostics, statistics, total);
             }
 
             GameObject? committed = request.OutputType == CompileOutputType.Prefab
-                ? CommitPrefab(request, staged, diagnostics)
-                : CommitSceneObject(staged);
+                ? CommitPrefab(request, staged.Root, diagnostics)
+                : CommitSceneObject(staged.Root);
+
+            if (committed == null)
+            {
+                return Fail(diagnostics, statistics, total);
+            }
+
+            WriteMetadata(request, html, staged, committed, diagnostics);
 
             statistics.TotalMilliseconds = total.Elapsed.TotalMilliseconds;
+            return CompileResult.Create(committed, diagnostics.ToArray(), statistics);
+        }
 
-            return committed == null
-                ? CompileResult.Failed(diagnostics.ToArray(), statistics)
-                : CompileResult.Create(committed, diagnostics.ToArray(), statistics);
+        /// <summary>
+        /// Reconciles existing output against the new IR.
+        /// </summary>
+        /// <remarks>
+        /// Prefab contents are loaded into a temporary hierarchy, updated there and saved back, so
+        /// a failure cannot leave the asset half-written. A scene object is updated in place, with
+        /// an undo entry so the whole update can be reverted in one step.
+        /// </remarks>
+        private CompileResult EmitUpdate(
+            CompileRequest request,
+            CompilerOptions options,
+            UiNode ir,
+            string html,
+            DiagnosticSink diagnostics,
+            CompileStatistics statistics,
+            Stopwatch total)
+        {
+            string? metadataPath = MetadataStore.GetMetadataPath(request);
+            RectloomDocumentMetadata? previous = MetadataStore.Load(metadataPath);
+
+            if (previous == null)
+            {
+                diagnostics.Error(
+                    DiagnosticCodes.Unity.UpdateTargetNotFound,
+                    "No compile metadata was found at '" + metadataPath + "', so there is no record "
+                        + "of what to update.",
+                    SourceLocation.None,
+                    "Use Create for new output, or Rebuild to regenerate and start a new record.");
+
+                return Fail(diagnostics, statistics, total);
+            }
+
+            if (!previous.IsSchemaSupported)
+            {
+                diagnostics.Error(
+                    DiagnosticCodes.Unity.UpdateTargetNotFound,
+                    "The metadata at '" + metadataPath + "' was written with schema version "
+                        + previous.SchemaVersion + ", and this compiler reads version "
+                        + RectloomDocumentMetadata.CurrentSchemaVersion + ". Updating it could "
+                        + "misread which parts of the output are yours.",
+                    SourceLocation.None,
+                    "Use Rebuild to regenerate the output and write current metadata.");
+
+                return Fail(diagnostics, statistics, total);
+            }
+
+            return request.OutputType == CompileOutputType.Prefab
+                ? UpdatePrefab(request, options, ir, html, previous, diagnostics, statistics, total)
+                : UpdateSceneObject(request, options, ir, html, previous, diagnostics, statistics, total);
+        }
+
+        private CompileResult UpdatePrefab(
+            CompileRequest request,
+            CompilerOptions options,
+            UiNode ir,
+            string html,
+            RectloomDocumentMetadata previous,
+            DiagnosticSink diagnostics,
+            CompileStatistics statistics,
+            Stopwatch total)
+        {
+            string path = request.OutputPath!;
+
+            if (AssetDatabase.LoadMainAssetAtPath(path) == null)
+            {
+                diagnostics.Error(
+                    DiagnosticCodes.Unity.UpdateTargetNotFound,
+                    "There is no prefab at '" + path + "' to update.",
+                    SourceLocation.None,
+                    "Use Create to generate it.");
+
+                return Fail(diagnostics, statistics, total);
+            }
+
+            GameObject contents = PrefabUtility.LoadPrefabContents(path);
+
+            try
+            {
+                var backendTimer = Stopwatch.StartNew();
+                BackendResult result = new UguiBackend(_assets, options, diagnostics)
+                    .Update(ir, contents, previous);
+
+                backendTimer.Stop();
+                Record(statistics, result, backendTimer);
+
+                if (diagnostics.HasErrors)
+                {
+                    diagnostics.Warning(
+                        DiagnosticCodes.Unity.TransactionRollback,
+                        "The prefab was left unchanged because the update reported errors.",
+                        SourceLocation.None,
+                        "Fix the errors above and compile again.");
+
+                    return Fail(diagnostics, statistics, total);
+                }
+
+                PrefabUtility.SaveAsPrefabAsset(contents, path, out bool success);
+
+                if (!success)
+                {
+                    diagnostics.Error(
+                        DiagnosticCodes.Unity.PrefabWriteFailed,
+                        "The prefab at '" + path + "' could not be written.",
+                        SourceLocation.None,
+                        "Check that the file is not read-only.");
+
+                    return Fail(diagnostics, statistics, total);
+                }
+
+                var saved = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                WriteMetadata(request, html, result, saved, diagnostics);
+
+                statistics.TotalMilliseconds = total.Elapsed.TotalMilliseconds;
+                return CompileResult.Create(saved, diagnostics.ToArray(), statistics);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(contents);
+            }
+        }
+
+        private CompileResult UpdateSceneObject(
+            CompileRequest request,
+            CompilerOptions options,
+            UiNode ir,
+            string html,
+            RectloomDocumentMetadata previous,
+            DiagnosticSink diagnostics,
+            CompileStatistics statistics,
+            Stopwatch total)
+        {
+            GameObject? existing = MetadataStore.ResolveGlobalObjectId(previous.RootGlobalObjectId);
+
+            if (existing == null)
+            {
+                diagnostics.Error(
+                    DiagnosticCodes.Unity.UpdateTargetNotFound,
+                    "The generated object recorded in the metadata no longer exists, so there is "
+                        + "nothing to update.",
+                    SourceLocation.None,
+                    "Open the scene it was generated in, or use Create to generate it again.");
+
+                return Fail(diagnostics, statistics, total);
+            }
+
+            Undo.RegisterFullObjectHierarchyUndo(existing, "Update " + existing.name);
+
+            var backendTimer = Stopwatch.StartNew();
+            BackendResult result = new UguiBackend(_assets, options, diagnostics)
+                .Update(ir, existing, previous);
+
+            backendTimer.Stop();
+            Record(statistics, result, backendTimer);
+
+            if (diagnostics.HasErrors)
+            {
+                return Fail(diagnostics, statistics, total);
+            }
+
+            WriteMetadata(request, html, result, result.Root, diagnostics);
+
+            statistics.TotalMilliseconds = total.Elapsed.TotalMilliseconds;
+            return CompileResult.Create(result.Root, diagnostics.ToArray(), statistics);
+        }
+
+        private void WriteMetadata(
+            CompileRequest request,
+            string html,
+            BackendResult result,
+            GameObject? committed,
+            DiagnosticSink diagnostics)
+        {
+            string? metadataPath = MetadataStore.GetMetadataPath(request);
+
+            if (metadataPath == null)
+            {
+                diagnostics.Warning(
+                    DiagnosticCodes.Unity.UpdateTargetNotFound,
+                    "Compile metadata could not be stored, so a later update compile will not be "
+                        + "able to recognise this output.",
+                    SourceLocation.None,
+                    "Give the request an output path.");
+                return;
+            }
+
+            var metadata = ScriptableObject.CreateInstance<RectloomDocumentMetadata>();
+            metadata.SchemaVersion = RectloomDocumentMetadata.CurrentSchemaVersion;
+            metadata.CompilerVersion = RectloomVersion.Current;
+            metadata.SourceHtmlPath = request.HtmlAssetPath ?? string.Empty;
+            metadata.SourceHtmlGuid = AssetDatabase.AssetPathToGUID(request.HtmlAssetPath) ?? string.Empty;
+            metadata.SourceCssPaths.AddRange(request.CssAssetPaths);
+            metadata.SourceCssGuids.AddRange(MetadataStore.ToGuids(request.CssAssetPaths));
+            metadata.SourceHash = ComputeSourceHash(request, html);
+            metadata.RootGlobalObjectId = MetadataStore.CaptureGlobalObjectId(committed ?? result.Root);
+            metadata.SetNodes(result.Nodes);
+
+            MetadataStore.Save(metadataPath, metadata);
+        }
+
+        private string ComputeSourceHash(CompileRequest request, string html)
+        {
+            var sources = new List<string> { html };
+
+            foreach (string path in request.CssAssetPaths)
+            {
+                sources.Add(_sources.TryLoad(path, out string css) ? css : string.Empty);
+            }
+
+            return RectloomDocumentMetadata.ComputeSourceHash(sources);
+        }
+
+        private static void Record(CompileStatistics statistics, BackendResult result, Stopwatch timer)
+        {
+            statistics.BackendMilliseconds = timer.Elapsed.TotalMilliseconds;
+            statistics.CreatedObjectCount = result.CreatedCount;
+            statistics.UpdatedObjectCount = result.UpdatedCount;
+            statistics.RemovedObjectCount = result.RemovedCount;
+            statistics.PreservedObjectCount = result.PreservedCount;
+        }
+
+        private static CompileResult Fail(
+            DiagnosticSink diagnostics,
+            CompileStatistics statistics,
+            Stopwatch total)
+        {
+            statistics.TotalMilliseconds = total.Elapsed.TotalMilliseconds;
+            return CompileResult.Failed(diagnostics.ToArray(), statistics);
+        }
+
+        private static CompileResult Rollback(
+            GameObject staged,
+            DiagnosticSink diagnostics,
+            CompileStatistics statistics,
+            Stopwatch total)
+        {
+            UnityEngine.Object.DestroyImmediate(staged);
+
+            diagnostics.Warning(
+                DiagnosticCodes.Unity.TransactionRollback,
+                "No output was written because generation reported errors.",
+                SourceLocation.None,
+                "Fix the errors above and compile again.");
+
+            return Fail(diagnostics, statistics, total);
         }
 
         private static GameObject? CommitPrefab(
@@ -275,7 +533,7 @@ namespace Rectloom.Ugui.Compilation
 
             try
             {
-                EnsureFolder(path);
+                MetadataStore.EnsureFolder(ParentFolder(path));
                 GameObject saved = PrefabUtility.SaveAsPrefabAsset(staged, path, out bool success);
 
                 if (!success || saved == null)
@@ -298,42 +556,18 @@ namespace Rectloom.Ugui.Compilation
 
         private static GameObject CommitSceneObject(GameObject staged)
         {
-            // Registered so that one Ctrl+Z removes the whole generated hierarchy.
+            // Registered so that one undo removes the whole generated hierarchy.
             Undo.RegisterCreatedObjectUndo(staged, "Compile " + staged.name);
             Selection.activeGameObject = staged;
             return staged;
         }
 
-        private static void EnsureFolder(string assetPath)
+        private static string ParentFolder(string assetPath)
         {
-            int lastSlash = assetPath.LastIndexOf('/');
+            string normalised = assetPath.Replace('\\', '/');
+            int lastSlash = normalised.LastIndexOf('/');
 
-            if (lastSlash <= 0)
-            {
-                return;
-            }
-
-            string folder = assetPath.Substring(0, lastSlash);
-
-            if (AssetDatabase.IsValidFolder(folder))
-            {
-                return;
-            }
-
-            string[] parts = folder.Split('/');
-            string current = parts[0];
-
-            for (int index = 1; index < parts.Length; index++)
-            {
-                string next = current + "/" + parts[index];
-
-                if (!AssetDatabase.IsValidFolder(next))
-                {
-                    AssetDatabase.CreateFolder(current, parts[index]);
-                }
-
-                current = next;
-            }
+            return lastSlash <= 0 ? string.Empty : normalised.Substring(0, lastSlash);
         }
 
         private ITextMeasurer CreateMeasurer()
@@ -371,24 +605,7 @@ namespace Rectloom.Ugui.Compilation
                 return false;
             }
 
-            if (!commitOutput)
-            {
-                return true;
-            }
-
-            if (request.CompileMode == CompileMode.Update)
-            {
-                diagnostics.Error(
-                    DiagnosticCodes.Unity.IncrementalCompileUnavailable,
-                    "Update compilation is not available yet, and regenerating instead would "
-                        + "discard the UnityEvents and components an update exists to preserve.",
-                    SourceLocation.None,
-                    "Use Create for new output, or Rebuild to replace existing output and accept "
-                        + "losing manual edits inside it.");
-                return false;
-            }
-
-            if (request.OutputType != CompileOutputType.Prefab)
+            if (!commitOutput || request.OutputType != CompileOutputType.Prefab)
             {
                 return true;
             }
@@ -411,7 +628,7 @@ namespace Rectloom.Ugui.Compilation
                     "'" + request.OutputPath + "' already exists, and Create mode never replaces "
                         + "existing output.",
                     SourceLocation.None,
-                    "Use Rebuild to replace it, or choose another output path.");
+                    "Use Update to keep your edits, or Rebuild to replace it.");
                 return false;
             }
 
