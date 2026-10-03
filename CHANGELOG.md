@@ -86,6 +86,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the prefab untouched. Scene updates register one undo entry.
 - Incremental regression tests for the three scenarios docs/09 section 7 requires (Issue #33).
 
+#### Stage F — Extensibility
+
+- `IHtmlUiExtension`, `ExtensionContext` and `ExtensionApplyResult`: the API a library uses to be
+  driven from markup without the core depending on it (Issue #37).
+- `ExtensionRegistry`, which discovers extensions automatically and survives one that cannot be
+  constructed (Issue #38).
+- `ComponentTypeResolver`: aliases, then a full-name match, then a short-name match. A short name
+  matching more than one type is an error rather than a guess (Issue #35).
+- `ComponentBinder`: assigns `component.*` values through `SerializedProperty` for booleans,
+  numbers, strings, enums, colours, vectors, rects and asset references. Nothing in markup can
+  invoke a method, a constructor or a property setter (Issue #36).
+- `ExtensionPipeline`: the highest-priority claimant wins, a tie is an error, an unclaimed request
+  falls through to the generic binder, and an extension that throws is isolated into an `EXT1003`
+  diagnostic (Issue #34).
+- An `Extension Example` sample in the core package, importable from the Package Manager
+  (Issue #40).
+
+#### Stage G — VRChat and distribution
+
+- VRChat adapter: `vrc-world-space`, `vrc-world-scale` and `vrc-interact`, plus validation of a
+  canvas destined for a world (Issues #41, #42). The adapter compiles and runs with or without the
+  VRChat SDK, through assembly version defines.
+- `build_vpm_listing.py`, which produces the VPM `index.json` and the release zips, merging the
+  currently published listing so earlier versions stay installable (Issues #43, #45).
+- A release workflow that builds the zips, attaches them to a GitHub release and publishes the
+  listing to GitHub Pages (Issues #44, #46).
+- `docs/VCC_INSTALL.md` for Creator Companion installation (Issue #47), and `docs/ACCEPTANCE.md`
+  with the manual acceptance run (Issue #48).
+
 ### Changed
 
 - `background-image` URLs are now resolved against the stylesheet that declared them while the
@@ -93,6 +122,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ICssSourceLoader` is now `ISourceTextLoader` in `Rectloom.Core.Compilation`, and
   `FileCssSourceLoader` is now `FileSourceTextLoader`. The loader reads HTML as well as CSS, so the
   CSS-specific name no longer described it.
+- `UiNode`'s constructor takes extension properties, so an adapter can build a node for its own
+  tests while the IR stays read-only once a backend has it.
 
 ### Notes
 
@@ -101,5 +132,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   is retired and its number reserved.
 - The layout engine does not collapse adjacent margins, has no inline formatting context and does
   not support `flex-grow`. See ADR-0003.
+- The generic binder can only attach components that could exist at runtime. Unity refuses to add
+  a `MonoBehaviour` from an Editor-only assembly, so an extension's own code may be Editor-only but
+  what it attaches may not be.
 
 [Unreleased]: https://github.com/ChikumaTateshina/Rectloom/commits/main

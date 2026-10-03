@@ -12,7 +12,7 @@ IR を Unity オブジェクトへ変換するのは `com.chikumatateshina.rectl
 
 ## 実装状況
 
-Stage E (差分コンパイル) まで完了。Core 側は以下が実装済みです。
+Stage A〜G 実装完了。Core 側は以下が実装済みです。
 
 - `Rectloom.Core.Diagnostics` — `SourceLocation` / `CompilerDiagnostic` / `DiagnosticSink` / 診断コード登録
 - `Rectloom.Core.Compilation` — `IHtmlUiCompiler` / `CompileRequest` / `CompileResult` などの公開契約
@@ -23,8 +23,10 @@ Stage E (差分コンパイル) まで完了。Core 側は以下が実装済み�
 - `Rectloom.Core.Ir` — Unity UI IR、Stable ID、`UiTreeBuilder`
 - `Rectloom.Core.Assets` — `IAssetResolver`
 - `Rectloom.Core.Metadata` — `RectloomDocumentMetadata` (Editor 専用アセット)、`OwnershipInspector`
+- `Rectloom.Core.Extensions` — `IHtmlUiExtension`、`ComponentTypeResolver`、`ComponentBinder`、
+  `ExtensionPipeline`
 
-Extension API (Stage F) 以降は未実装です。
+拡張の書き方は Package Manager の `Samples → Extension Example` を参照してください。
 
 ## ドキュメント
 

@@ -3,7 +3,9 @@
   "rootNamespace": "Rectloom.VRChat",
   "references": [
     "Rectloom.Core.Editor",
-    "Rectloom.Ugui.Editor"
+    "Rectloom.Ugui.Editor",
+    "UnityEngine.UI",
+    "Unity.TextMeshPro"
   ],
   "includePlatforms": [
     "Editor"
@@ -14,6 +16,17 @@
   "precompiledReferences": [],
   "autoReferenced": true,
   "defineConstraints": [],
-  "versionDefines": [],
+  "versionDefines": [
+    {
+      "name": "com.vrchat.worlds",
+      "expression": "",
+      "define": "RECTLOOM_VRCHAT_WORLDS"
+    },
+    {
+      "name": "com.vrchat.base",
+      "expression": "",
+      "define": "RECTLOOM_VRCHAT_BASE"
+    }
+  ],
   "noEngineReferences": false
 }

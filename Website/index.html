@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rectloom VPM Repository</title>
+<style>
+:root { color-scheme: light dark; --fg: #111; --bg: #fff; --muted: #555; --line: #ddd; --accent: #2b6cb0; }
+@media (prefers-color-scheme: dark) {
+  :root { --fg: #e8e8e8; --bg: #15171a; --muted: #a0a4aa; --line: #2d3238; --accent: #7fb3ff; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; padding: 48px 16px; background: var(--bg); color: var(--fg);
+  font: 16px/1.65 -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif; }
+main { max-width: 44rem; margin: 0 auto; }
+h1 { font-size: 1.9rem; margin: 0 0 .25rem; letter-spacing: -.01em; }
+p.lead { color: var(--muted); margin: 0 0 2rem; }
+h2 { font-size: 1.1rem; margin: 2.25rem 0 .6rem; }
+code, pre { font-family: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace; font-size: .9em; }
+pre { background: color-mix(in srgb, var(--fg) 6%, transparent); border: 1px solid var(--line);
+  border-radius: 8px; padding: .8rem 1rem; overflow-x: auto; }
+a { color: var(--accent); }
+ol { padding-left: 1.3rem; }
+table { border-collapse: collapse; width: 100%; margin: .5rem 0 0; }
+th, td { text-align: left; padding: .45rem .6rem; border-bottom: 1px solid var(--line); }
+th { font-weight: 600; font-size: .85rem; color: var(--muted); }
+footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line);
+  color: var(--muted); font-size: .85rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Rectloom</h1>
+  <p class="lead">HTML/CSS を Unity uGUI へコンパイルする Editor ツールの VPM リポジトリです。</p>
+
+  <h2>VCC への追加</h2>
+  <p>VRChat Creator Companion の <code>Settings → Packages → Add Repository</code> に次の URL を入力します。</p>
+  <pre>https://chikumatateshina.github.io/Rectloom/index.json</pre>
+
+  <h2>導入手順</h2>
+  <ol>
+    <li>上の URL を購読します。</li>
+    <li>ワールドプロジェクトの <code>Manage Project</code> を開きます。</li>
+    <li><code>Rectloom for VRChat</code> を追加します。Core と uGUI Backend は依存として入ります。</li>
+    <li>Unity で <code>Tools → Rectloom → Compiler</code> を開きます。</li>
+  </ol>
+
+  <h2>パッケージ</h2>
+  <table>
+    <tr><th>Package</th><th>内容</th></tr>
+    <tr><td><code>com.chikumatateshina.rectloom.core</code></td><td>パーサー、CSS、レイアウト、IR</td></tr>
+    <tr><td><code>com.chikumatateshina.rectloom.ugui</code></td><td>uGUI / TextMeshPro バックエンド</td></tr>
+    <tr><td><code>com.chikumatateshina.rectloom.vrchat</code></td><td>VRChat アダプタ</td></tr>
+  </table>
+
+  <h2>ワールドビルドへの影響</h2>
+  <p>ありません。全アセンブリが Editor 専用で、コンパイル記録も Editor 専用アセットです。
+  生成物は通常の uGUI オブジェクトなので、ワールドビルドに Rectloom のコードは含まれません。</p>
+
+  <footer>
+    <a href="https://github.com/ChikumaTateshina/Rectloom">GitHub</a> ·
+    <a href="https://github.com/ChikumaTateshina/Rectloom/blob/main/docs/VCC_INSTALL.md">導入手順</a> ·
+    MIT License
+  </footer>
+</main>
+</body>
+</html>

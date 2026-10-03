@@ -40,8 +40,11 @@ Canvas
 
 ## 状態
 
-**開発中 (Stage E 完了)。HTML/CSS から Prefab / Scene オブジェクトを生成し、差分更新できます。**
+**Stage A〜G 実装完了。** HTML/CSS から Prefab / Scene オブジェクトを生成し、差分更新できます。
 再コンパイルしても `Button.onClick`、UnityEvent、ユーザー追加 Component は保持されます。
+
+リリース前に [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md) の手動受入試験
+(VCC 経由の導入と実ワールドでの動作確認) が残っています。
 
 | Stage | 内容 | 状態 |
 |---|---|---|
@@ -50,8 +53,8 @@ Canvas
 | C | Box Model / Flex Layout / LayoutResult | 完了 |
 | D | Unity IR / uGUI Backend / TMP / Button / Image | 完了 |
 | E | Stable ID / Metadata / Update Compile / Ownership | 完了 |
-| F | Component Binder / Extension API | 未着手 |
-| G | VRChat Adapter / VPM / External UI Adapter | 未着手 |
+| F | Component Binder / Extension API | 完了 |
+| G | VRChat Adapter / VPM / External UI Adapter | 完了 |
 
 ## パッケージ
 
@@ -63,6 +66,33 @@ Canvas
 
 依存方向は `Core ← uGUI ← VRChat` の一方向のみです。Core が VRChat や
 外部 UI ライブラリへ依存することはありません。
+
+## インストール
+
+### VRChat (VCC / VPM)
+
+VCC の `Settings → Packages → Add Repository` へ以下を追加し、
+`Rectloom for VRChat` をプロジェクトに入れます。詳細は [docs/VCC_INSTALL.md](docs/VCC_INSTALL.md)。
+
+```text
+https://chikumatateshina.github.io/Rectloom/index.json
+```
+
+### 通常の Unity (UPM)
+
+`Packages/manifest.json` へ追加します。Core は依存として入ります。
+
+```json
+"com.chikumatateshina.rectloom.ugui": "https://github.com/ChikumaTateshina/Rectloom.git?path=Packages/com.chikumatateshina.rectloom.ugui"
+```
+
+## 使い方
+
+`Tools → Rectloom → Compiler` を開き、HTML と CSS を指定して `Compile` します。
+
+- `Create` — 新規生成。既存の出力は上書きしません
+- `Update` — 差分更新。**ユーザーが設定したイベントや Component を保持します**
+- `Rebuild` — 完全再生成。生成物内の手作業は失われます (確認ダイアログあり)
 
 ## 動作環境
 
@@ -93,6 +123,11 @@ Rectloom/
 - [08 Diagnostics and Security](docs/08_DIAGNOSTICS_AND_SECURITY.md)
 - [09 Test and Acceptance Plan](docs/09_TEST_AND_ACCEPTANCE_PLAN.md)
 - [Architecture Decision Records](docs/adr/)
+
+導入と受入:
+
+- [VCC / VPM での導入手順](docs/VCC_INSTALL.md)
+- [Version 1.0 受入試験](docs/ACCEPTANCE.md)
 
 ## 開発
 

@@ -29,6 +29,12 @@ jobs:
       - name: Validate packages
         run: python .github/scripts/validate_packages.py
 
+      # Catches a listing that would fail only at release time, when it is least convenient.
+      - name: Build the VPM listing as a dry run
+        run: |
+          python .github/scripts/build_vpm_listing.py             --repo "$GITHUB_REPOSITORY"             --out /tmp/vpm-dry-run             --no-zip
+          python -c "import json;json.load(open('/tmp/vpm-dry-run/index.json'))"
+
   lint-docs:
     name: Check documentation links
     runs-on: ubuntu-latest

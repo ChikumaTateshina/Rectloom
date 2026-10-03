@@ -1,0 +1,113 @@
+# Publishes a release and refreshes the VPM listing.
+#
+# Triggered by pushing a tag such as v0.1.0, or run by hand with a version.
+# The listing is rebuilt from the currently published one, so earlier versions
+# stay installable for anyone already subscribed in the Creator Companion.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish, without the leading v'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  package:
+    name: Build packages and listing
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.value }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Work out the version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "value=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check the package layout
+        run: python .github/scripts/validate_packages.py
+
+      - name: Check that the packages carry the release version
+        run: |
+          set -euo pipefail
+          expected="${{ steps.version.outputs.value }}"
+          status=0
+          for manifest in Packages/*/package.json; do
+            actual=$(python -c "import json,sys;print(json.load(open(sys.argv[1]))['version'])" "$manifest")
+            if [ "$actual" != "$expected" ]; then
+              echo "::error file=$manifest::version is $actual but the release is $expected"
+              status=1
+            fi
+          done
+          exit $status
+
+      - name: Build the zips and the listing
+        run: |
+          python .github/scripts/build_vpm_listing.py \
+            --repo "$GITHUB_REPOSITORY" \
+            --version "${{ steps.version.outputs.value }}" \
+            --existing "https://${GITHUB_REPOSITORY%%/*}.github.io/${GITHUB_REPOSITORY##*/}/index.json" \
+            --out Website \
+            --overwrite
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vpm-listing
+          path: Website
+
+      - name: Attach the zips to the release
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" Website/*.zip \
+            --title "Rectloom ${{ steps.version.outputs.value }}" \
+            --notes-file CHANGELOG.md \
+            || gh release upload "${GITHUB_REF_NAME}" Website/*.zip --clobber
+
+  pages:
+    name: Publish the listing
+    needs: package
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: vpm-listing
+          path: site
+
+      - uses: actions/configure-pages@v5
+
+      - name: Keep the zips out of Pages
+        run: rm -f site/*.zip
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4

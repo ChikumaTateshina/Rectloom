@@ -14,6 +14,7 @@
   },
   "testables": [
     "com.chikumatateshina.rectloom.core",
-    "com.chikumatateshina.rectloom.ugui"
+    "com.chikumatateshina.rectloom.ugui",
+    "com.chikumatateshina.rectloom.vrchat"
   ]
 }
