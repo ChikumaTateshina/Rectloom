@@ -81,7 +81,7 @@ namespace Rectloom.Core.Ir
             UiNodeKind kind = ResolveKind(box, isRoot);
             string name = names.Allocate(box.Element?.Id ?? (box.IsAnonymous ? "Text" : tagName));
 
-            var node = new UiNode(stableId, kind, name, box.Source)
+            var node = new UiNode(stableId, kind, name, box.Source, box.Style.ExtensionProperties)
             {
                 Rect = new UiRect(
                     result.X,
@@ -96,7 +96,6 @@ namespace Rectloom.Core.Ir
                 Visual = UiStyleFactory.FromComputed(box.Style.Visual),
                 TextStyle = UiStyleFactory.FromComputed(box.Style.Text),
                 Asset = ResolveAsset(box),
-                ExtensionProperties = box.Style.ExtensionProperties,
                 SourceTag = box.Element?.TagName ?? string.Empty,
             };
 

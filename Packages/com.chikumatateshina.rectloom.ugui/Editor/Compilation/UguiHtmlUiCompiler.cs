@@ -13,6 +13,7 @@ using Rectloom.Core.Css.Computed;
 using Rectloom.Core.Css.Parsing;
 using Rectloom.Core.Diagnostics;
 using Rectloom.Core.Dom;
+using Rectloom.Core.Extensions;
 using Rectloom.Core.Ir;
 using Rectloom.Core.Layout;
 using Rectloom.Core.Metadata;
@@ -38,6 +39,11 @@ namespace Rectloom.Ugui.Compilation
     /// An update pass reconciles the existing hierarchy against the new IR instead of regenerating
     /// it, which is what lets a stylesheet change repaint a button without discarding the events
     /// someone wired to it.
+    /// </para>
+    /// <para>
+    /// Extensions run after the backend and before the output is committed, so a component an
+    /// extension adds is part of the prefab that gets written rather than something applied to it
+    /// afterwards.
     /// </para>
     /// </remarks>
     public sealed class UguiHtmlUiCompiler : IHtmlUiCompiler
@@ -255,6 +261,8 @@ namespace Rectloom.Ugui.Compilation
             // Built detached so that an error found while generating leaves nothing behind.
             BackendResult staged = backend.Build(ir, parent: null);
 
+            RunExtensions(request, ir, staged, diagnostics);
+
             backendTimer.Stop();
             Record(statistics, staged, backendTimer);
 
@@ -360,6 +368,8 @@ namespace Rectloom.Ugui.Compilation
                 BackendResult result = new UguiBackend(_assets, options, diagnostics)
                     .Update(ir, contents, previous);
 
+                RunExtensions(request, ir, result, diagnostics);
+
                 backendTimer.Stop();
                 Record(statistics, result, backendTimer);
 
@@ -428,6 +438,8 @@ namespace Rectloom.Ugui.Compilation
             var backendTimer = Stopwatch.StartNew();
             BackendResult result = new UguiBackend(_assets, options, diagnostics)
                 .Update(ir, existing, previous);
+
+            RunExtensions(request, ir, result, diagnostics);
 
             backendTimer.Stop();
             Record(statistics, result, backendTimer);
@@ -568,6 +580,41 @@ namespace Rectloom.Ugui.Compilation
             int lastSlash = normalised.LastIndexOf('/');
 
             return lastSlash <= 0 ? string.Empty : normalised.Substring(0, lastSlash);
+        }
+
+        /// <summary>
+        /// Lets extensions and the generic binder fulfil the document's component requests.
+        /// </summary>
+        /// <remarks>
+        /// Skipped entirely when nothing asked for a component, so a document without a
+        /// <c>component</c> attribute never pays for extension discovery.
+        /// </remarks>
+        private void RunExtensions(
+            CompileRequest request,
+            UiNode ir,
+            BackendResult result,
+            DiagnosticSink diagnostics)
+        {
+            bool anyRequests = false;
+
+            foreach (UiNode node in ir.DescendantsAndSelf())
+            {
+                if (node.Components.Count > 0)
+                {
+                    anyRequests = true;
+                    break;
+                }
+            }
+
+            if (!anyRequests)
+            {
+                return;
+            }
+
+            var context = new ExtensionContext(request, _assets, diagnostics);
+            var pipeline = new ExtensionPipeline(ExtensionRegistry.Discover(diagnostics));
+
+            pipeline.Run(ir, result.Objects, context);
         }
 
         private ITextMeasurer CreateMeasurer()

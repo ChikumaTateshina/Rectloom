@@ -168,6 +168,18 @@ namespace Rectloom.Core.Diagnostics
 
             /// <summary>An extension threw. The compiler isolated the failure and continued.</summary>
             public const string ExtensionException = "EXT1003";
+
+            /// <summary>A <c>component.*</c> value names a field the component does not serialize.</summary>
+            public const string UnknownComponentProperty = "EXT1004";
+
+            /// <summary>A serialized field has a type that cannot be set from markup.</summary>
+            public const string UnsupportedComponentPropertyType = "EXT1005";
+
+            /// <summary>Two extensions claim one request at the same priority.</summary>
+            public const string AmbiguousExtension = "EXT1006";
+
+            /// <summary>An extension could not be created, so it took no part in the compile.</summary>
+            public const string ExtensionConstructionFailed = "EXT1007";
         }
 
         /// <summary>Internal compiler fault codes.</summary>

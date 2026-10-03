@@ -39,10 +39,20 @@ namespace Rectloom.Core.Ir
         /// <param name="kind">What kind of UI object this node compiles to.</param>
         /// <param name="name">Name to give the generated object.</param>
         /// <param name="source">Position in the source file this node came from.</param>
+        /// <param name="extensionProperties">
+        /// Declarations the core does not interpret, or null for none. Supplied at construction
+        /// because an adapter building a node for its own tests needs them set, while the IR must
+        /// stay read-only once a backend has it.
+        /// </param>
         /// <exception cref="ArgumentException">
         /// <paramref name="stableId"/> or <paramref name="name"/> is null, empty or whitespace.
         /// </exception>
-        public UiNode(string stableId, UiNodeKind kind, string name, SourceLocation source)
+        public UiNode(
+            string stableId,
+            UiNodeKind kind,
+            string name,
+            SourceLocation source,
+            IReadOnlyDictionary<string, string>? extensionProperties = null)
         {
             if (string.IsNullOrWhiteSpace(stableId))
             {
@@ -58,6 +68,7 @@ namespace Rectloom.Core.Ir
             Kind = kind;
             Name = name;
             Source = source;
+            ExtensionProperties = extensionProperties ?? NoExtensionProperties;
         }
 
         /// <summary>

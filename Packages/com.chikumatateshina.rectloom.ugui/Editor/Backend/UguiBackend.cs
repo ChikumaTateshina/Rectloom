@@ -174,6 +174,8 @@ namespace Rectloom.Ugui.Backend
             private readonly UguiBackend _backend;
             private readonly RectloomDocumentMetadata? _previous;
             private readonly List<GeneratedNodeMetadata> _nodes = new List<GeneratedNodeMetadata>();
+            private readonly Dictionary<string, GameObject> _objects =
+                new Dictionary<string, GameObject>(StringComparer.Ordinal);
             private readonly BackendCounters _counters = new BackendCounters();
 
             internal Pass(UguiBackend backend, RectloomDocumentMetadata? previous)
@@ -186,7 +188,7 @@ namespace Rectloom.Ugui.Backend
 
             internal BackendResult ToResult(GameObject root)
             {
-                return new BackendResult(root, _nodes)
+                return new BackendResult(root, _nodes, _objects)
                 {
                     CreatedCount = _counters.Created,
                     UpdatedCount = _counters.Updated,
@@ -226,6 +228,7 @@ namespace Rectloom.Ugui.Backend
                     parentContentOffset);
 
                 _nodes.Add(entry);
+                _objects[entry.StableId] = target;
 
                 var expected = new List<string>();
                 var contentOffset = new Vector2(node.Rect.ContentX, node.Rect.ContentY);
@@ -285,6 +288,7 @@ namespace Rectloom.Ugui.Backend
 
                 RemoveObsoleteComponents(label, labelId, entry);
                 _nodes.Add(entry);
+                _objects[labelId] = label;
             }
 
             /// <summary>

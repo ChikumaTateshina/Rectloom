@@ -20,5 +20,12 @@
   "documentationUrl": "https://github.com/ChikumaTateshina/Rectloom/tree/main/docs",
   "changelogUrl": "https://github.com/ChikumaTateshina/Rectloom/blob/main/CHANGELOG.md",
   "licensesUrl": "https://github.com/ChikumaTateshina/Rectloom/blob/main/LICENSE",
-  "hideInEditor": false
+  "hideInEditor": false,
+  "samples": [
+    {
+      "displayName": "Extension Example",
+      "description": "A minimal adapter showing how an external library is used from markup.",
+      "path": "Samples~/ExtensionExample"
+    }
+  ]
 }

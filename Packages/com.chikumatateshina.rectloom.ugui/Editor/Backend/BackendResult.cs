@@ -22,10 +22,14 @@ namespace Rectloom.Ugui.Backend
         /// <param name="root">Root of the generated hierarchy.</param>
         /// <param name="nodes">One record per generated object, in document order.</param>
         /// <exception cref="ArgumentNullException">Any argument is null.</exception>
-        public BackendResult(GameObject root, IReadOnlyList<GeneratedNodeMetadata> nodes)
+        public BackendResult(
+            GameObject root,
+            IReadOnlyList<GeneratedNodeMetadata> nodes,
+            IReadOnlyDictionary<string, GameObject> objects)
         {
             Root = root ?? throw new ArgumentNullException(nameof(root));
             Nodes = nodes ?? throw new ArgumentNullException(nameof(nodes));
+            Objects = objects ?? throw new ArgumentNullException(nameof(objects));
         }
 
         /// <summary>Root of the generated hierarchy.</summary>
@@ -33,6 +37,15 @@ namespace Rectloom.Ugui.Backend
 
         /// <summary>One record per generated object, in document order.</summary>
         public IReadOnlyList<GeneratedNodeMetadata> Nodes { get; }
+
+        /// <summary>
+        /// The generated objects by stable ID.
+        /// </summary>
+        /// <remarks>
+        /// Used by the extension pipeline, which has to reach the object a node produced while that
+        /// object is still editable, before prefab output is committed.
+        /// </remarks>
+        public IReadOnlyDictionary<string, GameObject> Objects { get; }
 
         /// <summary>Objects created by this pass.</summary>
         public int CreatedCount { get; internal set; }

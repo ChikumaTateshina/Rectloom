@@ -4,6 +4,7 @@
   "references": [
     "Rectloom.Core.Editor",
     "Rectloom.Ugui.Editor",
+    "Rectloom.Ugui.Tests.Runtime",
     "UnityEngine.UI",
     "Unity.TextMeshPro",
     "UnityEngine.TestRunner",
