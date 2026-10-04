@@ -112,7 +112,10 @@ def build(args: argparse.Namespace) -> int:
     listing.setdefault("id", LISTING_ID)
     listing.setdefault("author", LISTING_AUTHOR)
     listing.setdefault("description", LISTING_DESCRIPTION)
-    listing["url"] = f"https://{repo.split('/')[0]}.github.io/{repo.split('/')[1]}/index.json"
+    # GitHub Pages serves the owner part in lower case, and VCC stores this URL verbatim,
+    # so it has to match what the documentation tells people to paste.
+    owner, _, name = repo.partition("/")
+    listing["url"] = f"https://{owner.lower()}.github.io/{name}/index.json"
     packages = listing.setdefault("packages", {})
 
     published: list[str] = []

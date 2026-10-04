@@ -71,12 +71,19 @@ Canvas
 
 ### VRChat (VCC / VPM)
 
-VCC の `Settings → Packages → Add Repository` へ以下を追加し、
-`Rectloom for VRChat` をプロジェクトに入れます。詳細は [docs/VCC_INSTALL.md](docs/VCC_INSTALL.md)。
+配布ページの**「VCC に追加」**ボタンからワンクリックで追加できます。
+
+**<https://chikumatateshina.github.io/Rectloom/>**
+
+ボタンが反応しない場合 (VCC 未インストール、または `vcc://` を開けないブラウザ) は、
+VCC の `Settings → Packages → Add Repository` へ以下を手動で追加してください。
 
 ```text
 https://chikumatateshina.github.io/Rectloom/index.json
 ```
+
+その後 `Rectloom for VRChat` をプロジェクトに入れます。Core と uGUI Backend は依存として
+自動的に入ります。詳細は [docs/VCC_INSTALL.md](docs/VCC_INSTALL.md)。
 
 ### 通常の Unity (UPM)
 
@@ -105,6 +112,7 @@ https://chikumatateshina.github.io/Rectloom/index.json
 Rectloom/
 ├─ Packages/            # 配布対象の UPM / VPM パッケージ
 ├─ TestProject/         # パッケージを embed した検証用 Unity プロジェクト
+├─ Website/             # VPM リポジトリの配布ページ (GitHub Pages)
 ├─ docs/                # 仕様書・引継ぎ資料
 │  └─ adr/              # Architecture Decision Records
 └─ .github/workflows/   # CI

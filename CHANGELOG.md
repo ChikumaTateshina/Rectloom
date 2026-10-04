@@ -114,6 +114,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   listing to GitHub Pages (Issues #44, #46).
 - `docs/VCC_INSTALL.md` for Creator Companion installation (Issue #47), and `docs/ACCEPTANCE.md`
   with the manual acceptance run (Issue #48).
+- A repository page with an **Add to VCC** button, which opens the Creator Companion through
+  `vcc://vpm/addRepo`. The listing URL is derived from where the page is served, so a fork points
+  at its own listing, and the page falls back to a copyable URL and manual steps because a custom
+  scheme cannot report whether anything handled it.
+- A `Pages` workflow that republishes the page on its own, carrying the already published listing
+  across untouched, so the page is live before the first release and only a release writes a
+  listing.
+- `Website/tests/page.test.mjs`, which runs the page's script against a stub DOM. The button hangs
+  on one URL, and getting the scheme wrong reports no error anywhere.
 
 ### Changed
 

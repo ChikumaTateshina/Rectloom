@@ -3,65 +3,383 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Rectloom VPM Repository</title>
+<title>Rectloom — VPM Repository</title>
+<meta name="description" content="HTML/CSS を Unity uGUI へコンパイルする Editor ツール Rectloom の VPM リポジトリ。VCC へワンクリックで追加できます。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232b6cb0'/%3E%3Crect x='7' y='9' width='18' height='5' rx='1.5' fill='white'/%3E%3Crect x='7' y='18' width='11' height='5' rx='1.5' fill='white' opacity='.75'/%3E%3C/svg%3E">
 <style>
-:root { color-scheme: light dark; --fg: #111; --bg: #fff; --muted: #555; --line: #ddd; --accent: #2b6cb0; }
+:root {
+  color-scheme: light dark;
+  --fg: #14171a;
+  --bg: #ffffff;
+  --panel: #f6f7f9;
+  --muted: #5a6372;
+  --line: #dfe3e8;
+  --accent: #2b6cb0;
+  --accent-fg: #ffffff;
+  --ok: #1a7f4b;
+}
 @media (prefers-color-scheme: dark) {
-  :root { --fg: #e8e8e8; --bg: #15171a; --muted: #a0a4aa; --line: #2d3238; --accent: #7fb3ff; }
+  :root {
+    --fg: #e9ebee;
+    --bg: #14171a;
+    --panel: #1c2024;
+    --muted: #9aa3b0;
+    --line: #2c3238;
+    --accent: #6fa8ff;
+    --accent-fg: #0d1117;
+    --ok: #57c98a;
+  }
 }
 * { box-sizing: border-box; }
-body { margin: 0; padding: 48px 16px; background: var(--bg); color: var(--fg);
-  font: 16px/1.65 -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif; }
-main { max-width: 44rem; margin: 0 auto; }
-h1 { font-size: 1.9rem; margin: 0 0 .25rem; letter-spacing: -.01em; }
-p.lead { color: var(--muted); margin: 0 0 2rem; }
-h2 { font-size: 1.1rem; margin: 2.25rem 0 .6rem; }
-code, pre { font-family: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace; font-size: .9em; }
-pre { background: color-mix(in srgb, var(--fg) 6%, transparent); border: 1px solid var(--line);
-  border-radius: 8px; padding: .8rem 1rem; overflow-x: auto; }
-a { color: var(--accent); }
-ol { padding-left: 1.3rem; }
-table { border-collapse: collapse; width: 100%; margin: .5rem 0 0; }
-th, td { text-align: left; padding: .45rem .6rem; border-bottom: 1px solid var(--line); }
-th { font-weight: 600; font-size: .85rem; color: var(--muted); }
-footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line);
-  color: var(--muted); font-size: .85rem; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  padding: 3rem 1rem 4rem;
+  background: var(--bg);
+  color: var(--fg);
+  font: 16px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans",
+    "Noto Sans JP", Meiryo, sans-serif;
+}
+main { max-width: 46rem; margin: 0 auto; }
+header { margin-bottom: 2.5rem; }
+h1 { font-size: clamp(1.75rem, 5vw, 2.25rem); margin: 0 0 .35rem; letter-spacing: -.02em; }
+.tagline { color: var(--muted); margin: 0; font-size: 1.05rem; }
+h2 { font-size: 1.05rem; margin: 2.5rem 0 .75rem; letter-spacing: .01em; }
+p { margin: 0 0 1rem; }
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+code, pre, input { font-family: ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo, Consolas, monospace; }
+code { font-size: .9em; background: var(--panel); padding: .1em .35em; border-radius: 4px; }
+pre {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  padding: .85rem 1rem; overflow-x: auto; font-size: .85rem; margin: 0 0 1rem;
+}
+pre code { background: none; padding: 0; }
+
+.install {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  padding: 1.5rem; margin-bottom: .75rem;
+}
+.cta {
+  display: inline-flex; align-items: center; gap: .55rem;
+  background: var(--accent); color: var(--accent-fg);
+  font-size: 1.05rem; font-weight: 600; text-decoration: none;
+  padding: .8rem 1.5rem; border-radius: 9px; border: 0; cursor: pointer;
+  font-family: inherit;
+}
+.cta:hover { filter: brightness(1.08); }
+.cta:active { transform: translateY(1px); }
+.cta svg { width: 1.15em; height: 1.15em; flex: none; }
+.cta-note { display: block; color: var(--muted); font-size: .85rem; margin-top: .85rem; }
+
+.url-row { display: flex; gap: .5rem; margin-top: 1.25rem; }
+.url-row input {
+  flex: 1 1 auto; min-width: 0;
+  background: var(--bg); color: var(--fg);
+  border: 1px solid var(--line); border-radius: 7px;
+  padding: .6rem .7rem; font-size: .85rem;
+}
+.url-row button {
+  flex: none; background: transparent; color: var(--fg);
+  border: 1px solid var(--line); border-radius: 7px;
+  padding: .6rem .9rem; cursor: pointer; font: inherit; font-size: .85rem;
+}
+.url-row button:hover { border-color: var(--accent); color: var(--accent); }
+.url-row button[data-copied="true"] { color: var(--ok); border-color: var(--ok); }
+label.field { display: block; font-size: .8rem; color: var(--muted); margin-top: 1.25rem; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+details {
+  border: 1px solid var(--line); border-radius: 10px;
+  padding: .75rem 1rem; margin-bottom: 1rem; background: var(--bg);
+}
+details[open] { padding-bottom: .25rem; }
+summary { cursor: pointer; font-weight: 600; font-size: .95rem; }
+summary::marker { color: var(--muted); }
+details ol { margin: .75rem 0 0; padding-left: 1.4rem; }
+details li { margin-bottom: .3rem; }
+
+table { border-collapse: collapse; width: 100%; font-size: .92rem; }
+th, td { text-align: left; padding: .55rem .5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: .78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+td code { font-size: .82em; }
+.ver { white-space: nowrap; color: var(--muted); }
+.pkg-desc { color: var(--muted); font-size: .85rem; display: block; margin-top: .15rem; }
+
+footer {
+  margin-top: 3.5rem; padding-top: 1.25rem; border-top: 1px solid var(--line);
+  color: var(--muted); font-size: .85rem;
+}
+footer a { color: var(--muted); }
 </style>
 </head>
 <body>
 <main>
-  <h1>Rectloom</h1>
-  <p class="lead">HTML/CSS を Unity uGUI へコンパイルする Editor ツールの VPM リポジトリです。</p>
+  <header>
+    <h1>Rectloom</h1>
+    <p class="tagline">HTML/CSS を Unity uGUI へコンパイルする Editor ツールです。</p>
+  </header>
 
-  <h2>VCC への追加</h2>
-  <p>VRChat Creator Companion の <code>Settings → Packages → Add Repository</code> に次の URL を入力します。</p>
-  <pre>https://chikumatateshina.github.io/Rectloom/index.json</pre>
+  <section class="install" aria-labelledby="install-heading">
+    <h2 id="install-heading" style="margin-top:0">インストール</h2>
 
-  <h2>導入手順</h2>
-  <ol>
-    <li>上の URL を購読します。</li>
-    <li>ワールドプロジェクトの <code>Manage Project</code> を開きます。</li>
-    <li><code>Rectloom for VRChat</code> を追加します。Core と uGUI Backend は依存として入ります。</li>
-    <li>Unity で <code>Tools → Rectloom → Compiler</code> を開きます。</li>
-  </ol>
+    <button type="button" class="cta" id="add-to-vcc">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 5v14M5 12h14"/>
+      </svg>
+      VCC に追加
+    </button>
+
+    <span class="cta-note" id="cta-note">
+      VRChat Creator Companion が開き、このリポジトリの追加確認が表示されます。
+    </span>
+
+    <label class="field" for="listing-url">リポジトリ URL（手動で追加する場合）</label>
+    <div class="url-row">
+      <input type="text" id="listing-url" readonly
+             value="https://chikumatateshina.github.io/Rectloom/index.json"
+             aria-describedby="copy-status">
+      <button type="button" id="copy-url">コピー</button>
+    </div>
+    <span class="cta-note" id="copy-status" role="status" aria-live="polite"></span>
+  </section>
+
+  <details>
+    <summary>ボタンが反応しない場合</summary>
+    <p style="margin-top:.75rem">
+      <code>vcc://</code> リンクは VCC がインストールされている環境でのみ動作します。
+      反応しない場合は上の URL をコピーして、手動で追加してください。
+    </p>
+    <ol>
+      <li>VCC を開き <strong>Settings</strong> を開きます</li>
+      <li><strong>Packages</strong> タブを開きます</li>
+      <li><strong>Add Repository</strong> を押します</li>
+      <li>コピーした URL を貼り付けて <strong>Add</strong> を押します</li>
+      <li>内容を確認して <strong>I Understand</strong> を押します</li>
+    </ol>
+    <p style="margin-top:.75rem">
+      ALCOM を使っている場合は <strong>Resources → Repositories → Add Repository</strong>
+      から同じ URL を追加してください（ALCOM にワンクリック追加のリンクはありません）。
+    </p>
+  </details>
+
+  <details>
+    <summary>プロジェクトへの追加と使い方</summary>
+    <ol>
+      <li>VCC でワールドプロジェクトの <strong>Manage Project</strong> を開きます</li>
+      <li><strong>Rectloom for VRChat</strong> の <code>+</code> を押します<br>
+        <span class="pkg-desc">Core と uGUI Backend は依存として自動的に入ります</span></li>
+      <li>Unity で <strong>Tools → Rectloom → Compiler</strong> を開きます</li>
+      <li>HTML と CSS を指定して <strong>Compile</strong> します</li>
+    </ol>
+    <p style="margin-top:.75rem">
+      詳細は
+      <a href="https://github.com/ChikumaTateshina/Rectloom/blob/main/docs/VCC_INSTALL.md">導入手順</a>
+      を参照してください。
+    </p>
+  </details>
 
   <h2>パッケージ</h2>
   <table>
-    <tr><th>Package</th><th>内容</th></tr>
-    <tr><td><code>com.chikumatateshina.rectloom.core</code></td><td>パーサー、CSS、レイアウト、IR</td></tr>
-    <tr><td><code>com.chikumatateshina.rectloom.ugui</code></td><td>uGUI / TextMeshPro バックエンド</td></tr>
-    <tr><td><code>com.chikumatateshina.rectloom.vrchat</code></td><td>VRChat アダプタ</td></tr>
+    <thead>
+      <tr><th scope="col">Package</th><th scope="col">Version</th></tr>
+    </thead>
+    <tbody id="packages">
+      <tr>
+        <td><strong>Rectloom for VRChat</strong>
+          <code>com.chikumatateshina.rectloom.vrchat</code>
+          <span class="pkg-desc">VRChat アダプタ。これを入れれば Core と uGUI も入ります</span></td>
+        <td class="ver">—</td>
+      </tr>
+      <tr>
+        <td><strong>Rectloom uGUI Backend</strong>
+          <code>com.chikumatateshina.rectloom.ugui</code>
+          <span class="pkg-desc">uGUI / TextMeshPro バックエンド</span></td>
+        <td class="ver">—</td>
+      </tr>
+      <tr>
+        <td><strong>Rectloom Core</strong>
+          <code>com.chikumatateshina.rectloom.core</code>
+          <span class="pkg-desc">パーサー、CSS、レイアウト、IR</span></td>
+        <td class="ver">—</td>
+      </tr>
+    </tbody>
   </table>
 
+  <h2>VRChat を使わない場合 (UPM)</h2>
+  <p><code>Packages/manifest.json</code> へ追加します。Core は依存として入ります。</p>
+<pre><code>"com.chikumatateshina.rectloom.ugui":
+  "https://github.com/ChikumaTateshina/Rectloom.git?path=Packages/com.chikumatateshina.rectloom.ugui"</code></pre>
+
   <h2>ワールドビルドへの影響</h2>
-  <p>ありません。全アセンブリが Editor 専用で、コンパイル記録も Editor 専用アセットです。
-  生成物は通常の uGUI オブジェクトなので、ワールドビルドに Rectloom のコードは含まれません。</p>
+  <p>
+    ありません。全アセンブリが Editor 専用で、コンパイル記録も Editor 専用アセットです。
+    生成物は通常の uGUI オブジェクトなので、ワールドビルドに Rectloom のコードは含まれません。
+  </p>
 
   <footer>
     <a href="https://github.com/ChikumaTateshina/Rectloom">GitHub</a> ·
     <a href="https://github.com/ChikumaTateshina/Rectloom/blob/main/docs/VCC_INSTALL.md">導入手順</a> ·
+    <a href="https://github.com/ChikumaTateshina/Rectloom/blob/main/CHANGELOG.md">変更履歴</a> ·
     MIT License
   </footer>
 </main>
+
+<script>
+(function () {
+  'use strict';
+
+  var urlField = document.getElementById('listing-url');
+  var fallbackUrl = urlField.value;
+
+  // The listing sits next to this page, so the real URL is derived from where the page is
+  // actually served. That keeps a fork, a custom domain or a preview deployment pointing at
+  // its own listing instead of at the canonical one.
+  var listingUrl = fallbackUrl;
+
+  if (location.protocol === 'http:' || location.protocol === 'https:') {
+    try {
+      listingUrl = new URL('index.json', location.href).href;
+    } catch (error) {
+      listingUrl = fallbackUrl;
+    }
+  }
+
+  urlField.value = listingUrl;
+
+  var addButton = document.getElementById('add-to-vcc');
+
+  addButton.addEventListener('click', function () {
+    // A custom scheme cannot report whether anything handled it, so the page says up front
+    // what to do when nothing happens rather than pretending to detect it.
+    location.assign('vcc://vpm/addRepo?url=' + encodeURIComponent(listingUrl));
+  });
+
+  var copyButton = document.getElementById('copy-url');
+  var copyStatus = document.getElementById('copy-status');
+  var resetTimer = 0;
+
+  copyButton.addEventListener('click', function () {
+    urlField.focus();
+    urlField.select();
+
+    var done = function (message) {
+      copyStatus.textContent = message;
+      copyButton.textContent = 'コピーしました';
+      copyButton.dataset.copied = 'true';
+
+      window.clearTimeout(resetTimer);
+      resetTimer = window.setTimeout(function () {
+        copyButton.textContent = 'コピー';
+        delete copyButton.dataset.copied;
+        copyStatus.textContent = '';
+      }, 2500);
+    };
+
+    var failed = function () {
+      // Clipboard access needs a secure context and permission, so a copy can simply be
+      // refused. The URL is already selected, which is all the user needs to copy it.
+      copyStatus.textContent = 'コピーできませんでした。選択されているので Ctrl+C でコピーしてください。';
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(listingUrl).then(function () {
+        done('リポジトリ URL をコピーしました。');
+      }, failed);
+      return;
+    }
+
+    failed();
+  });
+
+  // Versions come from the listing itself, so the page cannot drift out of date as releases
+  // happen. It is written to be readable before this runs, and to stay readable if it fails.
+  var rows = {
+    'com.chikumatateshina.rectloom.vrchat': 0,
+    'com.chikumatateshina.rectloom.ugui': 1,
+    'com.chikumatateshina.rectloom.core': 2
+  };
+
+  function parseVersion(text) {
+    var value = String(text);
+    var plus = value.indexOf('+');
+
+    // Build metadata is ignored when comparing, as semver says.
+    if (plus >= 0) {
+      value = value.slice(0, plus);
+    }
+
+    var dash = value.indexOf('-');
+
+    return {
+      core: (dash >= 0 ? value.slice(0, dash) : value).split('.').map(function (part) {
+        var number = parseInt(part, 10);
+        return isNaN(number) ? 0 : number;
+      }),
+      pre: dash >= 0 ? value.slice(dash + 1) : ''
+    };
+  }
+
+  function compareVersions(left, right) {
+    var a = parseVersion(left);
+    var b = parseVersion(right);
+    var parts = Math.max(a.core.length, b.core.length);
+
+    for (var index = 0; index < parts; index++) {
+      var x = a.core[index] || 0;
+      var y = b.core[index] || 0;
+
+      if (x !== y) {
+        return x < y ? -1 : 1;
+      }
+    }
+
+    if (a.pre === b.pre) {
+      return 0;
+    }
+
+    // A release outranks its own prerelease, so 1.0.0 is newer than 1.0.0-preview.
+    if (a.pre === '') { return 1; }
+    if (b.pre === '') { return -1; }
+
+    return a.pre < b.pre ? -1 : 1;
+  }
+
+  function latest(versions) {
+    var names = Object.keys(versions || {});
+
+    if (names.length === 0) {
+      return null;
+    }
+
+    return names.sort(compareVersions)[names.length - 1];
+  }
+
+  if (!window.fetch) {
+    return;
+  }
+
+  fetch('index.json', { cache: 'no-cache' }).then(function (response) {
+    if (!response.ok) {
+      throw new Error('listing unavailable');
+    }
+
+    return response.json();
+  }).then(function (listing) {
+    var body = document.getElementById('packages');
+    var packages = (listing && listing.packages) || {};
+
+    Object.keys(rows).forEach(function (name) {
+      var cell = body.rows[rows[name]].cells[1];
+      var version = latest(packages[name] && packages[name].versions);
+
+      cell.textContent = version ? 'v' + version : '未公開';
+    });
+  }).catch(function () {
+    // Nothing published yet, or the page is being viewed from a file. The placeholder dashes
+    // already read correctly, so there is nothing to say.
+  });
+}());
+</script>
 </body>
 </html>

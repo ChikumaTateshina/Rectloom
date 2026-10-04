@@ -35,6 +35,21 @@ jobs:
           python .github/scripts/build_vpm_listing.py             --repo "$GITHUB_REPOSITORY"             --out /tmp/vpm-dry-run             --no-zip
           python -c "import json;json.load(open('/tmp/vpm-dry-run/index.json'))"
 
+  check-page:
+    name: Check the repository page
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # The "Add to VCC" button hangs on one URL. Get the scheme wrong and nothing
+      # reports an error anywhere: the button just does nothing.
+      - name: Check the page script
+        run: node Website/tests/page.test.mjs
+
   lint-docs:
     name: Check documentation links
     runs-on: ubuntu-latest

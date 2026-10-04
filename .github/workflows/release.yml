@@ -91,6 +91,11 @@ jobs:
     name: Publish the listing
     needs: package
     runs-on: ubuntu-latest
+    # Shared with the Pages workflow, so a page update cannot land on top of the
+    # listing this job is about to publish.
+    concurrency:
+      group: pages-deploy
+      cancel-in-progress: false
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}

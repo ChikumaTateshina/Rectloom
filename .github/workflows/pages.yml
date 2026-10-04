@@ -1,0 +1,74 @@
+# Publishes the VPM repository page.
+#
+# The page and the listing have different lifecycles: the page changes whenever
+# Website/index.html does, while the listing must only change when something is
+# released. So this workflow republishes the page and carries the already
+# published index.json across untouched. Releases are the only thing that writes
+# a listing, in release.yml.
+#
+# GitHub Pages must be set to deploy from GitHub Actions:
+# Settings -> Pages -> Build and deployment -> Source: GitHub Actions.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Website/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Shared with the release workflow's own Pages job, so the two never overlap and
+# a page update cannot land on top of a listing that was published seconds ago.
+concurrency:
+  group: pages-deploy
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish the page
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assemble the site
+        run: |
+          set -euo pipefail
+          mkdir -p site
+          cp Website/index.html site/
+
+      - name: Carry the published listing across
+        run: |
+          set -uo pipefail
+          url="https://${GITHUB_REPOSITORY%%/*}.github.io/${GITHUB_REPOSITORY##*/}/index.json"
+
+          if ! curl -fsSL --max-time 30 "$url" -o site/index.json; then
+            echo "::notice::No listing is published yet. The page will show the packages as unreleased."
+            exit 0
+          fi
+
+          # Republishing a corrupt listing would unpublish every version for everyone
+          # subscribed, so a listing that will not parse stops the deployment instead.
+          if ! python3 -c "import json;json.load(open('site/index.json'))"; then
+            echo "::error::the published listing is not valid JSON; refusing to republish it"
+            exit 1
+          fi
+
+          echo "Kept the published listing."
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4

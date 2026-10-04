@@ -7,11 +7,28 @@ Rectloom が生成する UI は**通常の uGUI**です。コンパイラは Edi
 
 ## 1. リポジトリを購読する
 
+### ワンクリックで追加する
+
+配布ページを開き、**「VCC に追加」**ボタンを押します。
+
+<https://chikumatateshina.github.io/Rectloom/>
+
+VCC が起動し、リポジトリの追加確認が表示されます。
+
+ボタンは `vcc://vpm/addRepo?url=...` というリンクで、VCC がインストールされている環境でのみ
+動作します。カスタム URL スキームは「何も起きなかった」ことをページ側から検知できないため、
+反応しない場合は次の手動手順を使ってください。
+
+### 手動で追加する
+
 VCC の `Settings` → `Packages` → `Add Repository` に以下を入力します。
 
 ```text
 https://chikumatateshina.github.io/Rectloom/index.json
 ```
+
+ALCOM を使っている場合は `Resources` → `Repositories` → `Add Repository` から
+同じ URL を追加します (ALCOM にワンクリック追加のリンクはありません)。
 
 購読すると `Rectloom for VRChat` が選択できるようになります。
 
@@ -106,6 +123,7 @@ Core は依存として入ります。VRChat パッケージは不要です。
 
 | 症状 | 原因と対処 |
 |---|---|
+| 「VCC に追加」ボタンが反応しない | VCC が未インストールか、ブラウザが `vcc://` を開けません。URL を手動で追加してください |
 | VCC にパッケージが出てこない | リポジトリ URL を再確認し、VCC を再起動してください |
 | `Update` が拒否される | 出力の隣にある `*.rectloom.asset` が必要です。消してしまった場合は `Rebuild` を使ってください |
 | ワールドで UI が見えない | キャンバスが World Space か確認してください (`vrc-world-space`) |
