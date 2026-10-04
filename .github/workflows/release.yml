@@ -68,7 +68,7 @@ jobs:
           python .github/scripts/build_vpm_listing.py \
             --repo "$GITHUB_REPOSITORY" \
             --version "${{ steps.version.outputs.value }}" \
-            --existing "https://${GITHUB_REPOSITORY%%/*}.github.io/${GITHUB_REPOSITORY##*/}/index.json" \
+            --existing "https://$(echo "${GITHUB_REPOSITORY%%/*}" | tr '[:upper:]' '[:lower:]').github.io/${GITHUB_REPOSITORY##*/}/index.json" \
             --out Website \
             --overwrite
 
@@ -107,8 +107,14 @@ jobs:
 
       - uses: actions/configure-pages@v5
 
-      - name: Keep the zips out of Pages
-        run: rm -f site/*.zip
+      - name: Keep everything but the site out of Pages
+        run: |
+          set -euo pipefail
+          # The artifact is the whole Website folder, which also holds the zips that belong
+          # on the release and the page's own test, which belongs nowhere public.
+          rm -rf site/tests
+          rm -f site/*.zip site/.gitignore
+          ls -l site
 
       - uses: actions/upload-pages-artifact@v3
         with:

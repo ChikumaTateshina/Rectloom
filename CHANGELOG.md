@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+まだ変更はありません。
+
+## [0.1.0] - 2026-10-05
+
+最初の公開リリースです。Stage A〜G の実装が完了しています。
+`docs/ACCEPTANCE.md` の手動受入試験が未実施のため、1.0.0 は名乗っていません。
+
 ### Added
 
 #### Stage A — Foundation
@@ -145,4 +152,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a `MonoBehaviour` from an Editor-only assembly, so an extension's own code may be Editor-only but
   what it attaches may not be.
 
-[Unreleased]: https://github.com/ChikumaTateshina/Rectloom/commits/main
+[Unreleased]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/ChikumaTateshina/Rectloom/releases/tag/v0.1.0
