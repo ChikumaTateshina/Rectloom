@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A version is listed only once its zip can actually be fetched, so the listing can never
   advertise a download that answers 404, and bumping a version ahead of its release changes
   nothing until the release exists.
+- The listing now carries `zipSHA256`, hashed from the published asset itself rather than from a
+  rebuilt copy, so a corrupted or substituted download is detected instead of matching a hash
+  computed from something else.
+- Package zips are reproducible: entries are stamped with a fixed timestamp, so the same commit
+  always produces the same bytes.
 
 ## [0.1.0] - 2026-10-05
 

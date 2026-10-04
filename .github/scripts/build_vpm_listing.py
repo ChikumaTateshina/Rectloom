@@ -65,13 +65,21 @@ VPM_PACKAGES = (
 # Never shipped inside a package zip: Unity's own leftovers and our scratch output.
 EXCLUDED_NAMES = {"Library", "Temp", "obj", "Logs", ".git", ".vs", ".idea"}
 
+# The earliest timestamp a zip entry can carry. Fixed so an archive is reproducible.
+ZIP_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
+
 
 def read_manifest(package_dir: Path) -> dict:
     return json.loads((package_dir / "package.json").read_text(encoding="utf-8"))
 
 
 def zip_package(package_dir: Path, destination: Path) -> tuple[int, str]:
-    """Zip a package so that package.json sits at the archive root, as VPM requires."""
+    """Zip a package so that package.json sits at the archive root, as VPM requires.
+
+    Entries are sorted and stamped with a fixed timestamp, so the same commit always
+    produces the same bytes. Without that, re-running a release would change the
+    archive's hash while its contents stayed identical.
+    """
     destination.parent.mkdir(parents=True, exist_ok=True)
 
     with zipfile.ZipFile(destination, "w", zipfile.ZIP_DEFLATED) as archive:
@@ -80,10 +88,49 @@ def zip_package(package_dir: Path, destination: Path) -> tuple[int, str]:
                 continue
             if path.is_dir():
                 continue
-            archive.write(path, path.relative_to(package_dir).as_posix())
+
+            info = zipfile.ZipInfo(path.relative_to(package_dir).as_posix(), ZIP_TIMESTAMP)
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.external_attr = 0o644 << 16
+            archive.writestr(info, path.read_bytes())
 
     data = destination.read_bytes()
     return len(data), hashlib.sha256(data).hexdigest()
+
+
+def fetch_release_digest(url: str) -> str | None:
+    """Hash a published release asset, or answer None when it is not published.
+
+    The hash has to come from the bytes users will actually download, not from a
+    rebuilt copy, so that a corrupted or substituted asset is detected rather than
+    matching a hash computed from something else.
+
+    A missing asset is the ordinary "not released yet" case. Any other outcome
+    raises, because quietly dropping a version would unpublish it for everyone
+    already subscribed.
+    """
+    try:
+        with urllib.request.urlopen(url, timeout=120) as response:
+            digest = hashlib.sha256()
+
+            while True:
+                chunk = response.read(1 << 16)
+
+                if not chunk:
+                    break
+
+                digest.update(chunk)
+
+            return digest.hexdigest()
+    except urllib.error.HTTPError as error:
+        if error.code == 404:
+            return None
+
+        print(f"error: {url} answered HTTP {error.code}", file=sys.stderr)
+        raise SystemExit(1) from error
+    except (urllib.error.URLError, OSError) as error:
+        print(f"error: could not fetch {url} ({error})", file=sys.stderr)
+        raise SystemExit(1) from error
 
 
 def load_existing(source: str | None) -> dict:
@@ -105,29 +152,6 @@ def load_existing(source: str | None) -> dict:
         raise SystemExit(1)
 
     return {}
-
-
-def is_downloadable(url: str) -> bool:
-    """Say whether a release asset can actually be fetched.
-
-    A missing asset is the ordinary "not released yet" case and answers False. Any
-    other outcome raises, because a listing that silently loses a version
-    unpublishes it for everyone already subscribed.
-    """
-    request = urllib.request.Request(url, method="HEAD")
-
-    try:
-        with urllib.request.urlopen(request, timeout=30) as response:
-            return 200 <= response.status < 400
-    except urllib.error.HTTPError as error:
-        if error.code == 404:
-            return False
-
-        print(f"error: {url} answered HTTP {error.code}", file=sys.stderr)
-        raise SystemExit(1) from error
-    except (urllib.error.URLError, OSError) as error:
-        print(f"error: could not check {url} ({error})", file=sys.stderr)
-        raise SystemExit(1) from error
 
 
 def write_listing(out_dir: Path, listing: dict) -> None:
@@ -198,10 +222,15 @@ def build(args: argparse.Namespace) -> int:
 
         versions = packages.setdefault(name, {}).setdefault("versions", {})
 
-        if args.verify and not is_downloadable(manifest["url"]):
-            # Not released yet. Whatever is already listed stays listed.
-            print(f"  skipped {name} {version}: {zip_name} is not published yet")
-            continue
+        if args.verify:
+            digest = fetch_release_digest(manifest["url"])
+
+            if digest is None:
+                # Not released yet. Whatever is already listed stays listed.
+                print(f"  skipped {name} {version}: {zip_name} is not published yet")
+                continue
+
+            manifest["zipSHA256"] = digest
 
         if version in versions and not args.overwrite:
             print(
