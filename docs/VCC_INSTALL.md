@@ -124,6 +124,7 @@ Core は依存として入ります。VRChat パッケージは不要です。
 | 症状 | 原因と対処 |
 |---|---|
 | 「VCC に追加」ボタンが反応しない | VCC が未インストールか、ブラウザが `vcc://` を開けません。URL を手動で追加してください |
+| `does not contain a valid repository listing` | リスティングがまだ公開されていません。GitHub Actions の `Pages` ワークフローが成功しているか確認してください |
 | VCC にパッケージが出てこない | リポジトリ URL を再確認し、VCC を再起動してください |
 | `Update` が拒否される | 出力の隣にある `*.rectloom.asset` が必要です。消してしまった場合は `Rebuild` を使ってください |
 | ワールドで UI が見えない | キャンバスが World Space か確認してください (`vrc-world-space`) |

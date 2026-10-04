@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-まだ変更はありません。
+### Fixed
+
+- The listing is now published from the default branch rather than from the release tag. GitHub's
+  protection rule on the `github-pages` environment rejects a deploy from a tag, so the release
+  workflow stops at attaching the zips and the Pages workflow publishes the listing once those
+  zips are downloadable.
+- A version is listed only once its zip can actually be fetched, so the listing can never
+  advertise a download that answers 404, and bumping a version ahead of its release changes
+  nothing until the release exists.
 
 ## [0.1.0] - 2026-10-05
 

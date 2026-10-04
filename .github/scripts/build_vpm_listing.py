@@ -18,6 +18,13 @@ Options:
 ``--out``      Folder to write ``index.json`` and the zips into.
 ``--no-zip``   Write only the listing, which is all a dry run needs.
 ``--empty``    Write a listing with no package versions at all.
+``--verify``   Only list a version whose zip can actually be downloaded.
+
+``--verify`` is what lets the listing be built from the default branch rather than
+from a tag. A version whose release has not been published yet is simply left out,
+so the listing can never advertise a download that answers 404. A check that
+cannot be made at all is an error, because quietly dropping a version would
+unpublish it for everyone subscribed.
 
 ``--empty`` exists because the URL has to be a valid listing from the moment the
 page goes live. A VPM client that fetches a 404 reports the repository as invalid,
@@ -100,6 +107,29 @@ def load_existing(source: str | None) -> dict:
     return {}
 
 
+def is_downloadable(url: str) -> bool:
+    """Say whether a release asset can actually be fetched.
+
+    A missing asset is the ordinary "not released yet" case and answers False. Any
+    other outcome raises, because a listing that silently loses a version
+    unpublishes it for everyone already subscribed.
+    """
+    request = urllib.request.Request(url, method="HEAD")
+
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            return 200 <= response.status < 400
+    except urllib.error.HTTPError as error:
+        if error.code == 404:
+            return False
+
+        print(f"error: {url} answered HTTP {error.code}", file=sys.stderr)
+        raise SystemExit(1) from error
+    except (urllib.error.URLError, OSError) as error:
+        print(f"error: could not check {url} ({error})", file=sys.stderr)
+        raise SystemExit(1) from error
+
+
 def write_listing(out_dir: Path, listing: dict) -> None:
     (out_dir / "index.json").write_text(
         json.dumps(listing, indent=2, sort_keys=True) + "\n",
@@ -168,6 +198,11 @@ def build(args: argparse.Namespace) -> int:
 
         versions = packages.setdefault(name, {}).setdefault("versions", {})
 
+        if args.verify and not is_downloadable(manifest["url"]):
+            # Not released yet. Whatever is already listed stays listed.
+            print(f"  skipped {name} {version}: {zip_name} is not published yet")
+            continue
+
         if version in versions and not args.overwrite:
             print(
                 f"error: {name} {version} is already published; bump the version or pass --overwrite",
@@ -197,6 +232,11 @@ def main() -> int:
         "--empty",
         action="store_true",
         help="write a listing with no package versions",
+    )
+    parser.add_argument(
+        "--verify",
+        action="store_true",
+        help="only list a version whose zip can actually be downloaded",
     )
     parser.add_argument(
         "--overwrite",

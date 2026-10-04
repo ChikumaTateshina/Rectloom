@@ -1,8 +1,12 @@
-# Publishes a release and refreshes the VPM listing.
+# Builds the package zips and attaches them to a GitHub release.
 #
 # Triggered by pushing a tag such as v0.1.0, or run by hand with a version.
-# The listing is rebuilt from the currently published one, so earlier versions
-# stay installable for anyone already subscribed in the Creator Companion.
+#
+# It deliberately does not touch GitHub Pages. Pages is deployed only from the
+# default branch -- GitHub's protection rule on the github-pages environment
+# rejects anything else, including a tag -- so the Pages workflow publishes the
+# listing once this one has made the zips downloadable. It runs automatically
+# after this workflow completes.
 name: Release
 
 on:
@@ -17,8 +21,6 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 concurrency:
   group: release
@@ -26,7 +28,7 @@ concurrency:
 
 jobs:
   package:
-    name: Build packages and listing
+    name: Build the package zips
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.value }}
@@ -63,19 +65,19 @@ jobs:
           done
           exit $status
 
-      - name: Build the zips and the listing
+      # Only the zips matter here. The listing that points at them is published from
+      # the default branch, by the Pages workflow.
+      - name: Build the zips
         run: |
           python .github/scripts/build_vpm_listing.py \
             --repo "$GITHUB_REPOSITORY" \
             --version "${{ steps.version.outputs.value }}" \
-            --existing "https://$(echo "${GITHUB_REPOSITORY%%/*}" | tr '[:upper:]' '[:lower:]').github.io/${GITHUB_REPOSITORY##*/}/index.json" \
-            --out Website \
-            --overwrite
+            --out Website
 
       - uses: actions/upload-artifact@v4
         with:
-          name: vpm-listing
-          path: Website
+          name: package-zips
+          path: Website/*.zip
 
       - name: Attach the zips to the release
         if: github.event_name == 'push'
@@ -86,39 +88,3 @@ jobs:
             --title "Rectloom ${{ steps.version.outputs.value }}" \
             --notes-file CHANGELOG.md \
             || gh release upload "${GITHUB_REF_NAME}" Website/*.zip --clobber
-
-  pages:
-    name: Publish the listing
-    needs: package
-    runs-on: ubuntu-latest
-    # Shared with the Pages workflow, so a page update cannot land on top of the
-    # listing this job is about to publish.
-    concurrency:
-      group: pages-deploy
-      cancel-in-progress: false
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: vpm-listing
-          path: site
-
-      - uses: actions/configure-pages@v5
-
-      - name: Keep everything but the site out of Pages
-        run: |
-          set -euo pipefail
-          # The artifact is the whole Website folder, which also holds the zips that belong
-          # on the release and the page's own test, which belongs nowhere public.
-          rm -rf site/tests
-          rm -f site/*.zip site/.gitignore
-          ls -l site
-
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: site
-
-      - id: deploy
-        uses: actions/deploy-pages@v4
