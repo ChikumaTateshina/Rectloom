@@ -17,6 +17,12 @@ Options:
 ``--existing`` A previously published ``index.json`` to merge, or a URL.
 ``--out``      Folder to write ``index.json`` and the zips into.
 ``--no-zip``   Write only the listing, which is all a dry run needs.
+``--empty``    Write a listing with no package versions at all.
+
+``--empty`` exists because the URL has to be a valid listing from the moment the
+page goes live. A VPM client that fetches a 404 reports the repository as invalid,
+which reads as a broken link rather than "nothing released yet". An empty listing
+subscribes cleanly and fills in at the first release.
 """
 
 from __future__ import annotations
@@ -94,6 +100,17 @@ def load_existing(source: str | None) -> dict:
     return {}
 
 
+def write_listing(out_dir: Path, listing: dict) -> None:
+    (out_dir / "index.json").write_text(
+        json.dumps(listing, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    index_page = REPO_ROOT / "Website" / "index.html"
+    if index_page.is_file() and out_dir != index_page.parent:
+        shutil.copy2(index_page, out_dir / "index.html")
+
+
 def build(args: argparse.Namespace) -> int:
     if not PACKAGES_DIR.is_dir():
         print("error: Packages/ not found; run from the repository root", file=sys.stderr)
@@ -119,6 +136,16 @@ def build(args: argparse.Namespace) -> int:
     packages = listing.setdefault("packages", {})
 
     published: list[str] = []
+
+    if args.empty:
+        # Named but with no versions, so a client sees a working repository that simply has
+        # nothing in it yet.
+        for name in VPM_PACKAGES:
+            packages.setdefault(name, {}).setdefault("versions", {})
+
+        write_listing(out_dir, listing)
+        print(f"Wrote an empty listing to {out_dir / 'index.json'}")
+        return 0
 
     for name in VPM_PACKAGES:
         package_dir = PACKAGES_DIR / name
@@ -151,15 +178,7 @@ def build(args: argparse.Namespace) -> int:
         versions[version] = manifest
         published.append(f"{name} {version}")
 
-    (out_dir / "index.json").write_text(
-        json.dumps(listing, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
-
-    index_page = REPO_ROOT / "Website" / "index.html"
-    if index_page.is_file() and out_dir != index_page.parent:
-        shutil.copy2(index_page, out_dir / "index.html")
-
+    write_listing(out_dir, listing)
     print(f"Wrote {out_dir / 'index.json'}")
     for entry in published:
         print(f"  published {entry}")
@@ -174,6 +193,11 @@ def main() -> int:
     parser.add_argument("--existing", help="previously published index.json, as a path or URL")
     parser.add_argument("--out", default="Website", help="output folder")
     parser.add_argument("--no-zip", action="store_true", help="write only the listing")
+    parser.add_argument(
+        "--empty",
+        action="store_true",
+        help="write a listing with no package versions",
+    )
     parser.add_argument(
         "--overwrite",
         action="store_true",

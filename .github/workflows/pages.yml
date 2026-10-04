@@ -45,13 +45,24 @@ jobs:
           mkdir -p site
           cp Website/index.html site/
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - name: Carry the published listing across
         run: |
           set -uo pipefail
           url="https://${GITHUB_REPOSITORY%%/*}.github.io/${GITHUB_REPOSITORY##*/}/index.json"
 
           if ! curl -fsSL --max-time 30 "$url" -o site/index.json; then
-            echo "::notice::No listing is published yet. The page will show the packages as unreleased."
+            # The URL has to be a valid listing from the moment the page is live. A client
+            # that fetches a 404 reports the repository as invalid, which reads as a broken
+            # link rather than "nothing released yet".
+            echo "::notice::No listing is published yet; writing an empty one."
+            python .github/scripts/build_vpm_listing.py \
+              --repo "$GITHUB_REPOSITORY" \
+              --out site \
+              --empty
             exit 0
           fi
 
