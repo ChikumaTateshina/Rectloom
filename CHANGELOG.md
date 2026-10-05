@@ -7,6 +7,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-05
+
+A minor rather than a patch release: the generated prefab's origin moved, so output compiled
+with an earlier version is positioned differently once recompiled.
+
+### Fixed
+
+- Emoji now reach Segoe UI Emoji. The family was only ever looked for among the font assets already in
+  the project, and a project almost never has one, so the emoji font came out null and every emoji fell
+  back to a body font with no glyphs for it. The family is now resolved from the fonts installed on the
+  machine, and a font asset is generated for it.
+
+  The installed font is found by reading the platform's font folders directly. Unity's own enumeration,
+  `Font.GetPathsToOSFonts`, does not return Segoe UI Emoji at all, so a font that is plainly installed
+  looked missing. The file is copied into the project before the asset is generated, because a font
+  asset populated on demand needs its source font at runtime and a path into the machine's font folder
+  is not one a built world can follow.
+
+  Generating the asset needs TextMeshPro's shaders. Without the essential resources imported,
+  `CreateFontAsset` threw on a null shader; it now reports what to import instead.
+
+  Two things worth knowing, both reported when the asset is generated: a font copied into the project
+  is included in builds made from it, so its licence has to allow that; and Segoe UI Emoji is a colour
+  font, which TextMeshPro does not draw in colour.
+
+- The generated root is pivoted and anchored at its centre rather than its top-left corner. The root's
+  transform origin is what gets positioned when the object is dropped into a scene, and a top-left
+  origin made it hang down and to the right of wherever it was put. Nothing inside it moves: an anchor
+  is a fraction of the parent's rectangle rather than an offset from its pivot.
+
+- Content that reaches outside the document root is reported as `LAYOUT1004`. The root's border box is
+  what the generated canvas is sized to, so padding on the root pushes the content inside the canvas
+  while a child sized to the whole page overflows it — which reads as the canvas and its content being
+  misaligned, with nothing saying why. A page laid out for print puts its margins in exactly that
+  padding, so this is the common case rather than an unusual one.
+
+  Reported rather than corrected: overflowing the root is what the stylesheet asks for, and silently
+  dropping the padding or growing the canvas would each contradict a size the author wrote down.
+
+### Added
+
+- The Compiler window chooses where output goes: the output folder has a browse button, the prefab name
+  can be set instead of following the HTML file name, and the resolved path is shown so neither has to
+  be guessed at. A folder picked outside the project is refused rather than stored, since an asset path
+  has to be relative to the project.
+- `SystemFontProvider`, which generates a font asset from an installed font. Public because resolving a
+  CSS family to a font asset is something an extension may need to do the same way.
+
+### Validation
+
+- All 718 EditMode tests passed on Unity 2022.3.22f1; C# compilation produced no errors or warnings.
+- Measured the compiled prefab's transforms before and after: the root canvas and the article under it
+  were offset by 30.24px, which is the 8mm `padding` the document sets on `body`. That is faithful to
+  the stylesheet, so it is now reported rather than changed.
+- Verified that `Font.GetPathsToOSFonts` omits `seguiemj.ttf` on this machine while the file is present
+  in the Windows font folder, and that Unity imports it as a font asset once copied into the project.
+  The generation step itself needs TextMeshPro's shaders, which the test project deliberately does not
+  import, so that step is covered by its guard rather than by a run.
+
 ## [0.2.0] - 2026-10-05
 
 ### Changed
@@ -320,7 +379,8 @@ console lines that all say the same thing.
   a `MonoBehaviour` from an Editor-only assembly, so an extension's own code may be Editor-only but
   what it attaches may not be.
 
-[Unreleased]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.1.1...v0.1.2

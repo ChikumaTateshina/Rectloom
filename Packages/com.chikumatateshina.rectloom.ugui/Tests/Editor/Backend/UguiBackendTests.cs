@@ -220,6 +220,46 @@ namespace Rectloom.Ugui.Tests.Backend
         }
 
         [Test]
+        public void TheRootIsPivotedAtItsCentre()
+        {
+            GameObject root = Build(
+                "<body><div id=\"a\"></div></body>",
+                "body { width: 400px; height: 200px; } div { width: 120px; height: 30px; }");
+
+            var rect = root.GetComponent<RectTransform>();
+
+            // The root's origin is what someone positions when they drop the object into a scene, so it
+            // sits at the middle of the document rather than at its top-left corner.
+            Assert.That(rect.pivot, Is.EqualTo(new Vector2(0.5f, 0.5f)));
+            Assert.That(rect.anchorMin, Is.EqualTo(new Vector2(0.5f, 0.5f)));
+            Assert.That(rect.anchorMax, Is.EqualTo(new Vector2(0.5f, 0.5f)));
+            Assert.That(rect.sizeDelta, Is.EqualTo(new Vector2(400f, 200f)));
+            Assert.That(rect.anchoredPosition, Is.EqualTo(Vector2.zero));
+        }
+
+        [Test]
+        public void ChildrenStillStartAtTheRootsTopLeftCorner()
+        {
+            GameObject root = Build(
+                "<body><div id=\"a\"></div></body>",
+                "body { width: 400px; height: 200px; } div { width: 120px; height: 30px; }");
+
+            var rect = root.GetComponent<RectTransform>();
+            var child = Descendant(root, "a").GetComponent<RectTransform>();
+
+            // An anchor is a fraction of the parent's rectangle rather than an offset from its pivot, so
+            // centring the root must not move anything inside it.
+            var corners = new Vector3[4];
+            rect.GetWorldCorners(corners);
+
+            var childCorners = new Vector3[4];
+            child.GetWorldCorners(childCorners);
+
+            Assert.That(childCorners[1].x, Is.EqualTo(corners[1].x).Within(0.001f), "left edges agree");
+            Assert.That(childCorners[1].y, Is.EqualTo(corners[1].y).Within(0.001f), "top edges agree");
+        }
+
+        [Test]
         public void RectIsBakedWithTopLeftAnchorsAndFlippedY()
         {
             GameObject root = Build(

@@ -24,6 +24,9 @@ namespace Rectloom.Ugui.Backend
         /// <summary>The top-left corner, as an anchor and pivot.</summary>
         public static readonly Vector2 TopLeft = new Vector2(0f, 1f);
 
+        /// <summary>The centre, as an anchor and pivot.</summary>
+        public static readonly Vector2 Centre = new Vector2(0.5f, 0.5f);
+
         /// <summary>
         /// Bakes a node's rectangle onto a transform.
         /// </summary>
@@ -52,11 +55,27 @@ namespace Rectloom.Ugui.Backend
         /// </summary>
         /// <param name="transform">Transform to write to.</param>
         /// <param name="size">Size of the root, in logical pixels.</param>
+        /// <remarks>
+        /// The root is pivoted and anchored at its centre, unlike every other node. Its transform
+        /// origin is what someone positions when they drop the generated object into a scene, and a
+        /// centre origin is what makes that behave: the object sits where it is put, rather than
+        /// hanging down and to the right of it.
+        /// <para>
+        /// Children are unaffected. They anchor to this rectangle's top-left corner, and an anchor is
+        /// a fraction of the parent's rectangle rather than an offset from its pivot, so where the
+        /// root's own origin sits does not move them.
+        /// </para>
+        /// <para>
+        /// A margin declared on the document root is not applied. A margin is space between a box and
+        /// its siblings inside a parent, and the root has neither, so there is nothing for it to push
+        /// against.
+        /// </para>
+        /// </remarks>
         public static void BakeRoot(RectTransform transform, Vector2 size)
         {
-            transform.anchorMin = TopLeft;
-            transform.anchorMax = TopLeft;
-            transform.pivot = TopLeft;
+            transform.anchorMin = Centre;
+            transform.anchorMax = Centre;
+            transform.pivot = Centre;
             transform.sizeDelta = size;
             transform.anchoredPosition = Vector2.zero;
             transform.localScale = Vector3.one;

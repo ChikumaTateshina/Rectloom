@@ -19,6 +19,27 @@ namespace Rectloom.Ugui.Backend
                 || (index + 1 < text.Length && (text[index + 1] == '\uFE0F' || text[index + 1] == '\u20E3'));
         }
 
+        // Resolving an emoji font costs a project-wide search, and generating one copies a font into
+        // the project. Neither is worth doing for a document with no emoji in it, and the diagnostics
+        // that explain a missing emoji font would otherwise appear on every compile.
+        internal static bool ContainsEmoji(string? text)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return false;
+            }
+
+            for (int index = 0; index < text!.Length; index++)
+            {
+                if (IsEmojiAt(text, index))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         internal static string Format(string content, TMP_FontAsset? emoji)
         {
             if (emoji == null) return content;

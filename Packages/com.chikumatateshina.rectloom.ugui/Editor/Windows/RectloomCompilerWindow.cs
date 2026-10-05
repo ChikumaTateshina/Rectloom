@@ -37,6 +37,7 @@ namespace Rectloom.Ugui.Windows
         [SerializeField] private List<string> _cssPaths = new List<string>();
         [SerializeField] private CompileOutputType _outputType = CompileOutputType.Prefab;
         [SerializeField] private string _outputFolder = "Assets/UI/Generated";
+        [SerializeField] private string _outputName = string.Empty;
         [SerializeField] private CompileMode _compileMode = CompileMode.Create;
         [SerializeField] private LayoutMode _layoutMode = LayoutMode.Bake;
         [SerializeField] private Vector2 _referenceResolution = CompilerOptions.DefaultReferenceResolution;
@@ -74,7 +75,7 @@ namespace Rectloom.Ugui.Windows
             EditorGUILayout.LabelField("Output", EditorStyles.boldLabel);
             if (_batchMode)
             {
-                _batchOutputFolder = EditorGUILayout.TextField("Output Folder", _batchOutputFolder);
+                DrawFolderField("Output Folder", ref _batchOutputFolder);
                 EditorGUILayout.HelpBox("One prefab per HTML filename. Existing recorded output is updated; "
                     + "other assets are never overwritten.", MessageType.Info);
             }
@@ -82,7 +83,17 @@ namespace Rectloom.Ugui.Windows
 
             using (new EditorGUI.DisabledScope(_batchMode || _outputType != CompileOutputType.Prefab))
             {
-                _outputFolder = EditorGUILayout.TextField("Output Folder", _outputFolder);
+                DrawFolderField("Output Folder", ref _outputFolder);
+                _outputName = EditorGUILayout.TextField("Prefab Name", _outputName);
+
+                // Shown because the name is optional: without seeing the result, "empty means the HTML
+                // file's name" is a rule the user has to remember rather than read.
+                EditorGUILayout.LabelField(
+                    " ",
+                    string.IsNullOrWhiteSpace(_htmlPath)
+                        ? "Choose an HTML file to see the output path."
+                        : ResolveOutputPath(_htmlPath),
+                    EditorStyles.miniLabel);
             }
 
             EditorGUILayout.Space();
@@ -104,7 +115,10 @@ namespace Rectloom.Ugui.Windows
 
             _emojiFont = (TMP_FontAsset?)EditorGUILayout.ObjectField(
                 "Emoji TMP Font", _emojiFont, typeof(TMP_FontAsset), false);
-            EditorGUILayout.LabelField("", "Emoji uses Segoe UI Emoji directly when installed.", EditorStyles.miniLabel);
+            EditorGUILayout.HelpBox(
+                "Emoji use Segoe UI Emoji. If the project has no font asset for it, one is generated "
+                    + "from the installed font, which copies that font into the project.",
+                MessageType.Info);
 
             DrawModeHelp();
 
@@ -418,6 +432,84 @@ namespace Rectloom.Ugui.Windows
             }
         }
 
+        /// <summary>
+        /// Builds the prefab path a compile writes to.
+        /// </summary>
+        /// <remarks>
+        /// The name falls back to the HTML file's own, which is what makes the common case need no
+        /// typing, and what keeps a batch compile from writing every document to one path.
+        /// </remarks>
+        private string ResolveOutputPath(string htmlPath)
+        {
+            string name = string.IsNullOrWhiteSpace(_outputName)
+                ? Path.GetFileNameWithoutExtension(htmlPath)
+                : Path.GetFileNameWithoutExtension(_outputName.Trim());
+
+            if (string.IsNullOrEmpty(name))
+            {
+                name = "Rectloom";
+            }
+
+            return _outputFolder.Replace('\\', '/').TrimEnd('/') + "/" + name + ".prefab";
+        }
+
+        /// <summary>
+        /// Draws a project folder field with a browse button.
+        /// </summary>
+        /// <remarks>
+        /// The field stays editable so a path can be pasted, and the button only fills it in. A folder
+        /// chosen outside the project is rejected rather than stored: an asset path has to be relative to
+        /// the project, and an absolute one fails later, when the compile writes.
+        /// </remarks>
+        private void DrawFolderField(string label, ref string folder)
+        {
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                folder = EditorGUILayout.TextField(label, folder);
+
+                if (!GUILayout.Button("Browse", EditorStyles.miniButton, GUILayout.Width(60f)))
+                {
+                    return;
+                }
+
+                string start = AssetDatabase.IsValidFolder(folder) ? folder : "Assets";
+                string chosen = EditorUtility.OpenFolderPanel("Rectloom output folder", start, string.Empty);
+
+                if (string.IsNullOrEmpty(chosen))
+                {
+                    return;
+                }
+
+                string? relative = ToProjectPath(chosen);
+
+                if (relative == null)
+                {
+                    _summary = "That folder is outside the project. Choose one under Assets.";
+                    return;
+                }
+
+                folder = relative;
+                GUI.FocusControl(null);
+            }
+        }
+
+        /// <summary>
+        /// Turns an absolute folder into a project-relative asset path.
+        /// </summary>
+        /// <returns>The asset path, or <see langword="null"/> when the folder is outside the project.</returns>
+        private static string? ToProjectPath(string absolute)
+        {
+            string project = Path.GetDirectoryName(Application.dataPath)?.Replace('\\', '/') ?? string.Empty;
+            string chosen = absolute.Replace('\\', '/').TrimEnd('/');
+
+            if (project.Length == 0 || !chosen.StartsWith(project + "/", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            return chosen.Substring(project.Length + 1);
+        }
+
         private CompileRequest CreateRequest(string htmlPath, CompileMode mode)
         {
             return new CompileRequest
@@ -425,7 +517,7 @@ namespace Rectloom.Ugui.Windows
                 HtmlAssetPath = htmlPath,
                 CssAssetPaths = _cssPaths.FindAll(path => !string.IsNullOrWhiteSpace(path)).ToArray(),
                 OutputType = _outputType,
-                OutputPath = _outputFolder.TrimEnd('/') + "/" + Path.GetFileNameWithoutExtension(htmlPath) + ".prefab",
+                OutputPath = ResolveOutputPath(htmlPath),
                 CompileMode = mode,
                 LayoutMode = _layoutMode,
                 Options = new CompilerOptions

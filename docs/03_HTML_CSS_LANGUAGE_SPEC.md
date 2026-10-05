@@ -511,6 +511,28 @@ listの途中にgeneric familyが現れたらそこで打ち切る。それよ�
 
 解決できなかったfamily listは1回だけWarningを出す。
 
+### 絵文字
+
+絵文字にfamilyを与えるdocumentはほぼ無く、継承した本文fontには字形が無い。
+そのため絵文字は `font-family` とは別に、既定で **Segoe UI Emoji** で描く
+(Compiler windowで差し替え可能)。
+
+projectにそのfamilyのfont assetが無い場合は、**installされているfontから生成する**。
+Unity自身のfont列挙 (`Font.GetPathsToOSFonts`) はSegoe UI Emojiを返さないため、
+platformのfont folderを直接読む。fontファイルはprojectへcopyしてからimportする
+(動的font assetはruntimeにsource fontを必要とし、machineのfont folderへのpathは
+buildしたworldからは辿れない)。
+
+生成には TextMeshPro の shader が必要で、Essential Resources が未importなら
+生成せずに「何をすればよいか」を報告する。
+
+絵文字を含まないdocumentでは、この探索も生成も行わない。毎回
+「絵文字fontが無い」と報告されることになるため。
+
+注意: Segoe UI Emoji はcolour font (COLR/CPAL) であり、TextMeshProはcolour fontを
+colourとしては描かない。またprojectへcopyしたfontはbuildに含まれるため、
+licenceを確認すること。どちらも生成時のInfo診断で伝える。
+
 ### 字形が無い場合
 
 選ばれたfontが描けない文字を含むtextは、TextMeshProでは測らず

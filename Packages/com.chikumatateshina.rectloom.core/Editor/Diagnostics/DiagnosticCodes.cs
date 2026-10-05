@@ -105,6 +105,12 @@ namespace Rectloom.Core.Diagnostics
 
             /// <summary>Layout produced a negative width or height.</summary>
             public const string NegativeCalculatedSize = "LAYOUT1003";
+
+            /// <summary>
+            /// The document's content reaches outside the root box, so the generated canvas does not
+            /// contain all of it.
+            /// </summary>
+            public const string ContentOutsideRoot = "LAYOUT1004";
         }
 
         /// <summary>Unity object and prefab codes.</summary>

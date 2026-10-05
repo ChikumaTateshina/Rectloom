@@ -148,6 +148,34 @@ public sealed class LayoutResult
 
 Version 1.0 `Bake` modeではLayoutGroupへ依存せず、最終RectをRectTransformへ焼く。
 
+## 12. Anchorとpivot
+
+生成objectのanchorは**点**に潰す。`Bake` modeではcompilerが矩形を所有しており、
+stretch anchorにすると後から親をresizeしたときの結果に依存してしまう。
+
+| 対象 | anchor / pivot | 理由 |
+|---|---|---|
+| document root | **中央 (0.5, 0.5)** | sceneへ置くときに動かすのはこのtransform原点である。中央なら置いた場所に収まる |
+| それ以外のnode | 左上 (0, 1) | layout座標がそのまま使える (yの符号のみ反転) |
+| label子 | 親のcontent boxへstretch | 親を手でresizeしたときにpaddingが保たれる |
+
+anchorは**親の矩形に対する割合**であり、親のpivotからのoffsetではない。
+したがってroot のpivotを中央にしても、その中の node は動かない。
+
+document root の `margin` は適用しない。marginは親の中で兄弟との間に空ける空間であり、
+rootにはどちらも無いので押し合う相手がいない。
+
+## 13. Document rootとCanvas
+
+document root (`body`) のborder boxが生成Canvasの矩形になる。
+したがって**rootのpaddingは中のcontentをCanvasの内側へずらす**。
+印刷向けのpageはこのpaddingにpage marginを置くため、page全体のサイズを持つ子は
+その分だけCanvasから溢れる。
+
+これはstylesheetどおりの結果なので直さない。代わりに `LAYOUT1004` で報告する
+(docs/08 §3)。paddingを黙って落とすのも Canvas を黙って広げるのも、
+authorが書いたサイズと矛盾する。
+
 ## 12. Text → TMP
 
 | CSS | TMP |

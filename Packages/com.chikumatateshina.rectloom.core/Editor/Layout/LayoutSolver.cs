@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using Rectloom.Core.Css.Computed;
 using Rectloom.Core.Css.Values;
 using Rectloom.Core.Diagnostics;
@@ -80,7 +81,68 @@ namespace Rectloom.Core.Layout
             Edges margin = ResolveEdges(root.Style.Margin, viewport.x);
             result.X += margin.Left;
             result.Y += margin.Top;
+
+            ReportContentOutsideRoot(root, result, viewport);
+
             return result;
+        }
+
+        /// <summary>
+        /// Reports content that reaches outside the root box.
+        /// </summary>
+        /// <remarks>
+        /// The root box is what the generated canvas is sized to, so anything outside it is content the
+        /// canvas does not contain. That reads as the canvas and its content being misaligned, and the
+        /// cause is almost always padding on the root: a page laid out for print puts its margins there,
+        /// and a child sized to the full page then does not fit inside them.
+        /// <para>
+        /// Reported rather than corrected, because both readings are legitimate. Overflowing the root is
+        /// what the stylesheet asks for, and silently dropping the padding or growing the canvas would
+        /// each contradict a size the author wrote down.
+        /// </para>
+        /// </remarks>
+        private void ReportContentOutsideRoot(LayoutBox root, LayoutResult result, Vector2 viewport)
+        {
+            float right = 0f;
+            float bottom = 0f;
+
+            foreach (LayoutResult child in result.Children)
+            {
+                right = Mathf.Max(right, child.X + child.Width);
+                bottom = Mathf.Max(bottom, child.Y + child.Height);
+            }
+
+            // Child positions are relative to the content box, so the padding has to be added back to
+            // compare against the border box the canvas is sized to.
+            float overflowRight = result.ContentX + right - result.Width;
+            float overflowBottom = result.ContentY + bottom - result.Height;
+
+            if (overflowRight <= FreeSpaceEpsilon && overflowBottom <= FreeSpaceEpsilon)
+            {
+                return;
+            }
+
+            Edges padding = ResolveEdges(root.Style.Padding, viewport.x);
+            bool hasPadding = padding.Left + padding.Right + padding.Top + padding.Bottom > FreeSpaceEpsilon;
+
+            _diagnostics.Warning(
+                DiagnosticCodes.Layout.ContentOutsideRoot,
+                "The document's content reaches outside the root box"
+                    + DescribeOverflow(overflowRight, "right")
+                    + DescribeOverflow(overflowBottom, "bottom")
+                    + ", so the generated canvas does not contain all of it.",
+                root.Source,
+                hasPadding
+                    ? "The root's padding leaves less room than its children need. Remove the padding on "
+                        + "the root, or give the children room inside it."
+                    : "Reduce the size of the children, or raise the reference resolution.");
+        }
+
+        private static string DescribeOverflow(float overflow, string edge)
+        {
+            return overflow <= FreeSpaceEpsilon
+                ? string.Empty
+                : " by " + overflow.ToString("0.##", CultureInfo.InvariantCulture) + "px on the " + edge;
         }
 
         /// <summary>

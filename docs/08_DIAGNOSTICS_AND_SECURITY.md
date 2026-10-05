@@ -51,6 +51,7 @@ CSS1004 Circular @import
 LAYOUT1001 Unresolvable auto size
 LAYOUT1002 Invalid percentage context
 LAYOUT1003 Negative calculated size
+LAYOUT1004 Content outside the root box
 
 UNITY1001 Component creation failed
 UNITY1002 Prefab write failed

@@ -60,6 +60,16 @@ namespace Rectloom.Ugui.Compilation
         private readonly Func<ITextMeasurer>? _measurerFactory;
         private readonly IEmbeddedImageStore? _images;
         private readonly TMP_FontAsset? _defaultFont;
+        /// <summary>
+        /// Family used for emoji when the request names no emoji font.
+        /// </summary>
+        /// <remarks>
+        /// The Windows emoji font. Named here rather than left to <c>font-family</c> because emoji in a
+        /// document are almost never given a family of their own, and the body font they inherit has no
+        /// glyphs for them.
+        /// </remarks>
+        public const string EmojiFontFamily = "Segoe UI Emoji";
+
         private readonly TMP_FontAsset? _emojiFont;
 
         /// <summary>
@@ -222,7 +232,20 @@ namespace Rectloom.Ugui.Compilation
             var layout = Stopwatch.StartNew();
             // Keep the font cache local to this pass, shared by measurement and generation.
             var discovery = new TmpFontLibrary(_defaultFont, diagnostics);
-            TMP_FontAsset? emoji = _emojiFont ?? discovery.FindFamily("Segoe UI Emoji");
+
+            // Only resolved when the document actually has emoji in it. Searching the project and
+            // generating a font asset both have costs, and a document with no emoji would otherwise be
+            // told on every compile that it has no emoji font.
+            // Resolved during validation too, because a font that appeared only when compiling would
+            // measure text differently from the pass that checked it.
+            TMP_FontAsset? emoji = _emojiFont;
+
+            if (emoji == null && HasEmoji(document))
+            {
+                emoji = discovery.FindFamily(EmojiFontFamily)
+                    ?? SystemFontProvider.TryCreate(EmojiFontFamily, options.GeneratedAssetFolder, diagnostics);
+            }
+
             if (commitOutput) emoji = EmojiText.EnsureResource(emoji, options.GeneratedAssetFolder);
             var fonts = new TmpFontLibrary(_defaultFont, diagnostics, emoji);
             ITextMeasurer measurer = CreateMeasurer(diagnostics, fonts);
@@ -653,6 +676,22 @@ namespace Rectloom.Ugui.Compilation
             var pipeline = new ExtensionPipeline(ExtensionRegistry.Discover(diagnostics));
 
             pipeline.Run(ir, result.Objects, context);
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether any text in the document contains an emoji.
+        /// </summary>
+        private static bool HasEmoji(DomDocument document)
+        {
+            foreach (DomNode node in document.DescendantsAndSelf())
+            {
+                if (node is DomText text && EmojiText.ContainsEmoji(text.Text))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private ITextMeasurer CreateMeasurer(IDiagnosticSink diagnostics, TmpFontLibrary fonts)
