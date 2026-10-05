@@ -38,6 +38,17 @@ namespace Rectloom.Core.Metadata
         /// <summary>File extension used for a metadata asset.</summary>
         public const string AssetExtension = ".rectloom.asset";
 
+        [SerializeField] private bool _worldSpaceCanvas;
+        [SerializeField] private float _worldUnitsPerPixel;
+        [SerializeField] private bool _renderDocumentBackground;
+
+        /// <summary>Canvas mode recorded for this output.</summary>
+        public bool WorldSpaceCanvas { get => _worldSpaceCanvas; set => _worldSpaceCanvas = value; }
+        /// <summary>World units per pixel recorded for this output.</summary>
+        public float WorldUnitsPerPixel { get => _worldUnitsPerPixel; set => _worldUnitsPerPixel = value; }
+        /// <summary>Whether the document root background was rendered.</summary>
+        public bool RenderDocumentBackground { get => _renderDocumentBackground; set => _renderDocumentBackground = value; }
+
         [SerializeField] private int _schemaVersion = CurrentSchemaVersion;
         [SerializeField] private string _compilerVersion = RectloomVersion.Current;
         [SerializeField] private string _sourceHtmlGuid = string.Empty;

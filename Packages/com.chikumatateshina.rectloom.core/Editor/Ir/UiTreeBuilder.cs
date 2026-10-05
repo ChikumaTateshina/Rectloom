@@ -1,6 +1,7 @@
 #nullable enable
 
 using System;
+using System.IO;
 using System.Collections.Generic;
 using Rectloom.Core.Assets;
 using Rectloom.Core.Compilation;
@@ -94,7 +95,10 @@ namespace Rectloom.Core.Ir
 
             string stableId = allocator.Allocate(box.Element?.Id, fallbackId);
             UiNodeKind kind = ResolveKind(box, isRoot);
-            string name = names.Allocate(box.Element?.Id ?? (box.IsAnonymous ? "Text" : tagName));
+            string documentName = Path.GetFileNameWithoutExtension(_documentPath.Replace('\\', '/'));
+            string name = names.Allocate(isRoot && !string.IsNullOrEmpty(documentName)
+                ? documentName
+                : box.Element?.Id ?? (box.IsAnonymous ? "Text" : tagName));
 
             var node = new UiNode(stableId, kind, name, box.Source, box.Style.ExtensionProperties)
             {

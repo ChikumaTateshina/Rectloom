@@ -1,5 +1,7 @@
 #nullable enable
 
+using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Globalization;
 using Rectloom.Core.Compilation;
@@ -9,6 +11,7 @@ using TMPro;
 using Rectloom.Ugui.Compilation;
 using UnityEditor;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace Rectloom.Ugui.Windows
 {
@@ -33,7 +36,7 @@ namespace Rectloom.Ugui.Windows
         [SerializeField] private string _htmlPath = string.Empty;
         [SerializeField] private List<string> _cssPaths = new List<string>();
         [SerializeField] private CompileOutputType _outputType = CompileOutputType.Prefab;
-        [SerializeField] private string _outputPath = "Assets/UI/Generated.prefab";
+        [SerializeField] private string _outputFolder = "Assets/UI/Generated";
         [SerializeField] private CompileMode _compileMode = CompileMode.Create;
         [SerializeField] private LayoutMode _layoutMode = LayoutMode.Bake;
         [SerializeField] private Vector2 _referenceResolution = CompilerOptions.DefaultReferenceResolution;
@@ -41,6 +44,12 @@ namespace Rectloom.Ugui.Windows
         [SerializeField] private bool _strictMode;
         [SerializeField] private TMP_FontAsset? _defaultFont;
         [SerializeField] private bool _showInformation;
+        [SerializeField] private TMP_FontAsset? _emojiFont;
+        [SerializeField] private bool _worldSpace = true;
+        [SerializeField] private bool _documentBackground;
+        [SerializeField] private bool _batchMode;
+        [SerializeField] private List<string> _htmlPaths = new List<string>();
+        [SerializeField] private string _batchOutputFolder = "Assets/UI/Generated";
         [SerializeField] private Vector2 _diagnosticsScroll;
         [SerializeField] private string _summary = string.Empty;
 
@@ -56,16 +65,24 @@ namespace Rectloom.Ugui.Windows
         private void OnGUI()
         {
             EditorGUILayout.LabelField("Source", EditorStyles.boldLabel);
-            DrawAssetField("HTML", ref _htmlPath, HtmlExtension);
+            _batchMode = EditorGUILayout.Toggle("Batch HTML files", _batchMode);
+            if (_batchMode) DrawHtmlList();
+            else DrawAssetField("HTML", ref _htmlPath, HtmlExtension);
             DrawCssList();
 
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("Output", EditorStyles.boldLabel);
-            _outputType = (CompileOutputType)EditorGUILayout.EnumPopup("Type", _outputType);
-
-            using (new EditorGUI.DisabledScope(_outputType != CompileOutputType.Prefab))
+            if (_batchMode)
             {
-                _outputPath = EditorGUILayout.TextField("Prefab Path", _outputPath);
+                _batchOutputFolder = EditorGUILayout.TextField("Output Folder", _batchOutputFolder);
+                EditorGUILayout.HelpBox("One prefab per HTML filename. Existing recorded output is updated; "
+                    + "other assets are never overwritten.", MessageType.Info);
+            }
+            else _outputType = (CompileOutputType)EditorGUILayout.EnumPopup("Type", _outputType);
+
+            using (new EditorGUI.DisabledScope(_batchMode || _outputType != CompileOutputType.Prefab))
+            {
+                _outputFolder = EditorGUILayout.TextField("Output Folder", _outputFolder);
             }
 
             EditorGUILayout.Space();
@@ -75,6 +92,8 @@ namespace Rectloom.Ugui.Windows
             _referenceResolution = EditorGUILayout.Vector2Field("Reference Resolution", _referenceResolution);
             _useDefaultStyleSheet = EditorGUILayout.Toggle("Built-in Stylesheet", _useDefaultStyleSheet);
             _strictMode = EditorGUILayout.Toggle("Strict Mode", _strictMode);
+            _worldSpace = EditorGUILayout.Toggle("World Space (1px = 1mm)", _worldSpace);
+            _documentBackground = EditorGUILayout.Toggle("Document Background", _documentBackground);
 
             _defaultFont = (TMP_FontAsset?)EditorGUILayout.ObjectField(
                 "Default TMP Font", _defaultFont, typeof(TMP_FontAsset), false);
@@ -83,10 +102,15 @@ namespace Rectloom.Ugui.Windows
                     + "CSS font-family overrides this font. Dynamic assets need their source font included.",
                 MessageType.Info);
 
+            _emojiFont = (TMP_FontAsset?)EditorGUILayout.ObjectField(
+                "Emoji TMP Font", _emojiFont, typeof(TMP_FontAsset), false);
+            EditorGUILayout.LabelField("", "Emoji uses Segoe UI Emoji directly when installed.", EditorStyles.miniLabel);
+
             DrawModeHelp();
 
             EditorGUILayout.Space();
-            DrawActions();
+            if (_batchMode) DrawBatchActions();
+            else DrawActions();
 
             EditorGUILayout.Space();
             DrawDiagnostics();
@@ -194,6 +218,71 @@ namespace Rectloom.Ugui.Windows
             if (!string.IsNullOrEmpty(path))
             {
                 EditorGUILayout.LabelField(" ", path, EditorStyles.miniLabel);
+            }
+        }
+
+        private void DrawHtmlList()
+        {
+            for (int index = 0; index < _htmlPaths.Count; index++)
+            {
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    string path = _htmlPaths[index];
+                    DrawAssetField("HTML " + (index + 1), ref path, HtmlExtension);
+                    _htmlPaths[index] = path;
+                    if (GUILayout.Button("-", GUILayout.Width(24f))) { _htmlPaths.RemoveAt(index); break; }
+                }
+            }
+            if (GUILayout.Button("Add HTML file")) _htmlPaths.Add(string.Empty);
+            if (GUILayout.Button("Add selected HTML files / folders"))
+            {
+                foreach (Object selected in Selection.objects)
+                {
+                    string path = AssetDatabase.GetAssetPath(selected);
+                    if (AssetDatabase.IsValidFolder(path))
+                    {
+                        string[] files = Directory.GetFiles(path, "*.html", SearchOption.AllDirectories);
+                        Array.Sort(files, StringComparer.Ordinal);
+                        foreach (string file in files) AddHtml(file.Replace('\\', '/'));
+                    }
+                    else AddHtml(path);
+                }
+            }
+        }
+
+        private void AddHtml(string path)
+        {
+            if (path.EndsWith(HtmlExtension, StringComparison.OrdinalIgnoreCase) && !_htmlPaths.Contains(path))
+                _htmlPaths.Add(path);
+        }
+
+        private void DrawBatchActions()
+        {
+            using (new EditorGUI.DisabledScope(!_htmlPaths.Exists(path => !string.IsNullOrWhiteSpace(path))))
+            {
+                if (GUILayout.Button("Compile All HTML Files"))
+                {
+                    _diagnostics.Clear();
+                    try
+                    {
+                        var compiler = new UguiHtmlUiCompiler(defaultFont: _defaultFont, emojiFont: _emojiFont);
+                        var results = new BatchHtmlUiCompiler(compiler)
+                            .Compile(_htmlPaths, _batchOutputFolder, CreateRequest(_htmlPath, _compileMode));
+                        int succeeded = 0;
+                        foreach (var result in results)
+                        {
+                            if (result.Value.Success) succeeded++;
+                            _diagnostics.AddRange(result.Value.Diagnostics);
+                        }
+                        _summary = results.Count + " HTML files: " + succeeded + " succeeded, "
+                            + (results.Count - succeeded) + " failed.";
+                    }
+                    catch (Exception exception)
+                    {
+                        _summary = "Batch failed: " + exception.Message;
+                    }
+                    Repaint();
+                }
             }
         }
 
@@ -329,14 +418,14 @@ namespace Rectloom.Ugui.Windows
             }
         }
 
-        private void Run(bool validateOnly, CompileMode mode)
+        private CompileRequest CreateRequest(string htmlPath, CompileMode mode)
         {
-            var request = new CompileRequest
+            return new CompileRequest
             {
-                HtmlAssetPath = _htmlPath,
+                HtmlAssetPath = htmlPath,
                 CssAssetPaths = _cssPaths.FindAll(path => !string.IsNullOrWhiteSpace(path)).ToArray(),
                 OutputType = _outputType,
-                OutputPath = _outputPath,
+                OutputPath = _outputFolder.TrimEnd('/') + "/" + Path.GetFileNameWithoutExtension(htmlPath) + ".prefab",
                 CompileMode = mode,
                 LayoutMode = _layoutMode,
                 Options = new CompilerOptions
@@ -344,15 +433,23 @@ namespace Rectloom.Ugui.Windows
                     ReferenceResolution = _referenceResolution,
                     UseDefaultStyleSheet = _useDefaultStyleSheet,
                     StrictMode = _strictMode,
+                    WorldSpaceCanvas = _worldSpace,
+                    WorldUnitsPerPixel = 0.001f,
+                    RenderDocumentBackground = _documentBackground,
                 },
             };
+        }
+
+        private void Run(bool validateOnly, CompileMode mode)
+        {
+            var request = CreateRequest(_htmlPath, mode);
 
             if (!validateOnly)
             {
                 request.CompileMode = ResolveInitialMode(request);
             }
 
-            var compiler = new UguiHtmlUiCompiler(defaultFont: _defaultFont);
+            var compiler = new UguiHtmlUiCompiler(defaultFont: _defaultFont, emojiFont: _emojiFont);
             CompileResult result = validateOnly ? compiler.Validate(request) : compiler.Compile(request);
 
             _diagnostics.Clear();

@@ -27,7 +27,9 @@ namespace Rectloom.Ugui.Backend
         /// place. The same font has to be used for measuring and for rendering, or a box will not fit
         /// the text it was sized for.
         /// </param>
-        public static void Apply(TMP_Text text, string? content, UiTextStyle style, TMP_FontAsset? font = null)
+        /// <param name="emojiFont">Font explicitly used for emoji runs.</param>
+        public static void Apply(TMP_Text text, string? content, UiTextStyle style, TMP_FontAsset? font = null,
+            TMP_FontAsset? emojiFont = null)
         {
             if (text == null || style == null)
             {
@@ -39,13 +41,13 @@ namespace Rectloom.Ugui.Backend
                 text.font = font;
             }
 
-            text.text = content ?? string.Empty;
+            text.text = EmojiText.Format(content ?? string.Empty, emojiFont);
             text.color = style.Color;
             text.fontSize = style.FontSize;
             text.fontStyle = ResolveFontStyle(style);
             text.alignment = ResolveAlignment(style.Alignment);
             text.enableWordWrapping = style.Wrap;
-            text.richText = false;
+            text.richText = emojiFont != null;
 
             // TextMeshPro expresses both of these as a percentage of the font size rather than in
             // pixels, so a style that says 1.5 line height becomes 50 extra percent.

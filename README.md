@@ -156,6 +156,40 @@ body { font-family: "Noto Sans JP", sans-serif; }
 `UNITY1008` が既存の Prefab に対して出る場合は、対応する `.rectloom.asset` を復元するか、
 新しい出力パスで Create してください。手作業を破棄してよい場合だけ Rebuild を使用します。
 
+### 実寸・背景・名前
+
+既定の出力は World Space Canvas です。レイアウトの **1px を 1mm** として配置するため、
+ルートの倍率を `0.001` にします。例えば `width: 100px` は、親の倍率が 1 のとき 0.1m です。
+CSS 自体の単位変換は従来どおりで、換算後の論理ピクセルにこの倍率を適用します。
+画面 UI が必要な場合は **World Space (1px = 1mm)** をオフにしてください。
+
+HTML の `body` にあるプレビュー用のページ背景は、既定では生成しません。
+本文内の要素の背景は維持します。ページ背景も必要な場合は **Document Background** をオンにします。
+既存の生成物も Update で設定を反映できます。
+
+ウィンドウは **Output Folder** に、HTML のファイル名から拡張子を除いた名前の Prefab と
+メタデータを生成します。UI のルート名もその名前になります。
+
+### 絵文字
+
+**Emoji TMP Font** に Segoe UI Emoji の TMP Font Asset を指定します。未指定の場合は、
+プロジェクト内の Segoe UI Emoji を自動検索します。本文は Noto Sans を使い、絵文字の部分は
+TMP の font タグで Segoe UI Emoji を直接指定します。本文フォントのフォールバックには追加しません。
+フォントタグをビルド後にも解決できるよう、生成アセットフォルダの `Resources` 内にフォントを用意します。
+日本語は従来どおり Default TMP Font または CSS の font-family で指定できます。
+
+### 複数 HTML の一括コンパイル
+
+1. Compiler の **Batch HTML files** をオンにします。
+2. **Add HTML file** で追加するか、Project ウィンドウで HTML / フォルダを選択して
+   **Add selected HTML files / folders** を押します。フォルダの配下も検索します。
+3. **Output Folder** と本文・絵文字フォントを設定し、**Compile All HTML Files** を押します。
+
+各 HTML は独立した Prefab とメタデータになります。メタデータのある出力は Update、
+ない出力は Create として処理し、既存の別アセットは上書きしません。
+重複指定は一度だけ処理します。同名の HTML が複数ある場合は、その組をエラーにして上書きを防ぎます。
+別の名前か出力フォルダに分けてください。一つの HTML が失敗しても、ほかの HTML は続けて処理します。
+
 ## 動作環境
 
 - Unity 2022.3 以降

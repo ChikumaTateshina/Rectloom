@@ -69,6 +69,9 @@ namespace Rectloom.Core.Tests.Compilation
                 UseDefaultStyleSheet = false,
                 PreserveModifiedGeneratedObjects = false,
                 AllowRawImageFallback = false,
+                WorldSpaceCanvas = false,
+                WorldUnitsPerPixel = 0.005f,
+                RenderDocumentBackground = true,
             };
 
             CompilerOptions copy = original.Clone();
@@ -80,6 +83,9 @@ namespace Rectloom.Core.Tests.Compilation
             Assert.That(copy.UseDefaultStyleSheet, Is.False);
             Assert.That(copy.PreserveModifiedGeneratedObjects, Is.False);
             Assert.That(copy.AllowRawImageFallback, Is.False);
+            Assert.That(copy.WorldSpaceCanvas, Is.False);
+            Assert.That(copy.WorldUnitsPerPixel, Is.EqualTo(0.005f));
+            Assert.That(copy.RenderDocumentBackground, Is.True);
         }
     }
 }

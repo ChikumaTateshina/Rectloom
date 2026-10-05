@@ -78,7 +78,7 @@ namespace Rectloom.Ugui.Backend
 
         private static readonly string[] CanvasScalerProperties =
         {
-            "m_UiScaleMode", "m_ReferenceResolution", "m_ScreenMatchMode", "m_MatchWidthOrHeight",
+            "m_UiScaleMode", "m_ReferenceResolution", "m_ScreenMatchMode", "m_MatchWidthOrHeight", "m_ScaleFactor",
         };
 
         private readonly IAssetResolver _assets;
@@ -297,7 +297,7 @@ namespace Rectloom.Ugui.Backend
                 RectTransformBaker.StretchToContent(transform, node.Rect);
 
                 TMP_Text text = GetOrAdd<TextMeshProUGUI>(label, entry, TextProperties);
-                TmpTextApplier.Apply(text, node.TextContent, node.TextStyle, ResolveFont(node));
+                TmpTextApplier.Apply(text, node.TextContent, node.TextStyle, ResolveFont(node), _backend._fonts.EmojiFont);
 
                 // A label never swallows clicks meant for the box it belongs to.
                 text.raycastTarget = false;
@@ -361,7 +361,8 @@ namespace Rectloom.Ugui.Backend
                         ApplyText(node, target, entry);
                         break;
                     default:
-                        ApplyPaint(node, target, entry, forceGraphic: false);
+                        if (!isRoot || _backend._options.RenderDocumentBackground)
+                            ApplyPaint(node, target, entry, forceGraphic: false);
                         break;
                 }
 
@@ -385,10 +386,13 @@ namespace Rectloom.Ugui.Backend
                 if (!insideCanvas)
                 {
                     var canvas = GetOrAdd<Canvas>(target, entry, CanvasProperties);
-                    canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                    canvas.renderMode = _backend._options.WorldSpaceCanvas
+                        ? RenderMode.WorldSpace : RenderMode.ScreenSpaceOverlay;
 
                     var scaler = GetOrAdd<CanvasScaler>(target, entry, CanvasScalerProperties);
-                    scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+                    scaler.uiScaleMode = _backend._options.WorldSpaceCanvas
+                        ? CanvasScaler.ScaleMode.ConstantPixelSize : CanvasScaler.ScaleMode.ScaleWithScreenSize;
+                    scaler.scaleFactor = 1f;
                     scaler.referenceResolution = _backend._options.ReferenceResolution;
                     scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
                     scaler.matchWidthOrHeight = 0.5f;
@@ -397,7 +401,10 @@ namespace Rectloom.Ugui.Backend
                 }
 
                 RectTransformBaker.BakeRoot(transform, new Vector2(node.Rect.Width, node.Rect.Height));
-                ApplyPaint(node, target, entry, forceGraphic: false);
+                if (_backend._options.WorldSpaceCanvas && !insideCanvas)
+                {
+                    transform.localScale = Vector3.one * _backend._options.WorldUnitsPerPixel;
+                }
             }
 
             /// <summary>
@@ -417,7 +424,7 @@ namespace Rectloom.Ugui.Backend
                 }
 
                 TMP_Text text = GetOrAdd<TextMeshProUGUI>(target, entry, TextProperties);
-                TmpTextApplier.Apply(text, node.TextContent, node.TextStyle, ResolveFont(node));
+                TmpTextApplier.Apply(text, node.TextContent, node.TextStyle, ResolveFont(node), _backend._fonts.EmojiFont);
                 text.raycastTarget = _backend.ReadRaycastTarget(node);
             }
 

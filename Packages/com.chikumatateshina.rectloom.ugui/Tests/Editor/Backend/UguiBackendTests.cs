@@ -133,6 +133,44 @@ namespace Rectloom.Ugui.Tests.Backend
         }
 
         [Test]
+        public void WorldSpaceRoot_MapsOnePixelToOneMillimetreAndUsesSourceName()
+        {
+            GameObject root = Build("<body><div id='physical'></div></body>",
+                "#physical { width: 100px; height: 50px; }");
+            Assert.That(root.name, Is.EqualTo(System.IO.Path.GetFileNameWithoutExtension(HtmlPath)));
+            Assert.That(root.GetComponent<Canvas>().renderMode, Is.EqualTo(RenderMode.WorldSpace));
+            Assert.That(root.transform.localScale.x, Is.EqualTo(0.001f));
+            var rect = Child(root, "physical").GetComponent<RectTransform>();
+            Assert.That(rect.rect.width * rect.lossyScale.x, Is.EqualTo(0.1f).Within(0.00001f));
+        }
+
+        [Test]
+        public void DocumentBackground_IsOmittedButAuthoredContentBackgroundRemains()
+        {
+            GameObject root = Build("<body><div id='caption'></div></body>",
+                "body { background: white; } #caption { background: black; width: 20px; height: 20px; }");
+            Assert.That(root.GetComponent<Image>(), Is.Null);
+            Assert.That(Child(root, "caption").GetComponent<Image>().color, Is.EqualTo(Color.black));
+        }
+
+        [Test]
+        public void DocumentBackground_CanBeExplicitlyEnabled()
+        {
+            _options.RenderDocumentBackground = true;
+            GameObject root = Build("<body></body>", "body { background: white; }");
+            Assert.That(root.GetComponent<Image>(), Is.Not.Null);
+        }
+
+        [Test]
+        public void ScreenSpace_CanBeExplicitlyEnabled()
+        {
+            _options.WorldSpaceCanvas = false;
+            GameObject root = Build("<body></body>");
+            Assert.That(root.GetComponent<Canvas>().renderMode, Is.EqualTo(RenderMode.ScreenSpaceOverlay));
+            Assert.That(root.transform.localScale, Is.EqualTo(Vector3.one));
+        }
+
+        [Test]
         public void Root_BecomesACanvas()
         {
             GameObject root = Build("<body></body>");
@@ -142,7 +180,7 @@ namespace Rectloom.Ugui.Tests.Backend
 
             var scaler = root.GetComponent<CanvasScaler>();
             Assert.That(scaler, Is.Not.Null);
-            Assert.That(scaler.uiScaleMode, Is.EqualTo(CanvasScaler.ScaleMode.ScaleWithScreenSize));
+            Assert.That(scaler.uiScaleMode, Is.EqualTo(CanvasScaler.ScaleMode.ConstantPixelSize));
             Assert.That(scaler.referenceResolution, Is.EqualTo(_options.ReferenceResolution));
         }
 

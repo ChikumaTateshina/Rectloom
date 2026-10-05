@@ -14,6 +14,15 @@ namespace Rectloom.Core.Compilation
     /// </remarks>
     public sealed class CompilerOptions
     {
+        /// <summary>Use a world-space canvas for physical UI placement.</summary>
+        public bool WorldSpaceCanvas { get; set; } = true;
+
+        /// <summary>World units per logical pixel. 0.001 means one millimetre per pixel.</summary>
+        public float WorldUnitsPerPixel { get; set; } = 0.001f;
+
+        /// <summary>Paint the document root background, rather than only its content.</summary>
+        public bool RenderDocumentBackground { get; set; }
+
         /// <summary>Default canvas reference resolution, in logical pixels.</summary>
         public static readonly Vector2 DefaultReferenceResolution = new Vector2(1920f, 1080f);
 
@@ -79,6 +88,9 @@ namespace Rectloom.Core.Compilation
             return new CompilerOptions
             {
                 ReferenceResolution = ReferenceResolution,
+                WorldSpaceCanvas = WorldSpaceCanvas,
+                WorldUnitsPerPixel = WorldUnitsPerPixel,
+                RenderDocumentBackground = RenderDocumentBackground,
                 StrictMode = StrictMode,
                 UseDefaultStyleSheet = UseDefaultStyleSheet,
                 PreserveModifiedGeneratedObjects = PreserveModifiedGeneratedObjects,

@@ -60,6 +60,7 @@ namespace Rectloom.Ugui.Compilation
         private readonly Func<ITextMeasurer>? _measurerFactory;
         private readonly IEmbeddedImageStore? _images;
         private readonly TMP_FontAsset? _defaultFont;
+        private readonly TMP_FontAsset? _emojiFont;
 
         /// <summary>
         /// Creates a compiler.
@@ -77,18 +78,21 @@ namespace Rectloom.Ugui.Compilation
         /// </param>
         /// <param name="defaultFont">Default font used by both measurement and generated text.
         /// CSS font-family can override it.</param>
+        /// <param name="emojiFont">Font used directly for emoji; null discovers Segoe UI Emoji.</param>
         public UguiHtmlUiCompiler(
             ISourceTextLoader? sources = null,
             IAssetResolver? assets = null,
             Func<ITextMeasurer>? measurerFactory = null,
             IEmbeddedImageStore? images = null,
-            TMP_FontAsset? defaultFont = null)
+            TMP_FontAsset? defaultFont = null,
+            TMP_FontAsset? emojiFont = null)
         {
             _sources = sources ?? new FileSourceTextLoader();
             _assets = assets ?? AssetDatabaseResolver.Instance;
             _measurerFactory = measurerFactory;
             _images = images;
             _defaultFont = defaultFont;
+            _emojiFont = emojiFont;
         }
 
         /// <inheritdoc />
@@ -217,7 +221,10 @@ namespace Rectloom.Ugui.Compilation
 
             var layout = Stopwatch.StartNew();
             // Keep the font cache local to this pass, shared by measurement and generation.
-            var fonts = new TmpFontLibrary(_defaultFont, diagnostics);
+            var discovery = new TmpFontLibrary(_defaultFont, diagnostics);
+            TMP_FontAsset? emoji = _emojiFont ?? discovery.FindFamily("Segoe UI Emoji");
+            if (commitOutput) emoji = EmojiText.EnsureResource(emoji, options.GeneratedAssetFolder);
+            var fonts = new TmpFontLibrary(_defaultFont, diagnostics, emoji);
             ITextMeasurer measurer = CreateMeasurer(diagnostics, fonts);
 
             try
@@ -506,6 +513,9 @@ namespace Rectloom.Ugui.Compilation
             var metadata = ScriptableObject.CreateInstance<RectloomDocumentMetadata>();
             metadata.SchemaVersion = RectloomDocumentMetadata.CurrentSchemaVersion;
             metadata.CompilerVersion = RectloomVersion.Current;
+            metadata.WorldSpaceCanvas = request.Options.WorldSpaceCanvas;
+            metadata.WorldUnitsPerPixel = request.Options.WorldUnitsPerPixel;
+            metadata.RenderDocumentBackground = request.Options.RenderDocumentBackground;
             metadata.SourceHtmlPath = request.HtmlAssetPath ?? string.Empty;
             metadata.SourceHtmlGuid = AssetDatabase.AssetPathToGUID(request.HtmlAssetPath) ?? string.Empty;
             metadata.SourceCssPaths.AddRange(request.CssAssetPaths);
@@ -672,6 +682,14 @@ namespace Rectloom.Ugui.Compilation
             bool commitOutput,
             DiagnosticSink diagnostics)
         {
+            if (request.Options.WorldSpaceCanvas && (float.IsNaN(request.Options.WorldUnitsPerPixel)
+                || float.IsInfinity(request.Options.WorldUnitsPerPixel) || request.Options.WorldUnitsPerPixel <= 0))
+            {
+                diagnostics.Fatal(DiagnosticCodes.Internal.InvalidCompileRequest,
+                    "WorldUnitsPerPixel must be a positive finite value.", SourceLocation.None);
+                return false;
+            }
+
             if (string.IsNullOrWhiteSpace(request.HtmlAssetPath))
             {
                 diagnostics.Fatal(

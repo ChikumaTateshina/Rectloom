@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-05
+
+### Changed
+
+- Default output uses a world-space canvas at 0.001 world units per logical pixel (1px = 1mm).
+  Screen-space output remains available through the window and CompilerOptions.
+- The document root background is omitted by default; content backgrounds remain intact.
+  Update removes a previously generated root Image while preserving owned content and user components.
+- The Compiler window derives prefab and UI root names from each source HTML filename.
+
+### Added
+
+- Batch HTML compilation into separate prefabs and metadata, with per-file create/update selection,
+  duplicate-source deduplication, output-name collision checks and independent failure reporting.
+- Explicit emoji-font selection, automatically finding Segoe UI Emoji when installed. Controlled TMP
+  font tags select it directly rather than adding it to the body font's fallbacks. A Resources copy
+  makes the font available in player builds.
+- Supplementary Unicode glyph checks use scalar values, avoiding TMP 3's UTF-16 string lookup issue.
+- World-space scale and background settings are copied and recorded in compile metadata.
+
+### Validation
+
+- All 707 EditMode tests passed; C# compilation produced no warnings.
+- Updated the supplied WorldTest07 caption and verified no root Image, a 0.001 root scale,
+  a source-derived root name, and direct Segoe UI Emoji glyph selection in a rendered TMP probe.
+
+
 ## [0.1.3] - 2026-10-05
 
 ### Fixed
@@ -293,7 +320,8 @@ console lines that all say the same thing.
   a `MonoBehaviour` from an Editor-only assembly, so an extension's own code may be Editor-only but
   what it attaches may not be.
 
-[Unreleased]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.1.0...v0.1.1

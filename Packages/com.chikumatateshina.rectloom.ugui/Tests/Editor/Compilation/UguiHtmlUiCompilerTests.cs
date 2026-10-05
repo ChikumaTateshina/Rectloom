@@ -201,6 +201,87 @@ namespace Rectloom.Ugui.Tests.Compilation
         }
 
         [Test]
+        public void Batch_CreatesSeparatePrefabsAndUpdatesThemWithoutChangingGuids()
+        {
+            const string other = "Assets/UI/other.html";
+            _sources.Add(other, "<body><p>Other document</p></body>");
+            var batch = new BatchHtmlUiCompiler(Compiler());
+            var first = batch.Compile(new[] { HtmlPath, other }, OutputFolder, Request());
+            Assert.That(first.Count, Is.EqualTo(2));
+            Assert.That(first.Values.All(result => result.Success), Is.True);
+            string pageGuid = AssetDatabase.AssetPathToGUID(OutputFolder + "/page.prefab");
+            Assert.That(first[HtmlPath].RootObject!.name, Is.EqualTo("page"));
+            Assert.That(first[other].RootObject!.name, Is.EqualTo("other"));
+            Assert.That(pageGuid, Is.Not.EqualTo(AssetDatabase.AssetPathToGUID(OutputFolder + "/other.prefab")));
+            var second = batch.Compile(new[] { HtmlPath, other }, OutputFolder, Request());
+            Assert.That(second.Values.All(result => result.Success), Is.True);
+            Assert.That(AssetDatabase.AssetPathToGUID(OutputFolder + "/page.prefab"), Is.EqualTo(pageGuid));
+        }
+
+        [Test]
+        public void Batch_RefusesAmbiguousOutputNamesWithoutWritingEitherSource()
+        {
+            const string other = "Assets/Another/page.html";
+            _sources.Add(other, Markup);
+            var results = new BatchHtmlUiCompiler(Compiler()).Compile(new[] { HtmlPath, other }, OutputFolder, Request());
+            Assert.That(results.Values.All(result => !result.Success), Is.True);
+            Assert.That(AssetDatabase.LoadMainAssetAtPath(OutputFolder + "/page.prefab"), Is.Null);
+        }
+
+        [Test]
+        public void Batch_FailedSourceDoesNotStopOtherSources()
+        {
+            var results = new BatchHtmlUiCompiler(Compiler()).Compile(
+                new[] { "Assets/missing.html", HtmlPath, HtmlPath }, OutputFolder, Request());
+            Assert.That(results.Count, Is.EqualTo(2));
+            Assert.That(results[HtmlPath].Success, Is.True);
+            Assert.That(results["Assets/missing.html"].Success, Is.False);
+        }
+
+        [Test]
+        public void Emoji_IsExplicitlyAssignedEvenBesideJapaneseAndLiteralMarkup()
+        {
+            var emoji = ScriptableObject.CreateInstance<TMP_FontAsset>();
+            emoji.name = "Segoe UI Emoji";
+            try
+            {
+                var formatter = typeof(TmpFontLibrary).Assembly.GetType("Rectloom.Ugui.Backend.EmojiText")!;
+                var format = formatter.GetMethod("Format", BindingFlags.NonPublic | BindingFlags.Static)!;
+                string output = (string)format.Invoke(null, new object[] { "日本😀<b>☀️", emoji });
+                Assert.That(output, Is.EqualTo("日本<font=\"Segoe UI Emoji\">😀</font><noparse><</noparse>b>"
+                    + "<font=\"Segoe UI Emoji\">☀️</font>"));
+                Assert.That(emoji.fallbackFontAssetTable, Is.Null.Or.Empty);
+            }
+            finally { UnityEngine.Object.DestroyImmediate(emoji); }
+        }
+
+        [Test]
+        public void Update_RemovesOnlyThePreviouslyGeneratedDocumentBackground()
+        {
+            _sources.Add(CssPath, "body { background: white; } #panel { background: black; }");
+            var request = Request();
+            request.OutputPath = OutputFolder + "/page.prefab";
+            request.Options.RenderDocumentBackground = true;
+            Assert.That(Compiler().Compile(request).Success, Is.True);
+            request.CompileMode = CompileMode.Update;
+            request.Options.RenderDocumentBackground = false;
+            CompileResult result = Compiler().Compile(request);
+            Assert.That(result.Success, Is.True, Describe(result));
+            Assert.That(result.RootObject!.GetComponent<Image>(), Is.Null);
+            Assert.That(result.RootObject.transform.Find("panel").GetComponent<Image>(), Is.Not.Null);
+            Assert.That(result.RootObject.name, Is.EqualTo("page"));
+        }
+
+        [Test]
+        public void InvalidWorldScale_IsRejectedBeforeOutputIsWritten()
+        {
+            var request = Request();
+            request.Options.WorldUnitsPerPixel = float.NaN;
+            Assert.That(Compiler().Compile(request).Success, Is.False);
+            Assert.That(AssetDatabase.LoadMainAssetAtPath(PrefabPath), Is.Null);
+        }
+
+        [Test]
         public void CreatePrefab_WritesAUsablePrefab()
         {
             CompileResult result = Compiler().Compile(Request());

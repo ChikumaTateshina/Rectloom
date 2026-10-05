@@ -53,14 +53,23 @@ namespace Rectloom.Ugui.Backend
         /// <param name="diagnostics">
         /// Sink for a family that could not be found, or null to resolve silently.
         /// </param>
-        public TmpFontLibrary(TMP_FontAsset? fallback = null, IDiagnosticSink? diagnostics = null)
+        /// <param name="emojiFont">Font explicitly used for emoji runs, independent of body font fallback.</param>
+        public TmpFontLibrary(TMP_FontAsset? fallback = null, IDiagnosticSink? diagnostics = null,
+            TMP_FontAsset? emojiFont = null)
         {
             _fallback = fallback;
+            EmojiFont = emojiFont;
             _diagnostics = diagnostics;
         }
 
         /// <summary>The font used when nothing more specific is found.</summary>
         public TMP_FontAsset? Fallback => _fallback;
+
+        /// <summary>Font used directly for emoji runs.</summary>
+        public TMP_FontAsset? EmojiFont { get; }
+
+        /// <summary>Finds an installed named font without applying a style.</summary>
+        public TMP_FontAsset? FindFamily(string family) => Find(Normalise(family));
 
         /// <summary>
         /// Resolves the font a text style should render with.

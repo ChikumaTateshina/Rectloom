@@ -101,14 +101,14 @@ namespace Rectloom.Ugui.Backend
                 return ApproximateTextMeasurer.Instance.Measure(text, style, availableWidth);
             }
 
-            TmpTextApplier.Apply(_probe, text, resolved, font);
+            TmpTextApplier.Apply(_probe, text, resolved, font, _fonts.EmojiFont);
 
             bool wraps = style.WrapsText
                 && availableWidth > 0f
                 && !float.IsPositiveInfinity(availableWidth);
 
             float constraint = wraps ? availableWidth : 0f;
-            Vector2 preferred = _probe.GetPreferredValues(text, constraint, 0f);
+            Vector2 preferred = _probe.GetPreferredValues(_probe.text, constraint, 0f);
 
             float lineHeight = style.FontSize * style.LineHeight;
             int lineCount = lineHeight > 0f
@@ -147,54 +147,52 @@ namespace Rectloom.Ugui.Backend
                 return true;
             }
 
-            foreach (char character in text)
+            for (int index = 0; index < text.Length; index++)
             {
-                if (char.IsWhiteSpace(character) || char.IsControl(character) || char.IsSurrogate(character))
+                char character = text[index];
+                if (char.IsWhiteSpace(character) || char.IsControl(character)) continue;
+                int count = char.IsHighSurrogate(character) && index + 1 < text.Length
+                    && char.IsLowSurrogate(text[index + 1]) ? 2 : 1;
+                uint code = count == 2 ? (uint)char.ConvertToUtf32(text, index) : character;
+                TMP_FontAsset selected = EmojiText.IsEmojiAt(text, index) && _fonts.EmojiFont != null
+                    ? _fonts.EmojiFont : font;
+                index += count - 1;
+                if (code == 0xFE0F || code == 0x200D || code == 0x20E3) continue;
+                if (HasGlyph(selected, code, new HashSet<int>())) continue;
+                // Explicit emoji font selection never falls back to a different font.
+                if (EmojiText.IsEmojiAt(text, index - count + 1) && _fonts.EmojiFont != null)
                 {
-                    // Whitespace and control characters are laid out without a glyph, and a surrogate is
-                    // only half a character, so neither can be looked up on its own.
-                    continue;
+                    ReportMissingGlyph(selected, code);
+                    return false;
                 }
-
-                if (HasCharacter(font, character))
-                {
-                    continue;
-                }
-
-                ReportMissingGlyph(font, character);
+                List<TMP_FontAsset>? global = TMP_Settings.instance == null ? null : TMP_Settings.fallbackFontAssets;
+                bool found = false;
+                if (global != null)
+                    foreach (TMP_FontAsset fallback in global)
+                        if (fallback != null && HasGlyph(fallback, code, new HashSet<int>())) { found = true; break; }
+                if (found) continue;
+                ReportMissingGlyph(selected, code);
                 return false;
             }
 
             return true;
         }
 
-        private static bool HasCharacter(TMP_FontAsset font, char character)
+        private static bool HasGlyph(TMP_FontAsset font, uint unicode, HashSet<int> visited)
         {
-            if (font.HasCharacter(character, searchFallbacks: true, tryAddCharacter: true))
-            {
-                return true;
-            }
-
-            List<TMP_FontAsset> global = TMP_Settings.fallbackFontAssets;
-
-            if (global == null)
-            {
-                return false;
-            }
-
-            foreach (TMP_FontAsset fallback in global)
-            {
-                if (fallback != null
-                    && fallback.HasCharacter(character, searchFallbacks: true, tryAddCharacter: true))
-                {
-                    return true;
-                }
-            }
-
+            if (!visited.Add(font.GetInstanceID())) return false;
+            if (font.HasCharacter((int)unicode)) return true;
+            // TMP 3's HasCharacters(string) checks UTF-16 code units separately. Use scalar values
+            // for supplementary emoji so a surrogate pair is never mistaken for missing glyphs.
+            if (font.atlasPopulationMode == AtlasPopulationMode.Dynamic
+                && font.TryAddCharacters(new[] { unicode }, out uint[] missing)) return true;
+            if (font.fallbackFontAssetTable != null)
+                foreach (TMP_FontAsset fallback in font.fallbackFontAssetTable)
+                    if (fallback != null && HasGlyph(fallback, unicode, visited)) return true;
             return false;
         }
 
-        private void ReportMissingGlyph(TMP_FontAsset font, char character)
+        private void ReportMissingGlyph(TMP_FontAsset font, uint character)
         {
             if (_diagnostics == null || !_reported.Add(font.name))
             {
@@ -203,7 +201,7 @@ namespace Rectloom.Ugui.Backend
 
             _diagnostics.Warning(
                 DiagnosticCodes.Asset.UnsupportedType,
-                "The font '" + font.name + "' has no glyph for '" + character + "' (U+"
+                "The font '" + font.name + "' has no glyph for '" + char.ConvertFromUtf32((int)character) + "' (U+"
                     + ((int)character).ToString("X4", CultureInfo.InvariantCulture)
                     + "), so text using it was measured approximately and will render with "
                     + "placeholder boxes.",
