@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Text;
 using Rectloom.Core.Diagnostics;
 using Rectloom.Core.Dom;
 
@@ -18,6 +19,11 @@ namespace Rectloom.Core.Parsing
     /// <para>
     /// The body element is the document root. When the source has no body tag, one is synthesised at
     /// the position of the first content, so every document has the same shape downstream.
+    /// </para>
+    /// <para>
+    /// Head-level elements never reach the tree. A <c>style</c> element is collected as a stylesheet
+    /// and a <c>title</c> is dropped, because leaving either in the tree would lay its text out as a
+    /// label.
     /// </para>
     /// </remarks>
     public sealed class HtmlParser : IHtmlParser
@@ -51,9 +57,14 @@ namespace Rectloom.Core.Parsing
         /// </summary>
         private sealed class TreeBuilder
         {
+            private const string RelAttributeName = "rel";
+            private const string HrefAttributeName = "href";
+            private const string StyleSheetRel = "stylesheet";
+
             private readonly DomDocument _document;
             private readonly IDiagnosticSink _diagnostics;
             private readonly List<DomElement> _openElements = new List<DomElement>();
+            private readonly List<Suppressed> _suppressed = new List<Suppressed>();
 
             private DomElement? _root;
             private DomElement? _syntheticRoot;
@@ -68,6 +79,12 @@ namespace Rectloom.Core.Parsing
             {
                 foreach (HtmlToken token in tokens)
                 {
+                    if (_suppressed.Count > 0)
+                    {
+                        HandleSuppressed(token);
+                        continue;
+                    }
+
                     switch (token.Kind)
                     {
                         case HtmlTokenKind.StartTag:
@@ -82,6 +99,7 @@ namespace Rectloom.Core.Parsing
                     }
                 }
 
+                CloseSuppressed(0);
                 ReportElementsLeftOpen();
                 ReportDuplicateIds();
                 return _document;
@@ -109,6 +127,25 @@ namespace Rectloom.Core.Parsing
                     return;
                 }
 
+                if (HtmlElements.IsMetadata(token.Name))
+                {
+                    HandleMetadataStartTag(token);
+                    return;
+                }
+
+                if (HtmlElements.IsUnrenderable(token.Name))
+                {
+                    _diagnostics.Warning(
+                        DiagnosticCodes.Html.UnknownElement,
+                        "<" + token.Name + "> and its content cannot be compiled into UI objects, so "
+                            + "the whole element was dropped.",
+                        token.Source,
+                        "Export it as an image and use <img>, or build it with a component.");
+
+                    Suppress(token, collectStyleSheet: false);
+                    return;
+                }
+
                 bool isRootTag = string.Equals(token.Name, HtmlElements.Body, StringComparison.Ordinal)
                     && _root == null
                     && _openElements.Count == 0;
@@ -133,9 +170,126 @@ namespace Rectloom.Core.Parsing
                 }
             }
 
+            /// <summary>
+            /// Handles a head-level element: a stylesheet is collected, everything else is dropped.
+            /// </summary>
+            private void HandleMetadataStartTag(HtmlToken token)
+            {
+                if (string.Equals(token.Name, HtmlElements.Link, StringComparison.Ordinal))
+                {
+                    TryCollectLinkedStyleSheet(token);
+                    return;
+                }
+
+                bool isStyle = string.Equals(token.Name, HtmlElements.Style, StringComparison.Ordinal);
+                Suppress(token, collectStyleSheet: isStyle);
+            }
+
+            private void TryCollectLinkedStyleSheet(HtmlToken token)
+            {
+                string? rel = null;
+                string? href = null;
+
+                foreach (DomAttribute attribute in token.Attributes)
+                {
+                    if (string.Equals(attribute.Name, RelAttributeName, StringComparison.Ordinal))
+                    {
+                        rel = attribute.Value;
+                    }
+                    else if (string.Equals(attribute.Name, HrefAttributeName, StringComparison.Ordinal))
+                    {
+                        href = attribute.Value;
+                    }
+                }
+
+                bool isStyleSheet = rel != null
+                    && rel.IndexOf(StyleSheetRel, StringComparison.OrdinalIgnoreCase) >= 0;
+
+                if (!isStyleSheet || string.IsNullOrWhiteSpace(href))
+                {
+                    return;
+                }
+
+                _document.AddStyleSheet(DomStyleSheet.Linked(href!, token.Source));
+            }
+
+            /// <summary>
+            /// Starts dropping a subtree, unless the element cannot contain one.
+            /// </summary>
+            private void Suppress(HtmlToken token, bool collectStyleSheet)
+            {
+                if (token.SelfClosing || HtmlElements.IsVoid(token.Name))
+                {
+                    return;
+                }
+
+                _suppressed.Add(new Suppressed(
+                    token.Name,
+                    token.Source,
+                    collectStyleSheet ? new StringBuilder() : null));
+            }
+
+            /// <summary>
+            /// Consumes a token inside a dropped subtree.
+            /// </summary>
+            /// <remarks>
+            /// Nested start tags are tracked so that an end tag closes the element it belongs to. A
+            /// <c>style</c> body arrives as one raw-text token, so the collected text is the CSS
+            /// exactly as authored.
+            /// </remarks>
+            private void HandleSuppressed(HtmlToken token)
+            {
+                switch (token.Kind)
+                {
+                    case HtmlTokenKind.StartTag:
+                        if (!token.SelfClosing && !HtmlElements.IsVoid(token.Name))
+                        {
+                            _suppressed.Add(new Suppressed(token.Name, token.Source, null));
+                        }
+
+                        return;
+
+                    case HtmlTokenKind.EndTag:
+                        for (int index = _suppressed.Count - 1; index >= 0; index--)
+                        {
+                            if (string.Equals(_suppressed[index].Name, token.Name, StringComparison.Ordinal))
+                            {
+                                CloseSuppressed(index);
+                                return;
+                            }
+                        }
+
+                        return;
+
+                    default:
+                        StringBuilder? text = _suppressed[_suppressed.Count - 1].Text;
+                        text?.Append(token.Text);
+                        return;
+                }
+            }
+
+            /// <summary>
+            /// Closes every dropped element from <paramref name="depth"/> upwards, collecting any CSS.
+            /// </summary>
+            private void CloseSuppressed(int depth)
+            {
+                for (int index = _suppressed.Count - 1; index >= depth; index--)
+                {
+                    Suppressed frame = _suppressed[index];
+                    _suppressed.RemoveAt(index);
+
+                    if (frame.Text == null || frame.Text.Length == 0)
+                    {
+                        continue;
+                    }
+
+                    _document.AddStyleSheet(DomStyleSheet.Embedded(frame.Text.ToString(), frame.Source));
+                }
+            }
+
             private void HandleEndTag(HtmlToken token)
             {
-                if (HtmlElements.IsDocumentWrapper(token.Name))
+                if (HtmlElements.IsDocumentWrapper(token.Name) || HtmlElements.IsMetadata(token.Name))
                 {
                     return;
                 }
@@ -276,6 +430,31 @@ namespace Rectloom.Core.Parsing
 
                     seen.Add(element.Id, element);
                 }
+            }
+
+            /// <summary>
+            /// One element of a subtree that is being dropped rather than built.
+            /// </summary>
+            private readonly struct Suppressed
+            {
+                internal Suppressed(string name, SourceLocation source, StringBuilder? text)
+                {
+                    Name = name;
+                    Source = source;
+                    Text = text;
+                }
+
+                /// <summary>Tag name, used to match the end tag that closes this element.</summary>
+                internal string Name { get; }
+
+                /// <summary>Where the start tag was written.</summary>
+                internal SourceLocation Source { get; }
+
+                /// <summary>
+                /// Collected text, for a <c>style</c> element, or <see langword="null"/> when the
+                /// content is simply discarded.
+                /// </summary>
+                internal StringBuilder? Text { get; }
             }
         }
     }

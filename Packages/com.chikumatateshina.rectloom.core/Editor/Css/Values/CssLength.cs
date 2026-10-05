@@ -9,9 +9,14 @@ namespace Rectloom.Core.Css.Values
     /// The units a length can be written in.
     /// </summary>
     /// <remarks>
-    /// Version 1.0 supports <c>auto</c>, <c>px</c> and <c>%</c> only. Font-relative units such as
-    /// <c>em</c> are deliberately absent: they would make a length depend on the resolved font of an
-    /// ancestor, which the baked layout solver does not model.
+    /// Absolute units (<c>in</c>, <c>cm</c>, <c>mm</c>, <c>q</c>, <c>pt</c>, <c>pc</c>) are converted
+    /// to <see cref="Pixel"/> while parsing, using the fixed ratios CSS defines, so nothing
+    /// downstream has to know they exist.
+    /// <para>
+    /// Font-relative units survive parsing because the font size of the element is not known until
+    /// the cascade has run. They are resolved into <see cref="Pixel"/> while the computed style is
+    /// built, which is where CSS resolves them too, so neither layout nor a backend ever sees one.
+    /// </para>
     /// </remarks>
     public enum CssLengthUnit
     {
@@ -23,10 +28,16 @@ namespace Rectloom.Core.Css.Values
 
         /// <summary>A percentage of the containing block's corresponding content size.</summary>
         Percent = 2,
+
+        /// <summary>A multiple of the element's own font size.</summary>
+        Em = 3,
+
+        /// <summary>A multiple of the root element's font size.</summary>
+        Rem = 4,
     }
 
     /// <summary>
-    /// A CSS length such as <c>200px</c>, <c>50%</c> or <c>auto</c>.
+    /// A CSS length such as <c>200px</c>, <c>50%</c>, <c>8mm</c>, <c>1.5em</c> or <c>auto</c>.
     /// </summary>
     /// <remarks>
     /// A length keeps its unit rather than being resolved during parsing, because a percentage
@@ -39,6 +50,21 @@ namespace Rectloom.Core.Css.Values
 
         /// <summary>Zero pixels.</summary>
         public static readonly CssLength Zero = new CssLength(CssLengthUnit.Pixel, 0f);
+
+        /// <summary>Logical pixels per CSS inch, which CSS fixes at 96 regardless of the device.</summary>
+        public const float PixelsPerInch = 96f;
+
+        // Absolute units, longest suffix first so that a suffix which ends with a shorter one is
+        // matched as itself. "rem" has to be tested before "em" for the same reason.
+        private static readonly (string Suffix, float PixelsPerUnit)[] AbsoluteUnits =
+        {
+            ("in", PixelsPerInch),
+            ("cm", PixelsPerInch / 2.54f),
+            ("mm", PixelsPerInch / 25.4f),
+            ("pt", PixelsPerInch / 72f),
+            ("pc", PixelsPerInch / 6f),
+            ("q", PixelsPerInch / 101.6f),
+        };
 
         /// <summary>
         /// Creates a length.
@@ -69,6 +95,11 @@ namespace Rectloom.Core.Css.Values
         /// <summary>Gets a value indicating whether this length is a percentage.</summary>
         public bool IsPercent => Unit == CssLengthUnit.Percent;
 
+        /// <summary>
+        /// Gets a value indicating whether this length still needs a font size to be resolved.
+        /// </summary>
+        public bool IsFontRelative => Unit == CssLengthUnit.Em || Unit == CssLengthUnit.Rem;
+
         /// <summary>Creates a pixel length.</summary>
         /// <param name="value">Value in logical pixels.</param>
         /// <returns>The created length.</returns>
@@ -79,10 +110,23 @@ namespace Rectloom.Core.Css.Values
         /// <returns>The created length.</returns>
         public static CssLength Percent(float value) => new CssLength(CssLengthUnit.Percent, value);
 
+        /// <summary>Creates a length in <c>em</c>.</summary>
+        /// <param name="value">Multiple of the element's own font size.</param>
+        /// <returns>The created length.</returns>
+        public static CssLength Em(float value) => new CssLength(CssLengthUnit.Em, value);
+
+        /// <summary>Creates a length in <c>rem</c>.</summary>
+        /// <param name="value">Multiple of the root element's font size.</param>
+        /// <returns>The created length.</returns>
+        public static CssLength Rem(float value) => new CssLength(CssLengthUnit.Rem, value);
+
         /// <summary>
         /// Parses a CSS length.
         /// </summary>
-        /// <param name="text">Raw value such as <c>200px</c>, <c>50%</c>, <c>0</c> or <c>auto</c>.</param>
+        /// <param name="text">
+        /// Raw value such as <c>200px</c>, <c>50%</c>, <c>8mm</c>, <c>1.5em</c>, <c>0</c> or
+        /// <c>auto</c>.
+        /// </param>
         /// <param name="length">The parsed length when parsing succeeds.</param>
         /// <returns><see langword="true"/> when <paramref name="text"/> is a supported length.</returns>
         /// <remarks>
@@ -117,15 +161,32 @@ namespace Rectloom.Core.Css.Values
                 return false;
             }
 
-            if (value.EndsWith("px", StringComparison.OrdinalIgnoreCase))
+            if (TryParseSuffixed(value, "px", out float pixels))
             {
-                if (TryParseNumber(value.Substring(0, value.Length - 2), out float pixels))
+                length = Pixels(pixels);
+                return true;
+            }
+
+            // Tested before "em", which it ends with.
+            if (TryParseSuffixed(value, "rem", out float rem))
+            {
+                length = Rem(rem);
+                return true;
+            }
+
+            if (TryParseSuffixed(value, "em", out float em))
+            {
+                length = Em(em);
+                return true;
+            }
+
+            foreach ((string suffix, float pixelsPerUnit) in AbsoluteUnits)
+            {
+                if (TryParseSuffixed(value, suffix, out float absolute))
                 {
-                    length = Pixels(pixels);
+                    length = Pixels(absolute * pixelsPerUnit);
                     return true;
                 }
-
-                return false;
             }
 
             if (TryParseNumber(value, out float unitless) && unitless == 0f)
@@ -138,11 +199,42 @@ namespace Rectloom.Core.Css.Values
         }
 
         /// <summary>
+        /// Resolves a font-relative length into pixels, leaving every other unit untouched.
+        /// </summary>
+        /// <param name="fontSize">Font size of the element, in logical pixels, for <c>em</c>.</param>
+        /// <param name="rootFontSize">Font size of the root element, for <c>rem</c>.</param>
+        /// <returns>
+        /// An equivalent length whose <see cref="IsFontRelative"/> is <see langword="false"/>.
+        /// </returns>
+        /// <remarks>
+        /// Called while the computed style is built, which is the first point where the element's own
+        /// font size is known and the last point before layout, so no later stage has to carry a font
+        /// size around just to read a length.
+        /// </remarks>
+        public CssLength ToAbsolute(float fontSize, float rootFontSize)
+        {
+            switch (Unit)
+            {
+                case CssLengthUnit.Em:
+                    return Pixels(Value * fontSize);
+                case CssLengthUnit.Rem:
+                    return Pixels(Value * rootFontSize);
+                default:
+                    return this;
+            }
+        }
+
+        /// <summary>
         /// Resolves this length against a containing block size.
         /// </summary>
         /// <param name="basis">Size of the containing block along the relevant axis.</param>
         /// <param name="fallback">Value to return when this length is <c>auto</c>.</param>
         /// <returns>The resolved size in logical pixels.</returns>
+        /// <remarks>
+        /// A font-relative length resolves to <paramref name="fallback"/>, because resolving it needs
+        /// a font size that layout does not have. <see cref="ToAbsolute"/> has already run by then, so
+        /// reaching that case means a length skipped the computed-style stage.
+        /// </remarks>
         public float Resolve(float basis, float fallback)
         {
             switch (Unit)
@@ -186,12 +278,31 @@ namespace Rectloom.Core.Css.Values
             switch (Unit)
             {
                 case CssLengthUnit.Pixel:
-                    return Value.ToString("0.###", CultureInfo.InvariantCulture) + "px";
+                    return Number() + "px";
                 case CssLengthUnit.Percent:
-                    return Value.ToString("0.###", CultureInfo.InvariantCulture) + "%";
+                    return Number() + "%";
+                case CssLengthUnit.Em:
+                    return Number() + "em";
+                case CssLengthUnit.Rem:
+                    return Number() + "rem";
                 default:
                     return "auto";
             }
+        }
+
+        private string Number() => Value.ToString("0.###", CultureInfo.InvariantCulture);
+
+        private static bool TryParseSuffixed(string value, string suffix, out float number)
+        {
+            number = 0f;
+
+            if (value.Length <= suffix.Length
+                || !value.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            return TryParseNumber(value.Substring(0, value.Length - suffix.Length), out number);
         }
 
         private static bool TryParseNumber(string text, out float value)

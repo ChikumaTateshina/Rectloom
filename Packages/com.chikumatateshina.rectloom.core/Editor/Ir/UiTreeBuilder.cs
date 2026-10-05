@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using Rectloom.Core.Assets;
 using Rectloom.Core.Compilation;
 using Rectloom.Core.Css.Computed;
 using Rectloom.Core.Css.Parsing;
@@ -28,6 +29,12 @@ namespace Rectloom.Core.Ir
         private readonly CompilerOptions _options;
         private readonly IDiagnosticSink _diagnostics;
         private readonly string _documentPath;
+        private readonly IEmbeddedImageStore _images;
+
+        // One data URI can appear on several elements, and decoding a base64 image is not free, so the
+        // asset path a URI produced is remembered for the rest of the pass.
+        private readonly Dictionary<string, string?> _embedded =
+            new Dictionary<string, string?>(StringComparer.Ordinal);
 
         /// <summary>
         /// Creates a builder.
@@ -37,12 +44,20 @@ namespace Rectloom.Core.Ir
         /// </param>
         /// <param name="options">Compiler options, or null for defaults.</param>
         /// <param name="diagnostics">Sink for unsupported-element and asset diagnostics.</param>
+        /// <param name="images">
+        /// Store for images embedded as <c>data:</c> URIs, or null to write them into the project.
+        /// </param>
         /// <exception cref="ArgumentNullException"><paramref name="diagnostics"/> is null.</exception>
-        public UiTreeBuilder(string? documentPath, CompilerOptions? options, IDiagnosticSink diagnostics)
+        public UiTreeBuilder(
+            string? documentPath,
+            CompilerOptions? options,
+            IDiagnosticSink diagnostics,
+            IEmbeddedImageStore? images = null)
         {
             _options = options ?? new CompilerOptions();
             _diagnostics = diagnostics ?? throw new ArgumentNullException(nameof(diagnostics));
             _documentPath = documentPath ?? string.Empty;
+            _images = images ?? ProjectEmbeddedImageStore.Instance;
         }
 
         /// <summary>
@@ -224,7 +239,7 @@ namespace Rectloom.Core.Ir
                 DiagnosticCodes.Html.UnknownElement,
                 message,
                 box.Source,
-                "Use div, span, p, h1 to h6, button or img.");
+                "Use one of the supported elements, such as div, span, p, h1 to h6, button or img.");
         }
 
         /// <summary>
@@ -250,10 +265,61 @@ namespace Rectloom.Core.Ir
                 return AssetReference.None;
             }
 
+            if (DataUri.IsDataUri(background))
+            {
+                return StoreEmbeddedImage(background, box.Style.Visual.BackgroundImageSource);
+            }
+
             // The stylesheet path was already applied while the computed style was built.
             return AssetReference.LooksLikeGuid(background)
                 ? AssetReference.FromGuid(background, box.Style.Visual.BackgroundImageSource)
                 : AssetReference.FromPath(background, box.Style.Visual.BackgroundImageSource);
+        }
+
+        /// <summary>
+        /// Turns an image embedded in the source into a project asset.
+        /// </summary>
+        /// <remarks>
+        /// A prefab cannot reference bytes that exist only in memory, so an embedded image has to
+        /// become a file before anything can point at it. It is stored under the generated asset
+        /// folder and named after its own content, so the same image embedded twice is one asset and
+        /// recompiling produces the same path.
+        /// </remarks>
+        private AssetReference StoreEmbeddedImage(string dataUri, SourceLocation source)
+        {
+            if (_embedded.TryGetValue(dataUri, out string? cached))
+            {
+                return cached == null ? AssetReference.None : AssetReference.FromPath(cached, source);
+            }
+
+            if (!DataUri.TryDecode(dataUri, out DataUriPayload payload, out string decodeError))
+            {
+                _embedded[dataUri] = null;
+
+                _diagnostics.Error(
+                    DiagnosticCodes.Asset.UnsupportedType,
+                    "The embedded image could not be read because " + decodeError + ".",
+                    source,
+                    "Embed the image as base64 PNG or JPEG, or reference a file in the project.");
+
+                return AssetReference.None;
+            }
+
+            if (!_images.TryStore(payload, _options.GeneratedAssetFolder, out string assetPath, out string storeError))
+            {
+                _embedded[dataUri] = null;
+
+                _diagnostics.Error(
+                    DiagnosticCodes.Asset.NotFound,
+                    "The embedded image could not be stored because " + storeError + ".",
+                    source,
+                    "Check that '" + _options.GeneratedAssetFolder + "' is writable.");
+
+                return AssetReference.None;
+            }
+
+            _embedded[dataUri] = assetPath;
+            return AssetReference.FromPath(assetPath, source);
         }
 
         private AssetReference BuildReference(string? value, SourceLocation source, string relativeToFile)
@@ -264,6 +330,11 @@ namespace Rectloom.Core.Ir
             }
 
             string reference = value!.Trim();
+
+            if (DataUri.IsDataUri(reference))
+            {
+                return StoreEmbeddedImage(reference, source);
+            }
 
             if (AssetReference.LooksLikeGuid(reference))
             {

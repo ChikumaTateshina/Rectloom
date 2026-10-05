@@ -167,8 +167,8 @@ footer a { color: var(--muted); }
     <summary>プロジェクトへの追加と使い方</summary>
     <ol>
       <li>VCC でワールドプロジェクトの <strong>Manage Project</strong> を開きます</li>
-      <li><strong>Rectloom for VRChat</strong> の <code>+</code> を押します<br>
-        <span class="pkg-desc">Core と uGUI Backend は依存として自動的に入ります</span></li>
+      <li><strong>Rectloom</strong> の <code>+</code> を押します<br>
+        <span class="pkg-desc">コンパイラ、uGUI バックエンド、VRChat アダプタがまとめて入ります</span></li>
       <li>Unity で <strong>Tools → Rectloom → Compiler</strong> を開きます</li>
       <li>HTML と CSS を指定して <strong>Compile</strong> します</li>
     </ol>
@@ -186,21 +186,9 @@ footer a { color: var(--muted); }
     </thead>
     <tbody id="packages">
       <tr>
-        <td><strong>Rectloom for VRChat</strong>
-          <code>com.chikumatateshina.rectloom.vrchat</code>
-          <span class="pkg-desc">VRChat アダプタ。これを入れれば Core と uGUI も入ります</span></td>
-        <td class="ver">—</td>
-      </tr>
-      <tr>
-        <td><strong>Rectloom uGUI Backend</strong>
-          <code>com.chikumatateshina.rectloom.ugui</code>
-          <span class="pkg-desc">uGUI / TextMeshPro バックエンド</span></td>
-        <td class="ver">—</td>
-      </tr>
-      <tr>
-        <td><strong>Rectloom Core</strong>
-          <code>com.chikumatateshina.rectloom.core</code>
-          <span class="pkg-desc">パーサー、CSS、レイアウト、IR</span></td>
+        <td><strong>Rectloom</strong>
+          <code>com.chikumatateshina.rectloom</code>
+          <span class="pkg-desc">HTML/CSS コンパイラ、uGUI バックエンド、VRChat アダプタ</span></td>
         <td class="ver">—</td>
       </tr>
     </tbody>
@@ -295,9 +283,7 @@ footer a { color: var(--muted); }
   // Versions come from the listing itself, so the page cannot drift out of date as releases
   // happen. It is written to be readable before this runs, and to stay readable if it fails.
   var rows = {
-    'com.chikumatateshina.rectloom.vrchat': 0,
-    'com.chikumatateshina.rectloom.ugui': 1,
-    'com.chikumatateshina.rectloom.core': 2
+    'com.chikumatateshina.rectloom': 0
   };
 
   function parseVersion(text) {

@@ -69,7 +69,33 @@ VRC1002 SDK version outside tested range
 INTERNAL9001 Unhandled compiler exception
 ```
 
-## 4. Fatal基準
+## 4. Severity方針
+
+同じcodeでもseverityは文脈で変わる。判断基準は
+**authorに直せることがあるか**である。
+
+| Severity | 使う場面 |
+|---|---|
+| Info | 落とすのが正しい結果で、authorに直せることが無い |
+| Warning | 出力は得られたが意図と違うかもしれない。authorが直せる |
+| Error | sourceの一部をcompileできなかった。出力はcommitしない |
+| Fatal | 続行が安全にできない |
+
+Infoを使う例 (実装済み):
+
+- pseudo-element selector (`::before` / `::after`) — pseudo-elementは生成しない
+- `@page` と印刷専用の `@media` — 印刷用のruleは落とすのが正しい
+- texture を sprite ではなく `RawImage` として扱った
+- `object-fit: cover` を `contain` 相当に落とした
+
+**見た目を変えるものをInfoに落としてはならない。** compilerが再現できない場合でも、
+失われることは必ずWarning以上で報告する。診断を減らすためにInfoへ落とすと、
+authorが気づけない差が生まれる。
+
+逆に、実在するCSSに大量に含まれていてUI上の対応物が無いpropertyは
+**診断を出さずに受理する** (docs/03 §22)。警告を出すと対処すべき診断が埋もれる。
+
+## 5. Fatal基準
 
 Fatal:
 
@@ -80,9 +106,16 @@ Fatal:
 
 単一unknown CSS property程度はFatalにしない。
 
-## 5. Validate
+## 6. Validate
 
 `Validate`はUnity hierarchyを変更しない。
+
+例外は1つある。`data:` URIで埋め込まれた画像は、
+**`Validate`でもprojectのassetとして書き出す**。asset referenceが解決できるか
+確かめること自体が、bytesをfileにすることを要求するためである
+(§8 のとおり参照できるのはimport済みのassetだけ)。
+書き出し先は内容addressなので、同じ画像は何度validateしても同じ1つのassetになり、
+続くcompileがそれを使う。
 
 以下まで実行:
 
@@ -96,7 +129,7 @@ extension resolution
 validation
 ```
 
-## 6. Security
+## 7. Security
 
 HTML/CSSをtrusted codeとして扱わない。
 
@@ -115,14 +148,14 @@ reflectionによるprivate method execution
 
 Component binderはSerialized Property設定に限定。
 
-## 7. Asset Safety
+## 8. Asset Safety
 
 - Source asset importerを勝手に変更しない。
 - Prefab overwrite前にtransaction/temporary outputを利用。
 - Rebuildは明示操作。
 - Updateでuser-owned dataを破壊しない。
 
-## 8. Logging
+## 9. Logging
 
 通常情報はDiagnostic systemへ統合。
 

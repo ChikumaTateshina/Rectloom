@@ -40,16 +40,21 @@ namespace Rectloom.Core.Css.Selectors
         /// <param name="tagName">Lower-cased tag name, or null to match any tag.</param>
         /// <param name="id">Required id, or null when the part has no id condition.</param>
         /// <param name="classes">Required classes, or null when the part has no class condition.</param>
+        /// <param name="requiresRoot">
+        /// Whether the part carries <c>:root</c>, so that it only matches the document's root element.
+        /// </param>
         public CssCompoundSelector(
             CssCombinator combinator,
             string? tagName,
             string? id,
-            IReadOnlyList<string>? classes)
+            IReadOnlyList<string>? classes,
+            bool requiresRoot = false)
         {
             Combinator = combinator;
             TagName = tagName;
             Id = id;
             Classes = classes ?? NoClasses;
+            RequiresRoot = requiresRoot;
         }
 
         /// <summary>How this part relates to the part before it.</summary>
@@ -64,10 +69,25 @@ namespace Rectloom.Core.Css.Selectors
         /// <summary>Required classes. Every one of them must be present on the element.</summary>
         public IReadOnlyList<string> Classes { get; }
 
+        /// <summary>
+        /// Whether this part carries <c>:root</c> and therefore only matches the document's root
+        /// element.
+        /// </summary>
+        /// <remarks>
+        /// <c>html</c> and <c>head</c> are unwrapped while parsing, so the root element of a compiled
+        /// document is its <c>body</c>. That is what <c>:root</c> matches here, which keeps a
+        /// stylesheet that declares its custom properties on <c>:root</c> working: they still land on
+        /// the outermost element and inherit from there.
+        /// </remarks>
+        public bool RequiresRoot { get; }
+
         /// <summary>Specificity contributed by this part.</summary>
+        /// <remarks>
+        /// A pseudo-class counts as a class, which is what the selector specification says.
+        /// </remarks>
         public CssSpecificity Specificity => new CssSpecificity(
             Id == null ? 0 : 1,
-            Classes.Count,
+            Classes.Count + (RequiresRoot ? 1 : 0),
             TagName == null ? 0 : 1);
 
         /// <summary>
@@ -83,6 +103,11 @@ namespace Rectloom.Core.Css.Selectors
             }
 
             if (TagName != null && !string.Equals(element.TagName, TagName, StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            if (RequiresRoot && !(element.Parent is DomDocument))
             {
                 return false;
             }
@@ -107,7 +132,8 @@ namespace Rectloom.Core.Css.Selectors
         /// <inheritdoc />
         public override string ToString()
         {
-            string text = TagName ?? (Id == null && Classes.Count == 0 ? "*" : string.Empty);
+            string text = TagName
+                ?? (Id == null && Classes.Count == 0 && !RequiresRoot ? "*" : string.Empty);
 
             if (Id != null)
             {
@@ -117,6 +143,11 @@ namespace Rectloom.Core.Css.Selectors
             foreach (string className in Classes)
             {
                 text += "." + className;
+            }
+
+            if (RequiresRoot)
+            {
+                text += ":root";
             }
 
             switch (Combinator)

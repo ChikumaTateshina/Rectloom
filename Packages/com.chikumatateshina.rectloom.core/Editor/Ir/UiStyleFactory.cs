@@ -34,12 +34,15 @@ namespace Rectloom.Core.Ir
             {
                 Color = text.Color,
                 FontSize = text.FontSize,
+                FontFamily = text.FontFamily,
                 FontWeight = text.FontWeight,
                 Italic = text.FontStyle == CssFontStyle.Italic,
                 Alignment = MapAlignment(text.TextAlign),
                 LineHeight = text.LineHeight,
                 LetterSpacing = text.LetterSpacing,
                 Wrap = text.WrapsText,
+                Underline = text.Underline,
+                LineThrough = text.LineThrough,
             };
         }
 
@@ -63,7 +66,22 @@ namespace Rectloom.Core.Ir
                 BorderWidth = visual.BorderWidth,
                 BorderColor = visual.BorderColor,
                 BorderRadius = visual.BorderRadius,
+                ClipsContent = visual.ClipsContent,
+                ImageFit = MapImageFit(visual.ObjectFit),
             };
+        }
+
+        private static UiImageFit MapImageFit(CssObjectFit fit)
+        {
+            switch (fit)
+            {
+                case CssObjectFit.Contain:
+                    return UiImageFit.Contain;
+                case CssObjectFit.Cover:
+                    return UiImageFit.Cover;
+                default:
+                    return UiImageFit.Fill;
+            }
         }
 
         private static UiTextAlign MapAlignment(CssTextAlign align)

@@ -9,6 +9,8 @@ namespace Rectloom.Core.Tests.Css
     public sealed class CssLengthTests
     {
         [TestCase("200px", CssLengthUnit.Pixel, 200f)]
+        [TestCase("2em", CssLengthUnit.Em, 2f)]
+        [TestCase("1.5REM", CssLengthUnit.Rem, 1.5f)]
         [TestCase("  12.5px  ", CssLengthUnit.Pixel, 12.5f)]
         [TestCase("-8px", CssLengthUnit.Pixel, -8f)]
         [TestCase("50%", CssLengthUnit.Percent, 50f)]
@@ -43,8 +45,6 @@ namespace Rectloom.Core.Tests.Css
         [TestCase("")]
         [TestCase("   ")]
         [TestCase(null)]
-        [TestCase("2em")]
-        [TestCase("10rem")]
         [TestCase("calc(100% - 10px)")]
         [TestCase("px")]
         [TestCase("abc")]

@@ -52,16 +52,21 @@ namespace Rectloom.Ugui.Backend
             "m_LocalScale", "m_LocalRotation", "m_OffsetMin", "m_OffsetMax",
         };
 
-                private static readonly string[] ImageProperties = { "m_Color", "m_RaycastTarget", "m_Sprite", "m_Type" };
+        private static readonly string[] ImageProperties =
+        {
+            "m_Color", "m_RaycastTarget", "m_Sprite", "m_Type", "m_PreserveAspect",
+        };
 
         private static readonly string[] RawImageProperties = { "m_Color", "m_RaycastTarget", "m_Texture" };
 
         private static readonly string[] TextProperties =
         {
-            "m_text", "m_fontColor", "m_fontSize", "m_fontStyle", "m_textAlignment",
+            "m_text", "m_fontAsset", "m_fontColor", "m_fontSize", "m_fontStyle", "m_textAlignment",
             "m_enableWordWrapping", "m_lineSpacing", "m_characterSpacing", "m_isRichText",
             "m_overflowMode",
         };
+
+        private static readonly string[] MaskProperties = { "m_Padding", "m_Softness" };
 
         // Only interactable is written. m_OnClick is the user's, and listing it here would be a
         // licence to overwrite the wiring an update exists to protect.
@@ -80,6 +85,7 @@ namespace Rectloom.Ugui.Backend
         private readonly CompilerOptions _options;
         private readonly IDiagnosticSink _diagnostics;
         private readonly RoundedBoxSpriteLibrary _sprites;
+        private readonly TmpFontLibrary _fonts;
 
         /// <summary>
         /// Creates a backend.
@@ -87,15 +93,25 @@ namespace Rectloom.Ugui.Backend
         /// <param name="assets">Resolver for image references.</param>
         /// <param name="options">Compiler options, or null for defaults.</param>
         /// <param name="diagnostics">Sink for object and asset diagnostics.</param>
+        /// <param name="fonts">
+        /// Library that resolves <c>font-family</c> to a font asset, or null to create one. The same
+        /// library the text measurer used should be passed here: a box sized with one font and filled
+        /// with another does not fit its own text.
+        /// </param>
         /// <exception cref="ArgumentNullException">
         /// <paramref name="assets"/> or <paramref name="diagnostics"/> is null.
         /// </exception>
-        public UguiBackend(IAssetResolver assets, CompilerOptions? options, IDiagnosticSink diagnostics)
+        public UguiBackend(
+            IAssetResolver assets,
+            CompilerOptions? options,
+            IDiagnosticSink diagnostics,
+            TmpFontLibrary? fonts = null)
         {
             _assets = assets ?? throw new ArgumentNullException(nameof(assets));
             _options = options ?? new CompilerOptions();
             _diagnostics = diagnostics ?? throw new ArgumentNullException(nameof(diagnostics));
             _sprites = new RoundedBoxSpriteLibrary(_options.GeneratedAssetFolder);
+            _fonts = fonts ?? new TmpFontLibrary(null, _diagnostics);
         }
 
         /// <summary>
@@ -281,7 +297,7 @@ namespace Rectloom.Ugui.Backend
                 RectTransformBaker.StretchToContent(transform, node.Rect);
 
                 TMP_Text text = GetOrAdd<TextMeshProUGUI>(label, entry, TextProperties);
-                TmpTextApplier.Apply(text, node.TextContent, node.TextStyle);
+                TmpTextApplier.Apply(text, node.TextContent, node.TextStyle, ResolveFont(node));
 
                 // A label never swallows clicks meant for the box it belongs to.
                 text.raycastTarget = false;
@@ -349,6 +365,7 @@ namespace Rectloom.Ugui.Backend
                         break;
                 }
 
+                ApplyClipping(node, target, entry);
                 ApplyOpacity(node, target, entry);
                 RemoveObsoleteComponents(target, node.StableId, entry);
 
@@ -400,8 +417,16 @@ namespace Rectloom.Ugui.Backend
                 }
 
                 TMP_Text text = GetOrAdd<TextMeshProUGUI>(target, entry, TextProperties);
-                TmpTextApplier.Apply(text, node.TextContent, node.TextStyle);
+                TmpTextApplier.Apply(text, node.TextContent, node.TextStyle, ResolveFont(node));
                 text.raycastTarget = _backend.ReadRaycastTarget(node);
+            }
+
+            /// <summary>
+            /// Resolves the font a node renders with, through the same library the measurer used.
+            /// </summary>
+            private TMP_FontAsset? ResolveFont(UiNode node)
+            {
+                return _backend._fonts.Resolve(node.TextStyle, node.Source);
             }
 
             private void ApplyButton(UiNode node, GameObject target, GeneratedNodeMetadata entry)
@@ -484,6 +509,24 @@ namespace Rectloom.Ugui.Backend
 
                 image.raycastTarget = _backend.ReadRaycastTarget(node);
                 return image;
+            }
+
+            /// <summary>
+            /// Clips a node's content to its own rectangle when <c>overflow</c> asks for it.
+            /// </summary>
+            /// <remarks>
+            /// A <c>RectMask2D</c> is used rather than a <c>Mask</c> because it clips to the rectangle
+            /// without needing a graphic of its own, so a container that paints nothing can still clip.
+            /// Like the CSS property, it only hides the overflow: the clipped objects still exist.
+            /// </remarks>
+            private void ApplyClipping(UiNode node, GameObject target, GeneratedNodeMetadata entry)
+            {
+                if (!node.Visual.ClipsContent)
+                {
+                    return;
+                }
+
+                GetOrAdd<RectMask2D>(target, entry, MaskProperties);
             }
 
             /// <summary>
@@ -772,6 +815,22 @@ namespace Rectloom.Ugui.Backend
                 graphic.sprite = sprite;
                 graphic.color = tint;
                 graphic.type = Image.Type.Simple;
+
+                // object-fit: contain keeps the aspect ratio inside the box, which is what
+                // preserveAspect does. cover would have to overflow the rectangle, and an Image cannot,
+                // so it fits inside instead and says so.
+                graphic.preserveAspect = node.Visual.ImageFit != UiImageFit.Fill;
+
+                if (node.Visual.ImageFit == UiImageFit.Cover)
+                {
+                    _diagnostics.Info(
+                        DiagnosticCodes.Asset.UnsupportedType,
+                        "object-fit: cover would have to overflow the element, which an Image cannot "
+                            + "do, so the image was fitted inside it instead.",
+                        node.Source,
+                        "Use object-fit: contain, or crop the image to the box's aspect ratio.");
+                }
+
                 graphic.raycastTarget = ReadRaycastTarget(node);
                 return;
             }

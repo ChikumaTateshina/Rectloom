@@ -7,7 +7,103 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+#### Self-contained documents
+
+A document written as one HTML file now compiles on its own. The CSS in a `<style>` element and the
+sheets a `<link rel="stylesheet">` names are read as author stylesheets and cascade after the ones the
+compile request lists, so the Compiler's CSS field can be left empty.
+
+- `style`, `script`, `title`, `meta`, `link`, `base`, `noscript` and `template` are dropped along with
+  their content, so a stylesheet or a page title is never laid out as a label.
+- `style` and `script` content is read as raw text. A stylesheet's child combinator and a script's
+  comparison operator both contain `<` and `>`, so tokenizing either as markup turned a stylesheet
+  into a tree of elements.
+- `svg`, `math`, `canvas`, `video`, `audio`, `iframe`, `object` and `embed` are dropped with one
+  diagnostic rather than one per descendant, because compiling the inside of a drawing as a box tree
+  produces a hierarchy that looks nothing like it.
+- Sectioning and text-level elements (`article`, `section`, `header`, `footer`, `nav`, `main`, `aside`,
+  `figure`, `ul`, `ol`, `li`, `a`, `strong`, `em`, `label` and the rest) are supported, because a box
+  or an inherited text style is genuinely all they mean. A `table` or a form control is deliberately
+  still reported, since compiling one to a plain container would quietly lose what it is for.
+
+#### CSS
+
+- Physical units `mm`, `cm`, `in`, `pt`, `pc` and `q`, converted to pixels while parsing at the fixed
+  ratios CSS defines.
+- Font-relative units `em` and `rem`, resolved while the computed style is built, which is where CSS
+  resolves them. Neither layout nor a backend ever sees one.
+- Custom properties and `var()`, with fallbacks and with one custom property able to use another.
+  Substitution happens before any value is parsed, so a single `var()` can stand for a length, a
+  colour or a whole shorthand without the property parsers knowing variables exist.
+- The `:root` pseudo-class, which matches the document's root element.
+- `background` and `border` shorthands, `border-style`, and `background: none`.
+- `overflow`, `overflow-x` and `overflow-y`, which clip through a `RectMask2D`.
+- `object-fit`, `font-family`, `text-decoration` and `white-space: pre-line`.
+- `flex-wrap`, `flex-flow`, `align-content`, `align-self`, `row-gap`, `column-gap`, the `flex`
+  shorthand and `flex-grow` / `flex-shrink` / `flex-basis`. ADR-0003 had these as out of scope on the
+  grounds that the specification called them Phase 2; `flex: 1` beside `flex: none` is how real
+  documents lay out columns, and without it free space can only be distributed with
+  `justify-content`.
+- `align-items: baseline` and `align-self: baseline`. A box with no line of text in it is aligned by
+  its bottom margin edge, as CSS specifies, which is what makes a fixed-height empty span work as a
+  baseline spacer.
+- `margin: auto` on the main axis, which absorbs free space before `justify-content` and centres a
+  fixed-width block.
+
+#### Embedded images
+
+An image written as a `data:` URI, in `img src` or in `background-image`, is decoded and stored as a
+project asset, because a prefab cannot reference bytes that exist only in memory. Assets are named
+after the hash of their own content, so the same image embedded twice becomes one file and
+recompiling the same document produces the same path.
+
+#### Fonts
+
+`font-family` is resolved against the TextMeshPro font assets in the project, matching both the asset
+name and the family name baked into the font, so `font-family: "Noto Sans JP"` finds an asset called
+`NotoSansJP-Regular SDF`. This is what makes a document in Japanese renderable at all: TextMeshPro's
+default font has no CJK glyphs.
+
+Text a font cannot render is measured with the approximation instead of with TextMeshPro, and
+reported once naming the font and the first missing character. TextMeshPro logs a warning for every
+missing glyph it is asked to lay out, which for a page of Japanese in a Latin font is hundreds of
+console lines that all say the same thing.
+
+### Changed
+
+- Diagnostics that report something it is correct to drop are now `Info` rather than `Warning`:
+  pseudo-element selectors, `@page` and print-only `@media`. There is nothing an author can change to
+  make a pseudo-element work, and a stylesheet shared with a print layout would otherwise warn on
+  every compile.
+- Properties that are real CSS but have no counterpart in a baked uGUI hierarchy are accepted
+  silently: paged-media properties, properties describing behaviour over time or under input, line
+  breaking that TextMeshPro decides for itself, background painting detail and generated content. A
+  property that changes what the user sees is deliberately not on that list, so losing one is always
+  reported.
+- `FlexStyle.Gap` is now `RowGap` and `ColumnGap`. The `gap` shorthand sets both.
+- The user-agent stylesheet covers the newly supported elements, so a list, a blockquote or an
+  emphasised run looks like itself without any CSS.
+- VPM now receives one bundled package, `com.chikumatateshina.rectloom`, containing the compiler, the
+  uGUI backend and the VRChat adapter. The repository keeps the three split packages for UPM users
+  who want the core without the adapter, but VCC shows every package a listing names, and three
+  entries where two are internal is a list a user has to decode. The bundle names the split packages
+  in `legacyPackages`, so a project that installed them separately has them replaced.
+- The bundle does not require the VRChat SDK. The adapter compiles with or without it through
+  assembly version defines, and carrying the requirement over from the split package would have
+  stopped the bundle installing in an avatar project.
+
 ### Fixed
+
+- The split packages are dropped from the listing only once the bundle has a version in it. Dropping
+  them as soon as the bundle existed would have published a listing with nothing installable in it:
+  the three released versions gone and no bundle version yet to replace them. The listing is rebuilt
+  on every push to the default branch, so that window would have been every push between writing the
+  bundle and releasing it.
+- A document whose CSS lives in a `<style>` element is no longer compiled with its stylesheet
+  rendered as a paragraph of text.
+- An image embedded as a `data:` URI no longer fails the whole compile with `ASSET1001`.
 
 - The listing is now published from the default branch rather than from the release tag. GitHub's
   protection rule on the `github-pages` environment rejects a deploy from a tag, so the release

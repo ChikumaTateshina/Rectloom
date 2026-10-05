@@ -13,11 +13,18 @@ namespace Rectloom.Core.Css.Parsing
     /// </summary>
     /// <remarks>
     /// Covers the selector set the compiler supports: the universal selector, tag, class and id
-    /// selectors, compounds such as <c>button.primary</c>, and the descendant and child combinators.
+    /// selectors, the <c>:root</c> pseudo-class, compounds such as <c>button.primary</c>, and the
+    /// descendant and child combinators.
     /// <para>
-    /// Anything else, including attribute selectors, pseudo-classes and sibling combinators, is
+    /// Anything else, including attribute selectors, other pseudo-classes and sibling combinators, is
     /// reported as <c>CSS1003</c> and the selector is dropped. Dropping only that selector, rather
     /// than the whole rule, keeps the rest of a selector list working.
+    /// </para>
+    /// <para>
+    /// A pseudo-element selector is dropped at <see cref="DiagnosticSeverity.Info"/> rather than as a
+    /// warning. This compiler generates no pseudo-elements, so there is nothing an author could change
+    /// to make one work, and real stylesheets carry enough of them (<c>*, *::before, *::after</c>) that
+    /// warning on each would bury the diagnostics worth reading.
     /// </para>
     /// </remarks>
     public static class CssSelectorParser
@@ -126,6 +133,7 @@ namespace Rectloom.Core.Css.Parsing
             string? tagName = null;
             string? id = null;
             List<string>? classes = null;
+            bool requiresRoot = false;
             bool consumedAnything = false;
 
             while (index < raw.Length)
@@ -182,6 +190,17 @@ namespace Rectloom.Core.Css.Parsing
                     continue;
                 }
 
+                if (current == ':')
+                {
+                    if (!TryParsePseudo(raw, source, diagnostics, ref index, ref requiresRoot))
+                    {
+                        return false;
+                    }
+
+                    consumedAnything = true;
+                    continue;
+                }
+
                 if (IsIdentifierChar(current))
                 {
                     if (tagName != null || consumedAnything)
@@ -210,8 +229,113 @@ namespace Rectloom.Core.Css.Parsing
                 return false;
             }
 
-            part = new CssCompoundSelector(combinator, tagName, id, classes);
+            part = new CssCompoundSelector(combinator, tagName, id, classes, requiresRoot);
             return true;
+        }
+
+        /// <summary>
+        /// Reads one pseudo-class or pseudo-element.
+        /// </summary>
+        /// <returns>
+        /// <see langword="true"/> when the pseudo is one the compiler supports. Otherwise the whole
+        /// selector is dropped and a diagnostic has already been reported.
+        /// </returns>
+        private static bool TryParsePseudo(
+            string raw,
+            SourceLocation source,
+            IDiagnosticSink diagnostics,
+            ref int index,
+            ref bool requiresRoot)
+        {
+            bool isElement = index + 1 < raw.Length && raw[index + 1] == ':';
+            index += isElement ? 2 : 1;
+
+            string name = ReadIdentifier(raw, ref index).ToLowerInvariant();
+            bool functional = index < raw.Length && raw[index] == '(';
+
+            if (functional)
+            {
+                SkipArguments(raw, ref index);
+            }
+
+            // ::before and ::after were written with one colon in CSS2, so a known pseudo-element name
+            // is treated as one however it was spelled.
+            if (isElement || IsPseudoElementName(name))
+            {
+                diagnostics.Info(
+                    DiagnosticCodes.Css.UnknownSelectorSyntax,
+                    "Selector '" + raw + "' styles a pseudo-element, which this compiler does not "
+                        + "generate, so the rule was skipped for this selector.",
+                    source,
+                    "Put the content in an element of its own if it has to appear in the UI.");
+
+                return false;
+            }
+
+            if (name.Length == 0)
+            {
+                Unsupported(raw, source, diagnostics, "':' is not followed by a pseudo-class name.");
+                return false;
+            }
+
+            if (string.Equals(name, "root", StringComparison.Ordinal) && !functional)
+            {
+                requiresRoot = true;
+                return true;
+            }
+
+            Unsupported(
+                raw,
+                source,
+                diagnostics,
+                "':" + name + "' depends on state or position that baked output does not have.");
+
+            return false;
+        }
+
+        private static void SkipArguments(string raw, ref int index)
+        {
+            int depth = 0;
+
+            while (index < raw.Length)
+            {
+                if (raw[index] == '(')
+                {
+                    depth++;
+                }
+                else if (raw[index] == ')')
+                {
+                    depth--;
+                    index++;
+
+                    if (depth <= 0)
+                    {
+                        return;
+                    }
+
+                    continue;
+                }
+
+                index++;
+            }
+        }
+
+        private static bool IsPseudoElementName(string name)
+        {
+            switch (name)
+            {
+                case "before":
+                case "after":
+                case "first-line":
+                case "first-letter":
+                case "marker":
+                case "placeholder":
+                case "selection":
+                case "backdrop":
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         private static string ReadIdentifier(string raw, ref int index)

@@ -67,6 +67,10 @@ Canvas
 依存方向は `Core ← uGUI ← VRChat` の一方向のみです。Core が VRChat や
 外部 UI ライブラリへ依存することはありません。
 
+VPM (VCC) へはこの 3 つを束ねた **`com.chikumatateshina.rectloom`** 1 パッケージとして
+配布します。VCC の一覧に内部構造を並べても利用者が読み解くものが増えるだけなので、
+リポジトリ側の分割は UPM 利用者のために残し、配布だけまとめています。
+
 ## インストール
 
 ### VRChat (VCC / VPM)
@@ -82,8 +86,9 @@ VCC の `Settings → Packages → Add Repository` へ以下を手動で追加�
 https://chikumatateshina.github.io/Rectloom/index.json
 ```
 
-その後 `Rectloom for VRChat` をプロジェクトに入れます。Core と uGUI Backend は依存として
-自動的に入ります。詳細は [docs/VCC_INSTALL.md](docs/VCC_INSTALL.md)。
+その後 `Rectloom` をプロジェクトに入れます。VCC に並ぶのはこの 1 つだけで、
+コンパイラ・uGUI バックエンド・VRChat アダプタがまとめて入ります。
+詳細は [docs/VCC_INSTALL.md](docs/VCC_INSTALL.md)。
 
 ### 通常の Unity (UPM)
 
@@ -92,6 +97,43 @@ https://chikumatateshina.github.io/Rectloom/index.json
 ```json
 "com.chikumatateshina.rectloom.ugui": "https://github.com/ChikumaTateshina/Rectloom.git?path=Packages/com.chikumatateshina.rectloom.ugui"
 ```
+
+## 対応する HTML / CSS
+
+- **1 ファイル完結の HTML** — `<style>` に書いた CSS と `<link rel="stylesheet">` を読みます。
+  `<head>`、`<title>`、`<meta>`、`<script>` は出力に現れません。
+- **要素** — `div` / `span` / `p` / `h1`〜`h6` / `button` / `img` / `br` に加え、
+  `article` / `section` / `header` / `footer` / `nav` / `main` / `aside` / `ul` / `ol` / `li` /
+  `a` / `strong` / `em` / `label` などの一般的な要素。`<svg>` や `<video>` は再現できないため
+  要素ごと削除し、1 件の診断を出します。
+- **単位** — `px` / `%` / `mm` / `cm` / `in` / `pt` / `pc` / `q` / `em` / `rem`。
+- **カスタムプロパティ** — `--name` と `var(--name, fallback)`。`:root` も使えます。
+- **レイアウト** — ブロックフロー、`flex-wrap`、`flex` / `flex-grow` / `flex-shrink` / `flex-basis`、
+  `align-items: baseline`、`align-self`、`align-content`、`row-gap` / `column-gap`、
+  `margin: 0 auto` による中央寄せ、`position: relative` / `absolute`。
+- **描画** — `background` / `border` ショートハンド、`border-radius`、`overflow: hidden`
+  (`RectMask2D`)、`object-fit`、`opacity`。
+- **テキスト** — `font-family` (プロジェクト内の TMP Font Asset を名前で解決)、
+  `text-decoration`、`white-space`、`line-height`、`letter-spacing`。
+- **画像** — `data:` URI で埋め込まれた PNG / JPEG などを、内容のハッシュで名前を付けた
+  プロジェクトアセットとして書き出して参照します。
+
+印刷用の `@page` / `@media print` と擬似要素 (`::before` / `::after`) は、落とすのが正しい
+結果なので警告ではなく情報として報告します。詳細は
+[docs/03_HTML_CSS_LANGUAGE_SPEC.md](docs/03_HTML_CSS_LANGUAGE_SPEC.md)。
+
+### 日本語フォント
+
+TextMeshPro の既定フォント (LiberationSans) には日本語の字形がありません。
+日本語フォントから TMP Font Asset を作り、CSS で指定してください。
+
+```css
+body { font-family: "Noto Sans JP", sans-serif; }
+```
+
+`font-family` の名前は、Font Asset のアセット名とフォント自身のファミリ名の両方に対して
+照合します (`NotoSansJP-Regular SDF` は `Noto Sans JP` で一致します)。
+解決できなかった場合は既定フォントを使い、警告を 1 件出します。
 
 ## 使い方
 

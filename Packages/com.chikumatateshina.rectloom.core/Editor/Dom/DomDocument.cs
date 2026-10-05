@@ -15,6 +15,10 @@ namespace Rectloom.Core.Dom
     /// </remarks>
     public sealed class DomDocument : DomNode
     {
+        private static readonly IReadOnlyList<DomStyleSheet> NoStyleSheets = Array.Empty<DomStyleSheet>();
+
+        private readonly List<DomStyleSheet> _styleSheets = new List<DomStyleSheet>();
+
         private Dictionary<string, DomElement>? _elementsById;
 
         /// <summary>
@@ -37,6 +41,32 @@ namespace Rectloom.Core.Dom
 
         /// <summary>Asset path of the HTML source this document was parsed from.</summary>
         public string FilePath { get; }
+
+        /// <summary>
+        /// Stylesheets the document brings along, in document order.
+        /// </summary>
+        /// <remarks>
+        /// A <c>style</c> element's content and a <c>link rel="stylesheet"</c> reference both end up
+        /// here. They are kept beside the tree rather than in it, because their content is CSS and
+        /// leaving it in the tree would lay a stylesheet out as text.
+        /// </remarks>
+        public IReadOnlyList<DomStyleSheet> StyleSheets =>
+            _styleSheets.Count == 0 ? NoStyleSheets : _styleSheets;
+
+        /// <summary>
+        /// Records a stylesheet found while parsing.
+        /// </summary>
+        /// <param name="styleSheet">The sheet to record.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="styleSheet"/> is null.</exception>
+        public void AddStyleSheet(DomStyleSheet styleSheet)
+        {
+            if (styleSheet == null)
+            {
+                throw new ArgumentNullException(nameof(styleSheet));
+            }
+
+            _styleSheets.Add(styleSheet);
+        }
 
         /// <summary>
         /// The document's root element, normally the body element, or <see langword="null"/> when the

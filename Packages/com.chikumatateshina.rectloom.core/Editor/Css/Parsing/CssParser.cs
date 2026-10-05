@@ -166,11 +166,7 @@ namespace Rectloom.Core.Css.Parsing
 
             if (!string.Equals(name, "import", StringComparison.Ordinal))
             {
-                _diagnostics.Warning(
-                    DiagnosticCodes.Css.UnsupportedAtRule,
-                    "@" + name + " is not supported and was skipped.",
-                    start,
-                    "Only @import is supported.");
+                ReportSkippedAtRule(name, prelude, start);
                 return;
             }
 
@@ -208,6 +204,46 @@ namespace Rectloom.Core.Css.Parsing
             }
 
             imports.Add(new CssImport(path, start));
+        }
+
+        /// <summary>
+        /// Reports an at-rule the compiler skipped.
+        /// </summary>
+        /// <remarks>
+        /// Paged-media rules are reported as information rather than as a warning. Dropping them is
+        /// the correct outcome for a UI that is never printed, so there is nothing for the author to
+        /// act on, and a stylesheet shared with a print layout would otherwise warn on every compile.
+        /// </remarks>
+        private void ReportSkippedAtRule(string name, string prelude, SourceLocation start)
+        {
+            if (string.Equals(name, "page", StringComparison.Ordinal)
+                || (string.Equals(name, "media", StringComparison.Ordinal) && IsPrintOnly(prelude)))
+            {
+                _diagnostics.Info(
+                    DiagnosticCodes.Css.UnsupportedAtRule,
+                    "@" + name + " describes printed output, so its rules were skipped.",
+                    start);
+                return;
+            }
+
+            _diagnostics.Warning(
+                DiagnosticCodes.Css.UnsupportedAtRule,
+                "@" + name + " is not supported and was skipped.",
+                start,
+                "Only @import is supported. Move the declarations into a plain rule.");
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether a media query applies to printed output only.
+        /// </summary>
+        private static bool IsPrintOnly(string prelude)
+        {
+            string query = prelude.Trim();
+
+            return query.Length > 0
+                && query.IndexOf("print", StringComparison.OrdinalIgnoreCase) >= 0
+                && query.IndexOf("screen", StringComparison.OrdinalIgnoreCase) < 0
+                && query.IndexOf("all", StringComparison.OrdinalIgnoreCase) < 0;
         }
 
         private static string? ExtractImportPath(string prelude)

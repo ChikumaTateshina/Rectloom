@@ -30,16 +30,24 @@ https://chikumatateshina.github.io/Rectloom/index.json
 ALCOM を使っている場合は `Resources` → `Repositories` → `Add Repository` から
 同じ URL を追加します (ALCOM にワンクリック追加のリンクはありません)。
 
-購読すると `Rectloom for VRChat` が選択できるようになります。
+購読すると `Rectloom` が選択できるようになります。
 
 ## 2. プロジェクトへ追加する
 
 1. VCC でワールドプロジェクトを開きます。
 2. `Manage Project` を開きます。
-3. `Rectloom for VRChat` の `+` を押します。
+3. `Rectloom` の `+` を押します。
 
-`Rectloom Core` と `Rectloom uGUI Backend` は依存として自動的に入ります。
-個別に追加する必要はありません。
+VPM では **`Rectloom` 1 つだけ**が並びます。コンパイラ (Core)、uGUI バックエンド、
+VRChat アダプタはすべてこの中に入っているので、個別に追加する必要はありません。
+
+リポジトリ側は `core` / `ugui` / `vrchat` の 3 パッケージに分かれたままです
+(Core を VRChat 非依存に保つため)。VPM へ配るときだけ 1 つにまとめています。
+以前に 3 つを個別に入れていた場合は、`Rectloom` を入れると自動的に置き換わります
+(`legacyPackages` による削除)。
+
+VRChat SDK は**必須ではありません**。アダプタはアセンブリ版定義で SDK の有無を判定するので、
+Worlds SDK が無いプロジェクトにもインストールできます (`vrc-*` プロパティが働かないだけです)。
 
 ## 3. 動作確認
 
@@ -54,6 +62,10 @@ ALCOM を使っている場合は `Resources` → `Repositories` → `Add Reposi
   </div>
 </body>
 ```
+
+CSS を別ファイルにせず、HTML の `<style>` に書いても構いません。その場合
+Compiler の CSS 欄は空のままにできます。デザインツールが書き出した 1 ファイル完結の
+HTML はそのまま読み込めます。
 
 ```css
 #panel {
@@ -88,7 +100,30 @@ h1 { font-size: 36px; color: #ffffff; }
 その後 CSS を変更して `Compile Mode` を `Update` にして再コンパイルすると、
 **見た目だけが更新され、設定した `OnClick` は保持されます。**
 
-## 5. World Space キャンバス
+## 5. 日本語フォント
+
+TextMeshPro の既定フォント (LiberationSans) には日本語の字形がありません。そのままだと
+日本語は □ になります。日本語フォントから TMP Font Asset を作り、CSS で指定してください。
+
+1. `Window → TextMeshPro → Font Asset Creator` を開きます。
+2. 日本語フォント (例: Noto Sans JP) を選び、必要な文字を含めて `Generate Font Atlas` します。
+3. 生成されたアセットをプロジェクトに保存します。
+
+```css
+body { font-family: "Noto Sans JP", sans-serif; }
+```
+
+名前は Font Asset のアセット名とフォント自身のファミリ名の両方に照合するので、
+`NotoSansJP-Regular SDF` というアセットは `Noto Sans JP` で一致します。
+見つからなかった場合は既定フォントを使い、警告を 1 件出します。
+
+字形が足りないフォントで組んだテキストは、TextMeshPro で測らず近似値で測ります。
+TextMeshPro は字形が無い文字ごとに警告を出すため、そのままではコンソールが同じ内容で
+埋まってしまうからです。代わりに「どのフォントにどの文字が無いか」を 1 件だけ報告します。
+
+`Project Settings → TextMesh Pro → Fallback Font Assets` に追加しておく方法でも構いません。
+
+## 6. World Space キャンバス
 
 VRChat のワールド UI は World Space キャンバスである必要があります
 (Screen Space Overlay は他プレイヤーに見えず、VR では存在しません)。
@@ -104,7 +139,7 @@ body {
 
 `vrc-world-scale: 0.001` で、`1920 x 1080` の参照解像度が約 1.92m x 1.08m になります。
 
-## 6. UPM (非 VRChat) で使う場合
+## 7. UPM (非 VRChat) で使う場合
 
 VRChat を使わない通常の Unity プロジェクトでは VCC は不要です。
 `Packages/manifest.json` へ以下を追加してください。
@@ -129,4 +164,5 @@ Core は依存として入ります。VRChat パッケージは不要です。
 | `Update` が拒否される | 出力の隣にある `*.rectloom.asset` が必要です。消してしまった場合は `Rebuild` を使ってください |
 | ワールドで UI が見えない | キャンバスが World Space か確認してください (`vrc-world-space`) |
 | テキストが表示されない | TextMeshPro の Essential Resources を `Window → TextMeshPro` から導入してください |
+| 日本語が □ になる | 既定フォント (LiberationSans) に日本語の字形がありません。日本語フォントの TMP Font Asset を作り、CSS で `font-family` に指定してください (下記) |
 | ビルドに Rectloom が含まれるか心配 | 含まれません。全アセンブリが Editor 専用で、メタデータも Editor 専用アセットです |

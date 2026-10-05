@@ -24,6 +24,9 @@ namespace Rectloom.Core.Css.Computed
         private static readonly IReadOnlyDictionary<string, string> NoExtensionProperties =
             new Dictionary<string, string>(0, StringComparer.Ordinal);
 
+        private static readonly IReadOnlyDictionary<string, string> NoCustomProperties =
+            new Dictionary<string, string>(0, StringComparer.Ordinal);
+
         /// <summary>How the element generates boxes. Initial value is block.</summary>
         public CssDisplay Display { get; internal set; } = CssDisplay.Block;
 
@@ -87,6 +90,17 @@ namespace Rectloom.Core.Css.Computed
             = NoExtensionProperties;
 
         /// <summary>
+        /// Custom properties in scope on this element, keyed by name including the leading <c>--</c>.
+        /// </summary>
+        /// <remarks>
+        /// Custom properties inherit, so this holds the element's own declarations layered over its
+        /// parent's. Values are kept exactly as written, because what a custom property means depends
+        /// on the property it is eventually substituted into.
+        /// </remarks>
+        public IReadOnlyDictionary<string, string> CustomProperties { get; internal set; }
+            = NoCustomProperties;
+
+        /// <summary>
         /// Gets a value indicating whether the element takes part in normal flow.
         /// </summary>
         public bool IsInFlow => Display != CssDisplay.None && Position != CssPosition.Absolute;
@@ -105,6 +119,17 @@ namespace Rectloom.Core.Css.Computed
         public bool TryGetExtensionProperty(string property, out string value)
         {
             return ExtensionProperties.TryGetValue(property, out value!);
+        }
+
+        /// <summary>
+        /// Looks up a custom property.
+        /// </summary>
+        /// <param name="property">Property name including the leading <c>--</c>.</param>
+        /// <param name="value">The raw value when the property is in scope.</param>
+        /// <returns><see langword="true"/> when the element or an ancestor declared that property.</returns>
+        public bool TryGetCustomProperty(string property, out string value)
+        {
+            return CustomProperties.TryGetValue(property, out value!);
         }
     }
 }

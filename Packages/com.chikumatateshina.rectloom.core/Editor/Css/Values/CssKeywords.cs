@@ -85,6 +85,103 @@ namespace Rectloom.Core.Css.Values
 
         /// <summary>Children without an explicit cross size fill the container's content size.</summary>
         Stretch = 3,
+
+        /// <summary>Children are placed so that the baselines of their first lines coincide.</summary>
+        Baseline = 4,
+    }
+
+    /// <summary>
+    /// Supported values of the <c>align-self</c> property, which overrides <c>align-items</c> for one
+    /// item.
+    /// </summary>
+    public enum CssAlignSelf
+    {
+        /// <summary>The item follows the container's <c>align-items</c>.</summary>
+        Auto = 0,
+
+        /// <summary>The item sits at the start of the cross axis.</summary>
+        Start = 1,
+
+        /// <summary>The item sits centred on the cross axis.</summary>
+        Center = 2,
+
+        /// <summary>The item sits at the end of the cross axis.</summary>
+        End = 3,
+
+        /// <summary>The item fills the container's cross size.</summary>
+        Stretch = 4,
+
+        /// <summary>The item is aligned by the baseline of its first line.</summary>
+        Baseline = 5,
+    }
+
+    /// <summary>
+    /// Supported values of the <c>flex-wrap</c> property.
+    /// </summary>
+    public enum CssFlexWrap
+    {
+        /// <summary>Every item stays on one line, overflowing if it must.</summary>
+        NoWrap = 0,
+
+        /// <summary>Items that do not fit move onto a new line.</summary>
+        Wrap = 1,
+    }
+
+    /// <summary>
+    /// Supported values of the <c>align-content</c> property, which distributes the lines of a
+    /// wrapped flex container along the cross axis.
+    /// </summary>
+    public enum CssAlignContent
+    {
+        /// <summary>Lines are packed at the start of the cross axis.</summary>
+        Start = 0,
+
+        /// <summary>Lines are packed centred on the cross axis.</summary>
+        Center = 1,
+
+        /// <summary>Lines are packed at the end of the cross axis.</summary>
+        End = 2,
+
+        /// <summary>Free cross space is split evenly between lines, with none at the edges.</summary>
+        SpaceBetween = 3,
+
+        /// <summary>Each line gets equal space around it, so edge gaps are half the inner gaps.</summary>
+        SpaceAround = 4,
+
+        /// <summary>Lines share the free cross space by growing. Treated as start.</summary>
+        Stretch = 5,
+    }
+
+    /// <summary>
+    /// Supported values of the <c>overflow</c> properties.
+    /// </summary>
+    /// <remarks>
+    /// Only whether content is clipped is modelled. uGUI has no scrollbars without a
+    /// <c>ScrollRect</c>, so <c>scroll</c> and <c>auto</c> clip as well; the content is reachable in
+    /// the hierarchy, just not scrollable.
+    /// </remarks>
+    public enum CssOverflow
+    {
+        /// <summary>Content that leaves the box is still painted.</summary>
+        Visible = 0,
+
+        /// <summary>Content that leaves the box is clipped to it.</summary>
+        Hidden = 1,
+    }
+
+    /// <summary>
+    /// Supported values of the <c>object-fit</c> property, which sizes an image inside its box.
+    /// </summary>
+    public enum CssObjectFit
+    {
+        /// <summary>The image is stretched to the box, ignoring its own aspect ratio.</summary>
+        Fill = 0,
+
+        /// <summary>The image keeps its aspect ratio and fits entirely inside the box.</summary>
+        Contain = 1,
+
+        /// <summary>The image keeps its aspect ratio and covers the box, overflowing on one axis.</summary>
+        Cover = 2,
     }
 
     /// <summary>

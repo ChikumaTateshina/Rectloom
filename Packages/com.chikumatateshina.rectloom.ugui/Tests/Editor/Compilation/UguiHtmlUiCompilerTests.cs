@@ -227,7 +227,7 @@ namespace Rectloom.Ugui.Tests.Compilation
         [Test]
         public void Validate_StillReportsAuthoringMistakes()
         {
-            _sources.Add(CssPath, "#panel { width: 12em; }");
+            _sources.Add(CssPath, "#panel { width: wide; }");
 
             CompileResult result = Compiler().Validate(Request());
 

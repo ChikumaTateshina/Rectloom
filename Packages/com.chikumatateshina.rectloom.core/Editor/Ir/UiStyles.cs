@@ -1,5 +1,7 @@
 #nullable enable
 
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Rectloom.Core.Ir
@@ -20,6 +22,21 @@ namespace Rectloom.Core.Ir
 
         /// <summary>Spread to both edges.</summary>
         Justify = 3,
+    }
+
+    /// <summary>
+    /// How an image fills the box of the node that paints it.
+    /// </summary>
+    public enum UiImageFit
+    {
+        /// <summary>The image is stretched to the box, ignoring its own aspect ratio.</summary>
+        Fill = 0,
+
+        /// <summary>The image keeps its aspect ratio and fits entirely inside the box.</summary>
+        Contain = 1,
+
+        /// <summary>The image keeps its aspect ratio and covers the box, overflowing on one axis.</summary>
+        Cover = 2,
     }
 
     /// <summary>
@@ -47,6 +64,12 @@ namespace Rectloom.Core.Ir
         /// <summary>Corner radius in logical pixels.</summary>
         public float BorderRadius { get; internal set; }
 
+        /// <summary>Whether content outside this node's rectangle is clipped away.</summary>
+        public bool ClipsContent { get; internal set; }
+
+        /// <summary>How an image this node paints fills its rectangle.</summary>
+        public UiImageFit ImageFit { get; internal set; } = UiImageFit.Fill;
+
         /// <summary>
         /// Gets a value indicating whether this node needs a graphic component.
         /// </summary>
@@ -68,11 +91,19 @@ namespace Rectloom.Core.Ir
     /// </remarks>
     public sealed class UiTextStyle
     {
+        private static readonly IReadOnlyList<string> NoFontFamilies = Array.Empty<string>();
+
         /// <summary>Text colour.</summary>
         public Color Color { get; internal set; } = UnityEngine.Color.black;
 
         /// <summary>Font size in logical pixels.</summary>
         public float FontSize { get; internal set; } = 16f;
+
+        /// <summary>
+        /// Font families in declared order, most preferred first, or empty to use the backend's
+        /// default font.
+        /// </summary>
+        public IReadOnlyList<string> FontFamily { get; internal set; } = NoFontFamilies;
 
         /// <summary>Font weight from 100 to 900.</summary>
         public int FontWeight { get; internal set; } = 400;
@@ -94,5 +125,11 @@ namespace Rectloom.Core.Ir
 
         /// <summary>Whether text may wrap onto another line.</summary>
         public bool Wrap { get; internal set; } = true;
+
+        /// <summary>Whether the text is underlined.</summary>
+        public bool Underline { get; internal set; }
+
+        /// <summary>Whether the text is struck through.</summary>
+        public bool LineThrough { get; internal set; }
     }
 }

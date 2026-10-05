@@ -1,6 +1,6 @@
 # ADR-0003: Baked layout model and its deliberate gaps
 
-- Status: Accepted
+- Status: Accepted (flex item properties の行は [ADR-0004](0004-real-world-css.md) で更新)
 - Date: 2026-09-23
 - Owners: ChikumaTateshina
 - Related Issues: #11 Box Model, #12–#14 Flex, #15 Absolute Position, #16 Text Measurement
@@ -48,7 +48,7 @@ Unity の `RectTransform` へ変換する際に座標系を変換するのは St
 | Margin collapsing | 隣接 margin の相殺。Unity UI 利用者にとって直感に反し、`docs` も要求していない |
 | Inline formatting context | 行ボックス、`<span>` の行内折り返し。`display: inline` は shrink-to-fit ブロックとして扱う |
 | `float` / `clear` | 非目標 |
-| `flex-grow` / `flex-shrink` / `flex-basis` / `flex-wrap` / `align-self` | `docs/03` §11 が Phase 2 と明記 |
+| ~~`flex-grow` / `flex-shrink` / `flex-basis` / `flex-wrap` / `align-self`~~ | ~~`docs/03` §11 が Phase 2 と明記~~ → [ADR-0004](0004-real-world-css.md) で実装 |
 | `writing-mode` / RTL | 非目標 |
 | min/max クランプ後の再レイアウト | クランプで幅が変わっても子を測り直さない。1 パスで決定論を優先 |
 
@@ -110,7 +110,8 @@ Unity も TMP も無い状態で Layout のユニットテストを回すため�
 
 - 隣接する `<p>` の margin が相殺されないため、ブラウザより縦の間隔が広くなります。
 - `<span>` は行内で折り返さず、独立したブロックとして配置されます。
-- `flex-grow` が無いため、余白の配分は `justify-content` でしか行えません。
+- ~~`flex-grow` が無いため、余白の配分は `justify-content` でしか行えません。~~
+  ([ADR-0004](0004-real-world-css.md) で実装しました)
 
 ### Migration
 

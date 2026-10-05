@@ -23,6 +23,22 @@ if (!match) {
 const script = match[1];
 const canonical = 'https://chikumatateshina.github.io/Rectloom/index.json';
 
+// The table's rows are counted from the page rather than fixed here, so that adding or removing a
+// package row cannot leave the script writing into a row that does not exist.
+const packagesTable = html.match(/<tbody id="packages">([\s\S]*?)<\/tbody>/);
+
+if (!packagesTable) {
+  console.error('could not find the packages table in index.html');
+  process.exit(1);
+}
+
+const packageRowCount = (packagesTable[1].match(/<tr>/g) || []).length;
+
+if (packageRowCount === 0) {
+  console.error('the packages table has no rows');
+  process.exit(1);
+}
+
 let failures = 0;
 
 function check(name, actual, expected) {
@@ -67,7 +83,9 @@ function run({ href, listing = undefined, clipboard = true }) {
   // The page ships with the canonical URL in the field, which the script may replace.
   elements['listing-url'].value = canonical;
 
-  const packagesBody = { rows: [0, 1, 2].map(() => ({ cells: [{}, { textContent: '' }] })) };
+  const packagesBody = {
+    rows: Array.from({ length: packageRowCount }, () => ({ cells: [{}, { textContent: '' }] })),
+  };
   elements.packages = packagesBody;
 
   const assigned = [];
@@ -161,13 +179,30 @@ const settle = () => new Promise((resolve) => setTimeout(resolve, 20));
   check('copy fallback explains what to do', page.elements['copy-status'].textContent.includes('Ctrl+C'), true);
 }
 
+// The script writes a version into a row by index, so the ids it looks up in the listing have to be
+// the ids the table shows. Getting this wrong leaves a row reading "unpublished" forever.
+{
+  const ids = [...packagesTable[1].matchAll(/<code>([^<]+)<\/code>/g)].map((m) => m[1]);
+  const rows = script.match(/var rows = \{([\s\S]*?)\};/);
+
+  check('the table lists package ids', ids.length, packageRowCount);
+  check('the script has a row map', rows !== null, true);
+
+  const keys = rows === null
+    ? []
+    : [...rows[1].matchAll(/'([^']+)'\s*:\s*(\d+)/g)]
+      .sort((a, b) => Number(a[2]) - Number(b[2]))
+      .map((m) => m[1]);
+
+  check('the row map matches the table', keys, ids);
+}
+
 // Versions come from the listing, so the page cannot drift out of date as releases happen.
 {
   const listing = {
     packages: {
-      'com.chikumatateshina.rectloom.vrchat': { versions: { '0.1.0': {}, '0.2.0': {}, '0.10.0': {} } },
-      'com.chikumatateshina.rectloom.ugui': { versions: { '1.0.0-preview': {}, '1.0.0': {} } },
-      'com.chikumatateshina.rectloom.core': { versions: {} },
+      // Out of order, and with a prerelease, because the page has to sort rather than take the last key.
+      'com.chikumatateshina.rectloom': { versions: { '0.1.0': {}, '0.10.0': {}, '0.2.0': {}, '0.10.0-preview': {} } },
     },
   };
 
@@ -177,7 +212,7 @@ const settle = () => new Promise((resolve) => setTimeout(resolve, 20));
   check(
     'latest version per package',
     page.packagesBody.rows.map((row) => row.cells[1].textContent),
-    ['v0.10.0', 'v1.0.0', '未公開'],
+    ['v0.10.0'],
   );
   check('the listing is fetched once', page.fetched.length, 1);
 }
@@ -190,7 +225,7 @@ const settle = () => new Promise((resolve) => setTimeout(resolve, 20));
   check(
     'no listing leaves the placeholders',
     page.packagesBody.rows.map((row) => row.cells[1].textContent),
-    ['', '', ''],
+    Array.from({ length: packageRowCount }, () => ''),
   );
 }
 

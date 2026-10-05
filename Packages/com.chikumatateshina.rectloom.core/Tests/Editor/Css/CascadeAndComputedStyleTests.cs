@@ -289,7 +289,8 @@ namespace Rectloom.Core.Tests.Css
             Assert.That(style.Flex.Direction, Is.EqualTo(CssFlexDirection.Column));
             Assert.That(style.Flex.JustifyContent, Is.EqualTo(CssJustifyContent.SpaceBetween));
             Assert.That(style.Flex.AlignItems, Is.EqualTo(CssAlignItems.Center));
-            Assert.That(style.Flex.Gap, Is.EqualTo(CssLength.Pixels(12f)));
+            Assert.That(style.Flex.RowGap, Is.EqualTo(CssLength.Pixels(12f)));
+            Assert.That(style.Flex.ColumnGap, Is.EqualTo(CssLength.Pixels(12f)));
         }
 
         [TestCase("flex-start", CssJustifyContent.Start)]
@@ -391,7 +392,7 @@ namespace Rectloom.Core.Tests.Css
             ComputedStyle style = StyleFor(
                 "<div id=\"x\"></div>",
                 "x",
-                "div { width: 12em; height: 40px; }");
+                "div { width: wide; height: 40px; }");
 
             Assert.That(style.Width.IsAuto, Is.True, "the bad declaration is ignored");
             Assert.That(style.Height, Is.EqualTo(CssLength.Pixels(40f)));

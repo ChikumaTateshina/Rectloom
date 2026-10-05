@@ -1,5 +1,7 @@
 #nullable enable
 
+using System;
+using System.Collections.Generic;
 using Rectloom.Core.Css.Values;
 using UnityEngine;
 
@@ -29,11 +31,43 @@ namespace Rectloom.Core.Css.Computed
         /// </summary>
         public const float DefaultLineHeight = 1.2f;
 
+        /// <summary>
+        /// Fraction of the font size that sits above the baseline.
+        /// </summary>
+        /// <remarks>
+        /// Used to place a first-line baseline for <c>align-items: baseline</c> without asking a font
+        /// for its metrics, which the core cannot do. The value is close to the ascent of the common
+        /// text fonts, and it is a fixed constant so that layout stays reproducible whatever font the
+        /// backend ends up rendering with.
+        /// </remarks>
+        public const float AscentRatio = 0.8f;
+
+        private static readonly IReadOnlyList<string> NoFontFamilies = Array.Empty<string>();
+
         /// <summary>Text colour. Initial value is opaque black.</summary>
         public Color Color { get; internal set; } = Color.black;
 
         /// <summary>Font size in logical pixels. Initial value is 16.</summary>
         public float FontSize { get; internal set; } = DefaultFontSize;
+
+        /// <summary>
+        /// Font size of the root element, in logical pixels, which <c>rem</c> resolves against.
+        /// </summary>
+        /// <remarks>
+        /// Inherited rather than looked up, because a length is resolved where the computed style is
+        /// built and that code only ever holds one element and its parent.
+        /// </remarks>
+        public float RootFontSize { get; internal set; } = DefaultFontSize;
+
+        /// <summary>
+        /// Font families in declared order, most preferred first, without quotes.
+        /// </summary>
+        /// <remarks>
+        /// Kept as names rather than as a resolved font, because resolving one needs the asset
+        /// database and the core does not choose fonts. The backend walks the list and uses the first
+        /// name it can resolve to a font asset in the project.
+        /// </remarks>
+        public IReadOnlyList<string> FontFamily { get; internal set; } = NoFontFamilies;
 
         /// <summary>
         /// Font weight from 100 to 900. Initial value is 400.
@@ -49,6 +83,12 @@ namespace Rectloom.Core.Css.Computed
 
         /// <summary>Horizontal alignment. Initial value is left.</summary>
         public CssTextAlign TextAlign { get; internal set; } = CssTextAlign.Left;
+
+        /// <summary>Whether the text is underlined. Initial value is false.</summary>
+        public bool Underline { get; internal set; }
+
+        /// <summary>Whether the text is struck through. Initial value is false.</summary>
+        public bool LineThrough { get; internal set; }
 
         /// <summary>
         /// Line height as a multiple of <see cref="FontSize"/>.
@@ -79,6 +119,27 @@ namespace Rectloom.Core.Css.Computed
             WhiteSpace == CssWhiteSpace.Normal || WhiteSpace == CssWhiteSpace.NoWrap;
 
         /// <summary>
+        /// Gets the height of one line box, in logical pixels.
+        /// </summary>
+        public float ComputedLineHeight => FontSize * LineHeight;
+
+        /// <summary>
+        /// Gets the distance from the top of the first line box down to its baseline.
+        /// </summary>
+        /// <remarks>
+        /// Half the leading sits above the text, as CSS specifies, so a tall line height pushes the
+        /// baseline down rather than only adding space below it.
+        /// </remarks>
+        public float FirstBaselineOffset
+        {
+            get
+            {
+                float leading = Mathf.Max(0f, ComputedLineHeight - FontSize);
+                return (leading / 2f) + (FontSize * AscentRatio);
+            }
+        }
+
+        /// <summary>
         /// Creates a copy of these values, as used when a child inherits from its parent.
         /// </summary>
         /// <returns>An independent copy.</returns>
@@ -88,9 +149,13 @@ namespace Rectloom.Core.Css.Computed
             {
                 Color = Color,
                 FontSize = FontSize,
+                RootFontSize = RootFontSize,
+                FontFamily = FontFamily,
                 FontWeight = FontWeight,
                 FontStyle = FontStyle,
                 TextAlign = TextAlign,
+                Underline = Underline,
+                LineThrough = LineThrough,
                 LineHeight = LineHeight,
                 LetterSpacing = LetterSpacing,
                 WhiteSpace = WhiteSpace,

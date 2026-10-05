@@ -45,12 +45,23 @@ namespace Rectloom.Ugui.Compilation
     /// extension adds is part of the prefab that gets written rather than something applied to it
     /// afterwards.
     /// </para>
+    /// <para>
+    /// A validate pass writes no Unity objects, with one exception: an image embedded as a
+    /// <c>data:</c> URI becomes a project asset, because checking that a reference resolves is what
+    /// requires the bytes to be a file in the first place. The asset is named after its own content, so
+    /// validating twice produces one asset and the compile that follows reuses it.
+    /// </para>
     /// </remarks>
     public sealed class UguiHtmlUiCompiler : IHtmlUiCompiler
     {
         private readonly ISourceTextLoader _sources;
         private readonly IAssetResolver _assets;
         private readonly Func<ITextMeasurer>? _measurerFactory;
+        private readonly IEmbeddedImageStore? _images;
+
+        // Created once per pass and shared by the measurer and the backend, so that a box is filled
+        // with the font it was sized for.
+        private TmpFontLibrary? _fonts;
 
         /// <summary>
         /// Creates a compiler.
@@ -63,14 +74,19 @@ namespace Rectloom.Ugui.Compilation
         /// Supplies the text measurer for one pass, or null to measure with TextMeshPro. A test can
         /// pass fixed metrics here to keep layout assertions exact.
         /// </param>
+        /// <param name="images">
+        /// Store for images embedded as <c>data:</c> URIs, or null to write them into the project.
+        /// </param>
         public UguiHtmlUiCompiler(
             ISourceTextLoader? sources = null,
             IAssetResolver? assets = null,
-            Func<ITextMeasurer>? measurerFactory = null)
+            Func<ITextMeasurer>? measurerFactory = null,
+            IEmbeddedImageStore? images = null)
         {
             _sources = sources ?? new FileSourceTextLoader();
             _assets = assets ?? AssetDatabaseResolver.Instance;
             _measurerFactory = measurerFactory;
+            _images = images;
         }
 
         /// <inheritdoc />
@@ -166,8 +182,10 @@ namespace Rectloom.Ugui.Compilation
 
             var style = Stopwatch.StartNew();
 
+            // The document's own <style> and <link> sheets cascade after the ones the request names, so a
+            // self-contained HTML file styles itself without the request having to list its CSS.
             IReadOnlyList<CssStyleSheet> authorSheets = new CssImportResolver(_sources)
-                .Resolve(request.CssAssetPaths, diagnostics);
+                .Resolve(request.CssAssetPaths, document.StyleSheets, request.HtmlAssetPath, diagnostics);
 
             IReadOnlyList<CssStyleSheet>? userAgent = options.UseDefaultStyleSheet
                 ? new[] { DefaultStyleSheet.Get() }
@@ -196,7 +214,8 @@ namespace Rectloom.Ugui.Compilation
             }
 
             var layout = Stopwatch.StartNew();
-            ITextMeasurer measurer = CreateMeasurer();
+            _fonts = new TmpFontLibrary(null, diagnostics);
+            ITextMeasurer measurer = CreateMeasurer(diagnostics);
 
             try
             {
@@ -206,7 +225,8 @@ namespace Rectloom.Ugui.Compilation
                 layout.Stop();
                 statistics.LayoutMilliseconds = layout.Elapsed.TotalMilliseconds;
 
-                UiNode ir = new UiTreeBuilder(request.HtmlAssetPath, options, diagnostics).Build(solved);
+                UiNode ir = new UiTreeBuilder(request.HtmlAssetPath, options, diagnostics, _images)
+                    .Build(solved);
 
                 foreach (UiNode _ in ir.DescendantsAndSelf())
                 {
@@ -256,7 +276,7 @@ namespace Rectloom.Ugui.Compilation
             Stopwatch total)
         {
             var backendTimer = Stopwatch.StartNew();
-            var backend = new UguiBackend(_assets, options, diagnostics);
+            var backend = new UguiBackend(_assets, options, diagnostics, _fonts);
 
             // Built detached so that an error found while generating leaves nothing behind.
             BackendResult staged = backend.Build(ir, parent: null);
@@ -365,7 +385,7 @@ namespace Rectloom.Ugui.Compilation
             try
             {
                 var backendTimer = Stopwatch.StartNew();
-                BackendResult result = new UguiBackend(_assets, options, diagnostics)
+                BackendResult result = new UguiBackend(_assets, options, diagnostics, _fonts)
                     .Update(ir, contents, previous);
 
                 RunExtensions(request, ir, result, diagnostics);
@@ -436,7 +456,7 @@ namespace Rectloom.Ugui.Compilation
             Undo.RegisterFullObjectHierarchyUndo(existing, "Update " + existing.name);
 
             var backendTimer = Stopwatch.StartNew();
-            BackendResult result = new UguiBackend(_assets, options, diagnostics)
+            BackendResult result = new UguiBackend(_assets, options, diagnostics, _fonts)
                 .Update(ir, existing, previous);
 
             RunExtensions(request, ir, result, diagnostics);
@@ -617,9 +637,11 @@ namespace Rectloom.Ugui.Compilation
             pipeline.Run(ir, result.Objects, context);
         }
 
-        private ITextMeasurer CreateMeasurer()
+        private ITextMeasurer CreateMeasurer(IDiagnosticSink diagnostics)
         {
-            return _measurerFactory != null ? _measurerFactory() : new TmpTextMeasurer();
+            return _measurerFactory != null
+                ? _measurerFactory()
+                : new TmpTextMeasurer(null, diagnostics, _fonts);
         }
 
         private void ValidateAssets(UiNode root, IDiagnosticSink diagnostics)

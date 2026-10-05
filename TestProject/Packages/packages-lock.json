@@ -11,7 +11,7 @@
       "depth": 0,
       "source": "local",
       "dependencies": {
-        "com.chikumatateshina.rectloom.core": "0.1.0",
+        "com.chikumatateshina.rectloom.core": "0.1.1",
         "com.unity.ugui": "1.0.0",
         "com.unity.textmeshpro": "3.0.6"
       }
@@ -21,8 +21,8 @@
       "depth": 0,
       "source": "local",
       "dependencies": {
-        "com.chikumatateshina.rectloom.core": "0.1.0",
-        "com.chikumatateshina.rectloom.ugui": "0.1.0"
+        "com.chikumatateshina.rectloom.core": "0.1.1",
+        "com.chikumatateshina.rectloom.ugui": "0.1.1"
       }
     },
     "com.unity.ext.nunit": {

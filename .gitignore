@@ -47,3 +47,8 @@ crashlytics-build.properties
 # Locally generated VPM listing output
 /Website/build/
 /site/
+
+# ---- Unity test run output ----
+# TestProject/README.md documents writing these next to the repository root.
+/TestResults.xml
+/unity.log

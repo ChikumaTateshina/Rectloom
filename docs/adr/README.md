@@ -17,4 +17,5 @@
 |---|---|---|
 | [0001](0001-rectloom-naming.md) | Rectloom naming for packages, assemblies and namespaces | Accepted |
 | [0002](0002-subset-html-parser.md) | Own subset HTML parser behind `IHtmlParser` | Accepted |
-| [0003](0003-baked-layout-model.md) | Baked layout model and its deliberate gaps | Accepted |
+| [0003](0003-baked-layout-model.md) | Baked layout model and its deliberate gaps | Accepted (ADR-0004 で一部更新) |
+| [0004](0004-real-world-css.md) | 1ファイル完結のdocumentと、実在するCSSへの対応 | Accepted |

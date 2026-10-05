@@ -58,9 +58,18 @@ namespace Rectloom.Core.Parsing
                 {
                     HtmlToken? token = ReadMarkup();
 
-                    if (token != null)
+                    if (token == null)
                     {
-                        tokens.Add(token);
+                        continue;
+                    }
+
+                    tokens.Add(token);
+
+                    if (token.Kind == HtmlTokenKind.StartTag
+                        && !token.SelfClosing
+                        && HtmlElements.IsRawText(token.Name))
+                    {
+                        ReadRawTextContent(token.Name, tokens);
                     }
                 }
                 else
@@ -70,6 +79,78 @@ namespace Rectloom.Core.Parsing
             }
 
             return tokens;
+        }
+
+        /// <summary>
+        /// Reads the content of a raw-text element verbatim, up to its end tag.
+        /// </summary>
+        /// <remarks>
+        /// A <c>style</c> or <c>script</c> body is data, not markup. Tokenizing it would turn a CSS
+        /// child selector into a tag and a comparison in a script into an element, so the content is
+        /// taken as one text token and character references are left alone.
+        /// </remarks>
+        private void ReadRawTextContent(string tagName, List<HtmlToken> tokens)
+        {
+            SourceLocation start = CurrentLocation;
+            var builder = new StringBuilder();
+
+            while (!IsAtEnd)
+            {
+                if (Current == '<' && Peek(1) == '/' && MatchesEndTagName(tagName))
+                {
+                    if (builder.Length > 0)
+                    {
+                        tokens.Add(HtmlToken.CreateText(builder.ToString(), start));
+                    }
+
+                    HtmlToken? end = ReadEndTag(CurrentLocation);
+
+                    if (end != null)
+                    {
+                        tokens.Add(end);
+                    }
+
+                    return;
+                }
+
+                builder.Append(Current);
+                Advance();
+            }
+
+            if (builder.Length > 0)
+            {
+                tokens.Add(HtmlToken.CreateText(builder.ToString(), start));
+            }
+
+            _diagnostics.Warning(
+                DiagnosticCodes.Html.UnclosedElement,
+                "<" + tagName + "> is not closed before the end of the file, so all of the remaining "
+                    + "text was read as its content.",
+                start,
+                "Add </" + tagName + ">.");
+        }
+
+        /// <summary>
+        /// Tests whether the markup at the current position is the end tag of
+        /// <paramref name="tagName"/>, without consuming anything.
+        /// </summary>
+        private bool MatchesEndTagName(string tagName)
+        {
+            int cursor = _index + 2;
+
+            for (int offset = 0; offset < tagName.Length; offset++)
+            {
+                if (cursor + offset >= _source.Length
+                    || char.ToLowerInvariant(_source[cursor + offset]) != tagName[offset])
+                {
+                    return false;
+                }
+            }
+
+            int after = cursor + tagName.Length;
+
+            // "</style>" and "</style >" close it; "</styles>" is a different name.
+            return after >= _source.Length || _source[after] == '>' || IsWhitespace(_source[after]);
         }
 
         private bool IsAtEnd => _index >= _source.Length;

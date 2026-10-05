@@ -22,11 +22,21 @@ namespace Rectloom.Ugui.Backend
         /// <param name="text">Component to write to.</param>
         /// <param name="content">Text to render.</param>
         /// <param name="style">Resolved text style.</param>
-        public static void Apply(TMP_Text text, string? content, UiTextStyle style)
+        /// <param name="font">
+        /// Font asset resolved from <c>font-family</c>, or null to leave the component's own font in
+        /// place. The same font has to be used for measuring and for rendering, or a box will not fit
+        /// the text it was sized for.
+        /// </param>
+        public static void Apply(TMP_Text text, string? content, UiTextStyle style, TMP_FontAsset? font = null)
         {
             if (text == null || style == null)
             {
                 return;
+            }
+
+            if (font != null)
+            {
+                text.font = font;
             }
 
             text.text = content ?? string.Empty;
@@ -59,6 +69,16 @@ namespace Rectloom.Ugui.Backend
             if (style.Italic)
             {
                 result |= FontStyles.Italic;
+            }
+
+            if (style.Underline)
+            {
+                result |= FontStyles.Underline;
+            }
+
+            if (style.LineThrough)
+            {
+                result |= FontStyles.Strikethrough;
             }
 
             return result;
