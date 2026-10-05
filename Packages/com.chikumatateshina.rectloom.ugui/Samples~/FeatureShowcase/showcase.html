@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <!-- Metadata elements are read where they mean something and otherwise dropped quietly. -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1920, height=1080">
+  <title>Rectloom Feature Showcase</title>
+
+  <!-- An external stylesheet, which itself @imports theme.css. -->
+  <link rel="stylesheet" href="./showcase.css">
+
+  <!-- A stylesheet in the document. It comes later, so it wins ties with the linked one. -->
+  <style>
+    .from-style-block { color: var(--accent); font-weight: bold; }
+
+    /* var() with a fallback, used because --undefined-here is not set anywhere. */
+    .fallback { width: var(--undefined-here, 180px); }
+  </style>
+</head>
+
+<!-- body is the root: it becomes the Canvas, sized by its width and height. -->
+<body>
+
+  <!-- ===== Header: flex row, space-between, centred on the cross axis ===== -->
+  <header id="header">
+    <h1>Rectloom Feature Showcase</h1>
+    <nav class="row">
+      <span class="chip">HTML</span>
+      <span class="chip">CSS</span>
+      <span class="chip">uGUI</span>
+    </nav>
+  </header>
+
+  <main id="columns">
+
+    <!-- ===== Column 1: units, box model, position ===== -->
+    <section>
+
+      <article class="card">
+        <h2 class="card-title">Units</h2>
+        <p class="label">240px</p>          <div class="bar u-px"></div>
+        <p class="label">50%</p>            <div class="bar u-pct"></div>
+        <p class="label">60mm</p>           <div class="bar u-mm"></div>
+        <p class="label">6cm</p>            <div class="bar u-cm"></div>
+        <p class="label">2.5in</p>          <div class="bar u-in"></div>
+        <p class="label">180pt</p>          <div class="bar u-pt"></div>
+        <p class="label">15pc</p>           <div class="bar u-pc"></div>
+        <p class="label">240q</p>           <div class="bar u-q"></div>
+        <p class="label">12em</p>           <div class="bar u-em"></div>
+        <p class="label">12rem</p>          <div class="bar u-rem"></div>
+        <p class="label">var(--x, 180px)</p><div class="bar fallback"></div>
+      </article>
+
+      <article class="card">
+        <h2 class="card-title">Box model</h2>
+        <div class="row">
+          <div class="box margins">margin</div>
+          <div class="box paddings">padding</div>
+          <div class="box clamped">min / max</div>
+          <div class="box rounded">radius</div>
+        </div>
+        <div class="row" style="margin-top: 12px;">
+          <div class="box faded">opacity</div>
+          <div class="box plain">no border</div>
+          <div class="box dashed">border</div>
+          <div class="box nudged">relative</div>
+        </div>
+      </article>
+
+      <article class="card">
+        <h2 class="card-title">Position and clipping</h2>
+        <div class="stage">
+          <div class="pin tl">top left</div>
+          <div class="pin stretch"></div>
+          <div class="pin br">bottom right</div>
+        </div>
+        <p class="label" style="margin-top: 8px;">overflow: hidden</p>
+        <div class="clip">
+          <p>This paragraph is taller than its box.</p>
+          <p>The second line is cut off by a RectMask2D.</p>
+        </div>
+        <div class="clip clip-x clip-y" style="margin-top: 6px;">
+          <p>overflow-x and overflow-y work separately.</p>
+          <p>This line is clipped as well.</p>
+        </div>
+        <div class="hidden">display: none: this never reaches the output.</div>
+        <div class="centred" style="margin-top: 8px;">margin: 0 auto</div>
+      </article>
+
+    </section>
+
+    <!-- ===== Column 2: flex ===== -->
+    <section>
+
+      <article class="card column">
+        <h2 class="card-title">justify-content</h2>
+        <div class="flexline a-center j-start"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+        <div class="flexline a-center j-center"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+        <div class="flexline a-center j-end"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+        <div class="flexline a-center j-between"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+        <div class="flexline a-center j-around"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+        <div class="flexline a-center" style="justify-content: space-evenly;"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+      </article>
+
+      <article class="card column">
+        <h2 class="card-title">align-items and align-self</h2>
+        <div class="row">
+          <div class="flexline a-start" style="flex: 1;"><div class="dot"></div></div>
+          <div class="flexline a-center" style="flex: 1;"><div class="dot"></div></div>
+          <div class="flexline a-end" style="flex: 1;"><div class="dot"></div></div>
+          <div class="flexline a-stretch" style="flex: 1;"><div class="dot"></div></div>
+        </div>
+        <div class="flexline a-baseline">
+          <div class="spacer"></div>
+          <span class="small">small</span>
+          <span class="large">Large</span>
+          <span class="small">on one baseline</span>
+        </div>
+        <div class="flexline a-start">
+          <div class="dot"></div>
+          <div class="dot self-center"></div>
+          <div class="dot self-end"></div>
+          <div class="dot push-right"></div>
+        </div>
+      </article>
+
+      <article class="card column">
+        <h2 class="card-title">grow, shrink, basis, wrap</h2>
+        <div class="flexline a-center" style="gap: 6px;">
+          <div class="fixed"></div>
+          <div class="grow1"></div>
+          <div class="grow2"></div>
+        </div>
+        <div class="flexline a-center" style="gap: 6px;">
+          <div class="longhand"></div>
+          <div class="longhand" style="flex-grow: 3;"></div>
+        </div>
+        <div class="wrapping">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          <div class="dot"></div><div class="dot"></div>
+        </div>
+        <div class="flexline a-center" style="flex-direction: row; gap: 6px;">
+          <div class="dot swatch"></div>
+          <div class="dot" style="background-color: var(--warn);"></div>
+          <div class="dot" style="background-color: var(--ink);"></div>
+        </div>
+      </article>
+
+      <article class="card">
+        <h2 class="card-title">Lists and structure</h2>
+        <div class="row">
+          <ul style="flex: 1; margin: 0;">
+            <li>Unordered item</li>
+            <li>Another item</li>
+          </ul>
+          <ol style="flex: 1; margin: 0;">
+            <li>Ordered item</li>
+            <li>Another item</li>
+          </ol>
+          <dl style="flex: 1; margin: 0;">
+            <dt>Term</dt>
+            <dd style="margin: 0;">Description</dd>
+          </dl>
+        </div>
+        <hr>
+        <blockquote style="margin: 0; padding: 4px 12px; background-color: var(--glass);">
+          A blockquote, laid out as a block.
+        </blockquote>
+        <figure style="margin: 8px 0 0 0;">
+          <figcaption class="label">figure and figcaption</figcaption>
+        </figure>
+      </article>
+
+    </section>
+
+    <!-- ===== Column 3: text, images, Unity ===== -->
+    <section>
+
+      <article class="card heads">
+        <h2 class="card-title">Text</h2>
+        <h3>Heading 3</h3>
+        <h4>Heading 4</h4>
+        <h5>Heading 5</h5>
+        <h6>Heading 6</h6>
+        <div class="row" style="flex-wrap: wrap; row-gap: 2px;">
+          <span class="w-normal">normal</span>
+          <span class="w-bold">bold</span>
+          <span class="w-900">900</span>
+          <span class="italic">italic</span>
+          <span class="under">underline</span>
+          <span class="strike">line-through</span>
+          <span class="spaced">spacing</span>
+        </div>
+        <div class="row" style="flex-wrap: wrap; row-gap: 2px;">
+          <strong>strong</strong>
+          <em>em</em>
+          <u>u</u>
+          <s>s</s>
+          <small>small</small>
+          <code>code</code>
+          <mark>mark</mark>
+          <a href="https://example.com/">link</a>
+          <span class="from-style-block">style block</span>
+        </div>
+        <div class="row" style="flex-wrap: wrap; row-gap: 2px;">
+          <span class="c-hex3">#36c</span>
+          <span class="c-hex6">#3366cc</span>
+          <span class="c-hex8">#3366ccaa</span>
+          <span class="c-rgb">rgb()</span>
+          <span class="c-rgba">rgba()</span>
+          <span class="c-named">seagreen</span>
+        </div>
+        <p class="t-left">text-align: left</p>
+        <p class="t-center">text-align: center</p>
+        <p class="t-right">text-align: right</p>
+        <p class="t-justify tall">text-align: justify with a line-height of 32px, long enough that it wraps onto a second line inside this card.</p>
+        <p class="ws-nowrap">white-space: nowrap keeps this on one line.</p>
+        <pre class="ws-pre" style="margin: 0;">pre   keeps   spaces
+and line breaks</pre>
+        <p class="ws-line">pre-line keeps
+line breaks only</p>
+        <p>A br element<br>starts a new line.</p>
+        <p>日本語と絵文字 🎉 も表示できます。</p>
+      </article>
+
+      <article class="card">
+        <h2 class="card-title">Images</h2>
+        <div class="row">
+          <!-- A file beside the document. -->
+          <img class="thumb" src="./badge.png" alt="file">
+          <!-- object-fit decides how the picture fills a box of another shape. -->
+          <img class="thumb wide fit-fill" src="./badge.png" alt="fill">
+          <img class="thumb wide fit-contain" src="./badge.png" alt="contain">
+          <img class="thumb wide" style="object-fit: cover;" src="./badge.png" alt="cover">
+        </div>
+        <div class="row" style="margin-top: 12px;">
+          <!-- A PNG carried in the document itself. -->
+          <img class="thumb" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAJ0lEQVR42mP4f4ThPzLW0DBAwYTkGYaBAaRqQJcfDgaMpoPRdADEANaPIJ/IIbxzAAAAAElFTkSuQmCC" alt="data png">
+          <!-- An SVG carried in the document. Needs the Vector Graphics package. -->
+          <img class="thumb" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 84 84'%3E%3Ccircle cx='42' cy='42' r='38' fill='%233080ff'/%3E%3Cpath d='M24 44l12 12 24-28' fill='none' stroke='%23fff' stroke-width='8'/%3E%3C/svg%3E" alt="data svg">
+          <!-- background-image, from a file and from a data URI. -->
+          <div class="photo"></div>
+          <div class="tiled"></div>
+        </div>
+      </article>
+
+      <article class="card">
+        <h2 class="card-title">Buttons and Unity</h2>
+        <div class="row">
+          <button id="ok-button" class="primary quiet">Primary</button>
+          <button class="ghost">Ghost</button>
+          <button class="disabled">Disabled</button>
+        </div>
+        <!-- component adds a Unity component by full type name; component.x sets a property on it. -->
+        <div id="group" class="row blocker" style="margin-top: 12px; padding: 8px; background-color: var(--glass);"
+             component="UnityEngine.CanvasGroup" component.alpha="0.85" component.interactable="true">
+          <span class="label">CanvasGroup added from markup, alpha 0.85</span>
+        </div>
+      </article>
+
+    </section>
+
+  </main>
+
+  <!-- ===== Footer ===== -->
+  <footer id="footer">
+    <span class="note">.note stays muted: !important beats the more specific #footer .note.</span>
+    <span>1920 × 1080</span>
+  </footer>
+
+</body>
+</html>

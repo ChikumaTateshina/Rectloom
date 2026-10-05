@@ -375,7 +375,11 @@ namespace Rectloom.Ugui.Tests.Extensions
 
             public int Priority => 100;
 
-            public bool CanHandle(ComponentRequest request) => true;
+            // Discovery finds this class in every compile, so it claims only the probe's type.
+            public bool CanHandle(ComponentRequest request) => string.Equals(
+                request.TypeName,
+                ProbeExtension.ClaimedTypeName,
+                StringComparison.Ordinal);
 
             public ExtensionApplyResult Apply(
                 ExtensionContext context,
@@ -393,7 +397,11 @@ namespace Rectloom.Ugui.Tests.Extensions
 
             public int Priority => 100;
 
-            public bool CanHandle(ComponentRequest request) => true;
+            // Discovery finds this class in every compile, so it claims only the probe's type.
+            public bool CanHandle(ComponentRequest request) => string.Equals(
+                request.TypeName,
+                ProbeExtension.ClaimedTypeName,
+                StringComparison.Ordinal);
 
             public ExtensionApplyResult Apply(
                 ExtensionContext context,

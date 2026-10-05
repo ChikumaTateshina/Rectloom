@@ -343,7 +343,14 @@ namespace Rectloom.Core.Extensions
                 return false;
             }
 
-            Component component = target.GetComponent(type) ?? target.AddComponent(type);
+            // Not ??: a destroyed or missing Unity object is not a C# null, so the operator would keep
+            // it and never reach AddComponent.
+            Component component = target.GetComponent(type);
+
+            if (component == null)
+            {
+                component = target.AddComponent(type);
+            }
 
             if (component == null)
             {

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Feature Showcase sample** in the uGUI package (`Samples~/FeatureShowcase`): one 1920x1080 page whose HTML and CSS use every supported element, property, unit, selector and extension property at least once, with a README listing what each part demonstrates. A test compiles the shipped files and fails on any warning, so the sample cannot drift from the compiler.
+
+### Fixed
+
+- `LAYOUT1003` is no longer reported for a box whose size the author did not write. A `flex: 1` item is measured at a zero basis first, and every padded child inside it was reported as having padding larger than its declared width.
+- A `component` attribute naming a component the object does not already have is now added. The lookup used `??` on a Unity object, which never fell through to `AddComponent`, so the compile failed with `UNITY1001`.
+
 ## [0.4.3] - 2026-10-05
 
 ### Fixed

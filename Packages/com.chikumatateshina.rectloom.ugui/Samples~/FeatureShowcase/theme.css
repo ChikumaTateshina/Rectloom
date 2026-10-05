@@ -1,0 +1,33 @@
+/*
+ * theme.css — imported by showcase.css.
+ *
+ * An imported stylesheet cascades beneath the sheet that imports it, so anything
+ * declared here can be overridden there.
+ */
+
+/* Custom properties. :root is the document root, which in a compiled document is <body>. */
+:root {
+  --page-width: 1920px;
+  --page-height: 1080px;
+
+  --ink: #1b1f2a;
+  --paper: #f4f5f8;
+  --card: #ffffff;
+  --line: #d5d9e2;
+  --accent: #3080ff;
+  --accent-ink: #ffffff;
+  --muted: #6b7385;
+  --warn: rgb(255, 176, 32);
+  --glass: rgba(27, 31, 42, 0.08);
+
+  --gap: 16px;
+  --radius: 10px;
+
+  /* One custom property may use another. */
+  --card-padding: var(--gap);
+}
+
+/* A rule the importing sheet overrides, to show the cascade order. */
+.swatch {
+  background-color: #cccccc;
+}

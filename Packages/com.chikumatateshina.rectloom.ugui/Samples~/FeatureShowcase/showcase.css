@@ -1,0 +1,452 @@
+/*
+ * showcase.css — every CSS feature Rectloom compiles, used at least once.
+ *
+ * Sections follow docs/03_HTML_CSS_LANGUAGE_SPEC.md. Lengths are baked into
+ * RectTransforms at compile time; nothing here is evaluated at runtime.
+ */
+
+/* ---- @import: must come before any rule ------------------------------------ */
+@import "./theme.css";
+
+/* ---- At-rules that describe print: skipped, reported as information -------- */
+@page { size: 1920px 1080px; margin: 0; }
+
+@media print {
+  body { background: none; }
+}
+
+/* ---- Selectors -------------------------------------------------------------- */
+
+/* Universal selector. Pseudo-elements generate nothing and are skipped quietly. */
+*, *::before, *::after { box-sizing: border-box; }
+
+/* Type selector. body is the root: its box becomes the Canvas. */
+body {
+  width: var(--page-width);
+  height: var(--page-height);
+  margin: 0;
+  padding: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  background: var(--paper);
+  color: var(--ink);
+
+  /* The first family that resolves to a TMP font asset in the project is used. */
+  font-family: "Noto Sans JP", "Yu Gothic", "Segoe UI", sans-serif;
+  font-size: 20px;
+  line-height: 1.4;
+
+  /* uGUI backend properties (prefix unity-). */
+  unity-raycast-target: false;
+
+  /* VRChat adapter properties (prefix vrc-). Ignored when the adapter is absent. */
+  vrc-world-space: true;
+  vrc-world-scale: 0.001;
+}
+
+/* Class selector. */
+.card {
+  background-color: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--card-padding);
+}
+
+/* Id selector. */
+#header {
+  flex: none;
+  height: 110px;
+  padding: 0 32px;
+
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+
+  background-color: var(--ink);
+  color: #ffffff;
+}
+
+/* Compound selector: tag and class together. */
+h2.card-title {
+  margin: 0 0 8px 0;
+  font-size: 22px;
+  font-weight: bold;
+  color: var(--accent);
+}
+
+/* Descendant combinator. */
+#header h1 {
+  margin: 0;
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+/* Child combinator. */
+#columns > section {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+/* Specificity and !important: the id rule below would win, but for !important. */
+.note { color: var(--muted) !important; }
+#footer .note { color: #ff0000; }
+
+/* The imported sheet set .swatch to grey; a later sheet wins the tie. */
+.swatch { background-color: var(--accent); }
+
+/* ---- Page skeleton ---------------------------------------------------------- */
+
+#columns {
+  flex: 1 1 0;
+  min-height: 0;
+  padding: var(--gap);
+
+  display: flex;
+  flex-flow: row nowrap;
+  column-gap: var(--gap);
+}
+
+#footer {
+  flex: 0 0 60px;
+  padding: 0 32px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  background-color: var(--glass);
+  font-size: 16px;
+}
+
+p { margin: 0; }
+
+.label {
+  font-size: 15px;
+  color: var(--muted);
+}
+
+/* ---- Units ------------------------------------------------------------------ */
+
+.bar {
+  height: 14px;
+  margin-top: 4px;
+  background-color: var(--accent);
+  border-radius: 3px;
+}
+
+.u-px  { width: 240px; }
+.u-pct { width: 50%; }
+.u-mm  { width: 60mm; }
+.u-cm  { width: 6cm; }
+.u-in  { width: 2.5in; }
+.u-pt  { width: 180pt; }
+.u-pc  { width: 15pc; }
+.u-q   { width: 240q; }
+.u-em  { width: 12em; }      /* 12 times this element's own font size */
+.u-rem { width: 12rem; }     /* 12 times the root font size */
+
+/* ---- Box model, sizing and position ----------------------------------------- */
+
+.row {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+}
+
+.box {
+  width: 120px;
+  height: 64px;
+  padding: 6px 10px;
+  background-color: #e6efff;
+  border-width: 2px;
+  border-color: var(--accent);
+  font-size: 14px;
+}
+
+.box.margins {
+  margin-top: 4px;
+  margin-right: 8px;
+  margin-bottom: 4px;
+  margin-left: 8px;
+}
+
+.box.paddings {
+  padding-top: 2px;
+  padding-right: 4px;
+  padding-bottom: 2px;
+  padding-left: 24px;
+}
+
+.box.clamped {
+  width: 60%;
+  min-width: 100px;
+  max-width: 150px;
+  height: auto;
+  min-height: 40px;
+  max-height: 64px;
+}
+
+.box.rounded { border-radius: 32px; }
+.box.faded { opacity: 0.45; }
+.box.plain { border: none; }
+.box.dashed { border-style: dashed; }
+
+/* position: relative keeps its place in flow and is only drawn shifted. */
+.box.nudged {
+  position: relative;
+  top: 8px;
+  left: 6px;
+}
+
+/* position: absolute leaves flow and is placed inside the parent's content box. */
+.stage {
+  position: relative;
+  height: 76px;
+  background-color: var(--glass);
+  border-radius: 6px;
+}
+
+.pin {
+  position: absolute;
+  width: 96px;
+  height: 28px;
+  background-color: var(--warn);
+  font-size: 13px;
+  text-align: center;
+  line-height: 28px;
+}
+
+.pin.tl { top: 6px; left: 6px; }
+.pin.br { right: 6px; bottom: 6px; }
+.pin.stretch { top: 6px; left: 120px; right: 120px; height: auto; bottom: 6px; opacity: 0.6; }
+
+/* overflow: hidden becomes a RectMask2D. */
+.clip {
+  height: 30px;
+  overflow: hidden;
+  background-color: #fff3d6;
+  font-size: 15px;
+}
+
+.clip-x { overflow-x: hidden; }
+.clip-y { overflow-y: clip; }
+
+/* display: none removes the element and its subtree from the output. */
+.hidden { display: none; }
+
+/* display: inline and inline-block shrink to their content. */
+.chip {
+  display: inline-block;
+  padding: 2px 10px;
+  background-color: var(--ink);
+  color: #ffffff;
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+/* Auto side margins centre a block of known width. */
+.centred {
+  width: 220px;
+  margin: 0 auto;
+  background-color: #e6efff;
+  text-align: center;
+  font-size: 15px;
+}
+
+/* ---- Flex ------------------------------------------------------------------- */
+
+.flexline {
+  display: flex;
+  height: 34px;
+  background-color: var(--glass);
+  border-radius: 4px;
+}
+
+.dot {
+  width: 44px;
+  height: 22px;
+  background-color: var(--accent);
+  border-radius: 4px;
+  flex: none;
+}
+
+.j-start   { justify-content: flex-start; }
+.j-center  { justify-content: center; }
+.j-end     { justify-content: flex-end; }
+.j-between { justify-content: space-between; }
+.j-around  { justify-content: space-around; }
+
+.a-start   { align-items: flex-start; }
+.a-center  { align-items: center; }
+.a-end     { align-items: flex-end; }
+.a-stretch { align-items: stretch; }
+.a-stretch .dot { height: auto; }
+
+/* Baseline: an empty fixed-height box is aligned by its bottom edge. */
+.a-baseline {
+  align-items: baseline;
+  height: 52px;
+  gap: 8px;
+}
+
+.a-baseline .spacer { flex: none; width: 0; height: 40px; }
+.a-baseline .small { font-size: 14px; line-height: 1; }
+.a-baseline .large { font-size: 34px; line-height: 1; }
+
+/* Wrapping, with separate gaps between rows and within them. */
+.wrapping {
+  display: flex;
+  flex-wrap: wrap;
+  row-gap: 6px;
+  column-gap: 10px;
+  align-content: center;
+  height: 70px;
+  background-color: var(--glass);
+  border-radius: 4px;
+}
+
+.wrapping .dot { width: 150px; }
+
+/* Grow, shrink and basis. */
+.grow1 { flex: 1; height: 22px; background-color: var(--accent); }
+.grow2 { flex: 2; height: 22px; background-color: var(--warn); }
+.fixed { flex: none; width: 80px; height: 22px; background-color: var(--ink); }
+
+.longhand {
+  flex-grow: 1;
+  flex-shrink: 0;
+  flex-basis: 120px;
+  height: 22px;
+  background-color: var(--muted);
+}
+
+/* One item overriding the container's alignment. */
+.self-end { align-self: flex-end; }
+.self-center { align-self: center; }
+
+/* An auto margin on the main axis absorbs the free space. */
+.push-right { margin-left: auto; }
+
+.column {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+
+/* ---- Text ------------------------------------------------------------------- */
+
+h1, h2, h3, h4, h5, h6 { margin: 0; }
+
+.heads h3 { font-size: 20px; }
+.heads h4 { font-size: 18px; }
+.heads h5 { font-size: 16px; }
+.heads h6 { font-size: 14px; }
+
+.w-normal { font-weight: normal; }
+.w-bold   { font-weight: bold; }
+.w-900    { font-weight: 900; }
+.italic   { font-style: italic; }
+.under    { text-decoration: underline; }
+.strike   { text-decoration: line-through; }
+.spaced   { letter-spacing: 4px; }
+.tall     { line-height: 32px; }
+
+.t-left    { text-align: left; }
+.t-center  { text-align: center; }
+.t-right   { text-align: right; }
+.t-justify { text-align: justify; }
+
+.ws-nowrap { white-space: nowrap; }
+.ws-pre    { white-space: pre; }
+.ws-line   { white-space: pre-line; }
+
+/* Colour forms. */
+.c-hex3  { color: #36c; }
+.c-hex6  { color: #3366cc; }
+.c-hex8  { color: #3366ccaa; }
+.c-rgb   { color: rgb(204, 51, 102); }
+.c-rgba  { color: rgba(204, 51, 102, 0.6); }
+.c-named { color: seagreen; }
+
+/* ---- Images ----------------------------------------------------------------- */
+
+.thumb {
+  width: 84px;
+  height: 84px;
+  flex: none;
+}
+
+.thumb.wide { width: 150px; }
+.fit-fill    { object-fit: fill; }
+.fit-contain { object-fit: contain; }
+
+/* background-image paints the box itself; a relative path is relative to this file. */
+.photo {
+  width: 84px;
+  height: 84px;
+  flex: none;
+  background-image: url("./badge.png");
+}
+
+.tiled {
+  width: 84px;
+  height: 84px;
+  flex: none;
+  border-radius: 12px;
+  background: #202028 url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAJ0lEQVR42mP4f4ThPzLW0DBAwYTkGYaBAaRqQJcfDgaMpoPRdADEANaPIJ/IIbxzAAAAAElFTkSuQmCC") no-repeat center;
+}
+
+/* ---- Buttons and Unity ------------------------------------------------------ */
+
+button.primary {
+  width: 150px;
+  height: 44px;
+  background-color: var(--accent);
+  color: var(--accent-ink);
+  border-radius: 6px;
+  border: none;
+  font-size: 18px;
+}
+
+button.ghost {
+  width: 150px;
+  height: 44px;
+  background-color: #ffffff;
+  border: 2px solid var(--accent);
+  color: var(--accent);
+  border-radius: 22px;
+  font-size: 18px;
+}
+
+/* Starts disabled. The Button component is real; wire onClick in the Inspector. */
+button.disabled {
+  width: 150px;
+  height: 44px;
+  unity-interactable: false;
+  opacity: 0.5;
+}
+
+/* A plain box does not block clicks unless asked to. */
+.blocker {
+  unity-raycast-target: true;
+  vrc-interact: true;
+}
+
+/* Real CSS with no counterpart in baked uGUI: accepted without a diagnostic. */
+.quiet {
+  cursor: pointer;
+  transition: opacity 0.2s;
+  user-select: none;
+  overflow-wrap: anywhere;
+  break-inside: avoid;
+}

@@ -113,6 +113,19 @@ namespace Rectloom.Core.Tests.Layout
         }
 
         [Test]
+        public void PaddingInsideAFlexItemMeasuredAtZero_IsNotReported()
+        {
+            // flex: 1 gives the item a zero basis, so it is laid out once at no width at all before it
+            // grows. Nothing the author wrote is too small, and nothing should be reported.
+            LayoutResult root = _harness.Solve(
+                "<body><div id=\"row\"><div id=\"item\"><div id=\"a\"></div></div></div></body>",
+                "#row { display: flex; width: 400px; } #item { flex: 1; } #a { padding: 20px; height: 60px; }");
+
+            Assert.That(LayoutTestHarness.Find(root, "a").ContentWidth, Is.EqualTo(360f));
+            Assert.That(_harness.Diagnostics.Diagnostics, Is.Empty);
+        }
+
+        [Test]
         public void PaddingLargerThanTheBox_ClampsAndReports()
         {
             LayoutResult root = _harness.Solve(

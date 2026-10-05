@@ -27,6 +27,13 @@
     "com.unity.vectorgraphics": "2.0.0-preview.24"
   },
   "hideInEditor": false,
+  "samples": [
+    {
+      "displayName": "Feature Showcase",
+      "description": "One 1920x1080 page that uses every HTML and CSS feature the compiler supports.",
+      "path": "Samples~/FeatureShowcase"
+    }
+  ],
   "vpmDependencies": {
     "com.chikumatateshina.rectloom.core": "0.4.3"
   }

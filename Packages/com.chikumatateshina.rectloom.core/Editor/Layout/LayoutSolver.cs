@@ -175,7 +175,13 @@ namespace Rectloom.Core.Layout
                 margin);
 
             width = Clamp(width, style.MinWidth, style.MaxWidth, containingWidth);
-            float contentWidth = NonNegative(box, width - horizontalFrame, "width");
+
+            // Only a size the author wrote can be too small for its own padding. A flex item measured
+            // at a zero basis, or a box filling a narrow parent, is simply empty at that size.
+            bool declaredWidth = !overrideWidth.HasValue && !style.Width.IsAuto;
+            bool declaredHeight = !overrideHeight.HasValue && !style.Height.IsAuto;
+
+            float contentWidth = NonNegative(box, width - horizontalFrame, "width", declaredWidth);
 
             bool definiteHeight = overrideHeight.HasValue
                 || (!style.Height.IsAuto && HasDefiniteBasis(box, style.Height, definiteContainingHeight));
@@ -186,7 +192,7 @@ namespace Rectloom.Core.Layout
             {
                 float outer = overrideHeight ?? style.Height.Resolve(containingHeight, 0f);
                 outer = Clamp(outer, style.MinHeight, style.MaxHeight, containingHeight);
-                definiteContentHeight = NonNegative(box, outer - verticalFrame, "height");
+                definiteContentHeight = NonNegative(box, outer - verticalFrame, "height", declaredHeight);
             }
 
             float childrenHeight = LayoutChildren(box, result, contentWidth, definiteContentHeight);
@@ -195,7 +201,7 @@ namespace Rectloom.Core.Layout
                 ? definiteContentHeight.Value + verticalFrame
                 : Clamp(childrenHeight + verticalFrame, style.MinHeight, style.MaxHeight, containingHeight);
 
-            float contentHeight = NonNegative(box, height - verticalFrame, "height");
+            float contentHeight = NonNegative(box, height - verticalFrame, "height", declaredHeight);
 
             result.Width = width;
             result.Height = height;
@@ -638,11 +644,16 @@ namespace Rectloom.Core.Layout
             return false;
         }
 
-        private float NonNegative(LayoutBox box, float value, string axis)
+        private float NonNegative(LayoutBox box, float value, string axis, bool declared)
         {
             if (value >= 0f)
             {
                 return value;
+            }
+
+            if (!declared)
+            {
+                return 0f;
             }
 
             _diagnostics.Warning(
