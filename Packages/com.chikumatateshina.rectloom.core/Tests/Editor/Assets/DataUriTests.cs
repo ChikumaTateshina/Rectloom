@@ -64,7 +64,6 @@ namespace Rectloom.Core.Tests.Assets
         }
 
         [TestCase("data:image/png,AAAA", "base64")]
-        [TestCase("data:image/svg+xml;base64,AAAA", "SVG")]
         [TestCase("data:text/plain;base64,AAAA", "not an image format")]
         [TestCase("data:image/png;base64,====", "malformed")]
         [TestCase("data:image/png;base64,", "empty")]
@@ -73,6 +72,36 @@ namespace Rectloom.Core.Tests.Assets
         {
             Assert.That(DataUri.TryDecode(uri, out _, out string error), Is.False);
             Assert.That(error, Does.Contain(expectedReason));
+        }
+
+        [TestCase("data:image/svg+xml;base64,PHN2Zy8+")]
+        [TestCase("data:image/svg+xml,%3Csvg/%3E")]
+        [TestCase("data:image/svg+xml;utf8,<svg/>")]
+        [TestCase("data:image/svg+xml;charset=utf-8,%3Csvg%2F%3E")]
+        public void TryDecode_ReadsSvgHoweverItIsEncoded(string uri)
+        {
+            // SVG is text, and is embedded as text at least as often as it is base64 encoded.
+            Assert.That(DataUri.TryDecode(uri, out DataUriPayload payload, out string error), Is.True, error);
+
+            Assert.That(payload.IsVector, Is.True);
+            Assert.That(payload.MediaType, Is.EqualTo("image/svg+xml"));
+            Assert.That(System.Text.Encoding.UTF8.GetString(payload.Bytes), Is.EqualTo("<svg/>"));
+        }
+
+        [Test]
+        public void ARasterImage_IsNotAVector()
+        {
+            DataUri.TryDecode(PngUri, out DataUriPayload payload, out _);
+
+            Assert.That(payload.IsVector, Is.False);
+        }
+
+        [Test]
+        public void AnExplicitContentKey_NamesThePayload()
+        {
+            var payload = new DataUriPayload("image/png", new byte[] { 1, 2, 3 }, ".png", "logo-64x64");
+
+            Assert.That(payload.ContentName, Is.EqualTo("logo-64x64.png"));
         }
 
         [Test]

@@ -31,6 +31,18 @@ namespace Rectloom.Core.Ir
         private readonly IDiagnosticSink _diagnostics;
         private readonly string _documentPath;
         private readonly IEmbeddedImageStore _images;
+        private readonly IVectorImageRasterizer? _rasterizer;
+
+        /// <summary>Size a vector image is rendered at when its box has none.</summary>
+        private const int MinimumVectorPixels = 256;
+
+        /// <summary>Largest side a vector image is rendered at.</summary>
+        private const int MaximumVectorPixels = 4096;
+
+        // Size of the box whose asset is being resolved, which is the size a vector image is rendered
+        // for. Set alongside _unusableAsset and for the same span.
+        private float _assetWidth;
+        private float _assetHeight;
 
         // Set while resolving one node's asset, when the source named an image that turned out to be
         // unusable. Read back straight afterwards and cleared, so it never outlives the node it is for.
@@ -52,13 +64,16 @@ namespace Rectloom.Core.Ir
         /// <param name="images">
         /// Store for images embedded as <c>data:</c> URIs, or null to write them into the project.
         /// </param>
+        /// <param name="rasterizer">Compile-time vector renderer, or null to report unsupported vector images.</param>
         /// <exception cref="ArgumentNullException"><paramref name="diagnostics"/> is null.</exception>
         public UiTreeBuilder(
             string? documentPath,
             CompilerOptions? options,
             IDiagnosticSink diagnostics,
-            IEmbeddedImageStore? images = null)
+            IEmbeddedImageStore? images = null,
+            IVectorImageRasterizer? rasterizer = null)
         {
+            _rasterizer = rasterizer;
             _options = options ?? new CompilerOptions();
             _diagnostics = diagnostics ?? throw new ArgumentNullException(nameof(diagnostics));
             _documentPath = documentPath ?? string.Empty;
@@ -105,6 +120,8 @@ namespace Rectloom.Core.Ir
                 : box.Element?.Id ?? (box.IsAnonymous ? "Text" : tagName));
 
             _unusableAsset = false;
+            _assetWidth = result.Width;
+            _assetHeight = result.Height;
             AssetReference asset = ResolveAsset(box);
 
             var node = new UiNode(stableId, kind, name, box.Source, box.Style.ExtensionProperties)
@@ -299,7 +316,11 @@ namespace Rectloom.Core.Ir
         /// </remarks>
         private AssetReference StoreEmbeddedImage(string dataUri, SourceLocation source)
         {
-            if (_embedded.TryGetValue(dataUri, out string? cached))
+            // The same vector image in two boxes of different sizes is two bitmaps, so the size is part
+            // of what identifies a stored image.
+            string cacheKey = dataUri + "@" + SizeKey();
+
+            if (_embedded.TryGetValue(cacheKey, out string? cached))
             {
                 // Reported the first time it was seen; the node still has to know its image is absent.
                 _unusableAsset |= cached == null;
@@ -308,7 +329,7 @@ namespace Rectloom.Core.Ir
 
             if (!DataUri.TryDecode(dataUri, out DataUriPayload payload, out string decodeError))
             {
-                _embedded[dataUri] = null;
+                _embedded[cacheKey] = null;
                 _unusableAsset = true;
 
                 // One image that cannot be read is not a reason to produce nothing. The rest of the
@@ -334,9 +355,16 @@ namespace Rectloom.Core.Ir
                 return AssetReference.None;
             }
 
+            if (payload.IsVector && !TryRasterize(ref payload, source))
+            {
+                _embedded[cacheKey] = null;
+                _unusableAsset = true;
+                return AssetReference.None;
+            }
+
             if (!_images.TryStore(payload, _options.GeneratedAssetFolder, out string assetPath, out string storeError))
             {
-                _embedded[dataUri] = null;
+                _embedded[cacheKey] = null;
 
                 _diagnostics.Error(
                     DiagnosticCodes.Asset.NotFound,
@@ -347,8 +375,87 @@ namespace Rectloom.Core.Ir
                 return AssetReference.None;
             }
 
-            _embedded[dataUri] = assetPath;
+            _embedded[cacheKey] = assetPath;
             return AssetReference.FromPath(assetPath, source);
+        }
+
+        /// <summary>
+        /// Renders an embedded vector image into the bitmap that is actually stored.
+        /// </summary>
+        /// <remarks>
+        /// Rendered for the box it sits in, scaled by <see cref="CompilerOptions.VectorImageScale"/>,
+        /// because a vector image has no resolution of its own and the only meaningful one is how large
+        /// it will be drawn. The stored name is built from the source and that size rather than from the
+        /// rendered pixels, so the same image at the same size is one asset on every machine.
+        /// </remarks>
+        private bool TryRasterize(ref DataUriPayload payload, SourceLocation source)
+        {
+            if (_rasterizer == null || !_rasterizer.IsAvailable)
+            {
+                Report(
+                    "The embedded SVG could not be converted to an image because nothing in this project "
+                        + "can render one, so its box is left empty.",
+                    _rasterizer?.UnavailableHint
+                        ?? "Install Unity's Vector Graphics package (com.unity.vectorgraphics), or embed "
+                            + "the image as PNG.",
+                    source);
+
+                return false;
+            }
+
+            float scale = Math.Max(0.25f, _options.VectorImageScale);
+            int width = ClampPixels(_assetWidth * scale);
+            int height = ClampPixels(_assetHeight * scale);
+
+            if (!_rasterizer.TryRasterize(payload.Bytes, width, height, out byte[] png, out string error))
+            {
+                Report(
+                    "The embedded SVG could not be converted to an image because " + error
+                        + ", so its box is left empty.",
+                    "Check that the SVG opens in a browser. Text, filters and masks are not supported by "
+                        + "the renderer; convert text to outlines, or embed the image as PNG.",
+                    source);
+
+                return false;
+            }
+
+            payload = new DataUriPayload(
+                "image/png",
+                png,
+                ".png",
+                DataUri.ContentHash(payload.Bytes) + "-" + width + "x" + height);
+
+            return true;
+        }
+
+        private void Report(string message, string suggestion, SourceLocation source)
+        {
+            if (_options.StrictMode)
+            {
+                _diagnostics.Error(DiagnosticCodes.Asset.UnsupportedType, message, source, suggestion);
+                return;
+            }
+
+            _diagnostics.Warning(DiagnosticCodes.Asset.UnsupportedType, message, source, suggestion);
+        }
+
+        private string SizeKey()
+        {
+            return ClampPixels(_assetWidth) + "x" + ClampPixels(_assetHeight);
+        }
+
+        /// <summary>
+        /// Keeps a rendered size within what a texture can sensibly be, and away from zero for a box that
+        /// has no size of its own.
+        /// </summary>
+        private static int ClampPixels(float value)
+        {
+            if (float.IsNaN(value) || value < 1f)
+            {
+                return MinimumVectorPixels;
+            }
+
+            return (int)Math.Min(MaximumVectorPixels, Math.Ceiling(value));
         }
 
         private AssetReference BuildReference(string? value, SourceLocation source, string relativeToFile)

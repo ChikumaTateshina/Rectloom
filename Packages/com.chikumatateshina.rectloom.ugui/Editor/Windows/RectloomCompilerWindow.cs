@@ -48,6 +48,7 @@ namespace Rectloom.Ugui.Windows
         [SerializeField] private TMP_FontAsset? _emojiFont;
         [SerializeField] private bool _worldSpace = true;
         [SerializeField] private bool _documentBackground;
+        [SerializeField] private bool _fitCanvasToContent = true;
         [SerializeField] private bool _batchMode;
         [SerializeField] private List<string> _htmlPaths = new List<string>();
         [SerializeField] private string _batchOutputFolder = "Assets/UI/Generated";
@@ -81,7 +82,8 @@ namespace Rectloom.Ugui.Windows
             }
             else _outputType = (CompileOutputType)EditorGUILayout.EnumPopup("Type", _outputType);
 
-            using (new EditorGUI.DisabledScope(_batchMode || _outputType != CompileOutputType.Prefab))
+            if (!_batchMode)
+            using (new EditorGUI.DisabledScope(_outputType != CompileOutputType.Prefab))
             {
                 DrawFolderField("Output Folder", ref _outputFolder);
                 _outputName = EditorGUILayout.TextField("Prefab Name", _outputName);
@@ -105,6 +107,8 @@ namespace Rectloom.Ugui.Windows
             _strictMode = EditorGUILayout.Toggle("Strict Mode", _strictMode);
             _worldSpace = EditorGUILayout.Toggle("World Space (1px = 1mm)", _worldSpace);
             _documentBackground = EditorGUILayout.Toggle("Document Background", _documentBackground);
+            using (new EditorGUI.DisabledScope(!_worldSpace || _documentBackground))
+                _fitCanvasToContent = EditorGUILayout.Toggle("Fit Canvas to Content", _fitCanvasToContent);
 
             _defaultFont = (TMP_FontAsset?)EditorGUILayout.ObjectField(
                 "Default TMP Font", _defaultFont, typeof(TMP_FontAsset), false);
@@ -528,6 +532,7 @@ namespace Rectloom.Ugui.Windows
                     WorldSpaceCanvas = _worldSpace,
                     WorldUnitsPerPixel = 0.001f,
                     RenderDocumentBackground = _documentBackground,
+                    FitCanvasToContent = _fitCanvasToContent,
                 },
             };
         }

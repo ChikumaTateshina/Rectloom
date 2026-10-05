@@ -117,6 +117,11 @@ https://chikumatateshina.github.io/Rectloom/index.json
   `text-decoration`、`white-space`、`line-height`、`letter-spacing`。
 - **画像** — `data:` URI で埋め込まれた PNG / JPEG などを、内容のハッシュで名前を付けた
   プロジェクトアセットとして書き出して参照します。
+  `data:image/svg+xml;base64,...` の SVG も対応します。`img` の `src` と CSS の
+  `background-image: url(...)` をコンパイル時に PNG と Sprite に変換します。
+  Vector Graphics は依存として自動導入され、生成した Prefab に専用のランタイム処理は不要です。
+  SVG のテキストはアウトライン化してください。フィルターなど、Vector Graphics が扱えない表現は
+  PNG に変換して埋め込んでください。変換できない画像はソース位置付きの診断を表示します。
 
 印刷用の `@page` / `@media print` と擬似要素 (`::before` / `::after`) は、落とすのが正しい
 結果なので警告ではなく情報として報告します。詳細は
@@ -166,14 +171,19 @@ CSS 自体の単位変換は従来どおりで、換算後の論理ピクセル�
 HTML の `body` にあるプレビュー用のページ背景は、既定では生成しません。
 本文内の要素の背景は維持します。ページ背景も必要な場合は **Document Background** をオンにします。
 既存の生成物も Update で設定を反映できます。
+**Fit Canvas to Content** は Editor で既定オンです。World Space でページ背景を生成しない場合、
+Canvas を本文要素全体の外枠に合わせ、印刷プレビュー用の body の余白による Article とのずれを
+解消します。Article 内の余白と、複数要素の間隔は維持します。ページ全体の枠が必要ならオフにします。
 
 ウィンドウは **Output Folder** に、HTML のファイル名から拡張子を除いた名前の Prefab と
 メタデータを生成します。UI のルート名もその名前になります。
+**Browse** で Assets 内のフォルダを選択でき、出力パスも表示されます。
 
 ### 絵文字
 
 **Emoji TMP Font** に Segoe UI Emoji の TMP Font Asset を指定します。未指定の場合は、
-プロジェクト内の Segoe UI Emoji を自動検索します。本文は Noto Sans を使い、絵文字の部分は
+プロジェクト内の Segoe UI Emoji を自動検索し、見つからなければインストール済みのフォントから
+TMP Font Asset を生成します。本文は Noto Sans を使い、絵文字の部分は
 TMP の font タグで Segoe UI Emoji を直接指定します。本文フォントのフォールバックには追加しません。
 フォントタグをビルド後にも解決できるよう、生成アセットフォルダの `Resources` 内にフォントを用意します。
 日本語は従来どおり Default TMP Font または CSS の font-family で指定できます。

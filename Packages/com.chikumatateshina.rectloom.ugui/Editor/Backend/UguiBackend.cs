@@ -248,6 +248,8 @@ namespace Rectloom.Ugui.Backend
 
                 var expected = new List<string>();
                 var contentOffset = new Vector2(node.Rect.ContentX, node.Rect.ContentY);
+                if (isRoot && TryGetContentFrame(node, target, out Rect frame))
+                    contentOffset -= frame.position;
                 var siblingNames = new HashSet<string>(StringComparer.Ordinal);
 
                 foreach (UiNode child in node.Children)
@@ -400,11 +402,36 @@ namespace Rectloom.Ugui.Backend
                     GetOrAdd<GraphicRaycaster>(target, entry);
                 }
 
-                RectTransformBaker.BakeRoot(transform, new Vector2(node.Rect.Width, node.Rect.Height));
+                Vector2 size = TryGetContentFrame(node, target, out Rect frame)
+                    ? frame.size : new Vector2(node.Rect.Width, node.Rect.Height);
+                RectTransformBaker.BakeRoot(transform, size);
                 if (_backend._options.WorldSpaceCanvas && !insideCanvas)
                 {
                     transform.localScale = Vector3.one * _backend._options.WorldUnitsPerPixel;
                 }
+            }
+
+            private bool TryGetContentFrame(UiNode node, GameObject target, out Rect frame)
+            {
+                frame = default;
+                if (!_backend._options.FitCanvasToContent || !_backend._options.WorldSpaceCanvas
+                    || _backend._options.RenderDocumentBackground || node.Children.Count == 0
+                    || !string.IsNullOrEmpty(node.TextContent)
+                    || (target.transform.parent != null && target.transform.parent.GetComponentInParent<Canvas>() != null))
+                    return false;
+
+                float left = float.PositiveInfinity, top = float.PositiveInfinity;
+                float right = float.NegativeInfinity, bottom = float.NegativeInfinity;
+                foreach (UiNode child in node.Children)
+                {
+                    left = Mathf.Min(left, node.Rect.ContentX + child.Rect.X);
+                    top = Mathf.Min(top, node.Rect.ContentY + child.Rect.Y);
+                    right = Mathf.Max(right, node.Rect.ContentX + child.Rect.X + child.Rect.Width);
+                    bottom = Mathf.Max(bottom, node.Rect.ContentY + child.Rect.Y + child.Rect.Height);
+                }
+                if (right <= left || bottom <= top) return false;
+                frame = Rect.MinMaxRect(left, top, right, bottom);
+                return true;
             }
 
             /// <summary>

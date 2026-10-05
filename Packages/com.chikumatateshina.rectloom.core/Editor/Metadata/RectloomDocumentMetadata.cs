@@ -41,6 +41,8 @@ namespace Rectloom.Core.Metadata
         [SerializeField] private bool _worldSpaceCanvas;
         [SerializeField] private float _worldUnitsPerPixel;
         [SerializeField] private bool _renderDocumentBackground;
+        [SerializeField] private float _vectorImageScale = 2f;
+        [SerializeField] private bool _fitCanvasToContent;
 
         /// <summary>Canvas mode recorded for this output.</summary>
         public bool WorldSpaceCanvas { get => _worldSpaceCanvas; set => _worldSpaceCanvas = value; }
@@ -48,6 +50,10 @@ namespace Rectloom.Core.Metadata
         public float WorldUnitsPerPixel { get => _worldUnitsPerPixel; set => _worldUnitsPerPixel = value; }
         /// <summary>Whether the document root background was rendered.</summary>
         public bool RenderDocumentBackground { get => _renderDocumentBackground; set => _renderDocumentBackground = value; }
+        /// <summary>Pixels rendered per logical pixel for embedded vector images.</summary>
+        public float VectorImageScale { get => _vectorImageScale; set => _vectorImageScale = value; }
+        /// <summary>Whether the canvas was fitted to top-level content bounds.</summary>
+        public bool FitCanvasToContent { get => _fitCanvasToContent; set => _fitCanvasToContent = value; }
 
         [SerializeField] private int _schemaVersion = CurrentSchemaVersion;
         [SerializeField] private string _compilerVersion = RectloomVersion.Current;

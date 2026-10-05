@@ -19,11 +19,37 @@ namespace Rectloom.Core.Assets
         /// <param name="bytes">The decoded bytes.</param>
         /// <param name="fileExtension">File extension to store the bytes under, including the dot.</param>
         public DataUriPayload(string mediaType, byte[] bytes, string fileExtension)
+            : this(mediaType, bytes, fileExtension, null)
+        {
+        }
+
+        /// <summary>
+        /// Creates a payload whose stored name is derived from something other than its own bytes.
+        /// </summary>
+        /// <param name="mediaType">Lower-cased media type, for example <c>image/png</c>.</param>
+        /// <param name="bytes">The bytes to store.</param>
+        /// <param name="fileExtension">File extension to store the bytes under, including the dot.</param>
+        /// <param name="contentKey">
+        /// Name to store the bytes under, without extension, or null to hash the bytes. A rasterized
+        /// vector image passes a key built from its source and size: the pixels a renderer produces can
+        /// differ between machines, and naming the file after them would give one image two names.
+        /// </param>
+        public DataUriPayload(string mediaType, byte[] bytes, string fileExtension, string? contentKey)
         {
             MediaType = mediaType;
             Bytes = bytes;
             FileExtension = fileExtension;
+            ContentKey = contentKey;
         }
+
+        /// <summary>Explicit stored name without extension, or null to hash the bytes.</summary>
+        public string? ContentKey { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether the payload is a vector image that has to be rasterized
+        /// before Unity can use it.
+        /// </summary>
+        public bool IsVector => string.Equals(FileExtension, DataUri.SvgExtension, StringComparison.Ordinal);
 
         /// <summary>Lower-cased media type, for example <c>image/png</c>.</summary>
         public string MediaType { get; }
@@ -42,7 +68,7 @@ namespace Rectloom.Core.Assets
         /// asset and recompiling the same document produces the same file name. Deterministic output is
         /// a hard requirement, and a counter would break it as soon as two elements were reordered.
         /// </remarks>
-        public string ContentName => DataUri.ContentHash(Bytes) + FileExtension;
+        public string ContentName => (ContentKey ?? DataUri.ContentHash(Bytes)) + FileExtension;
     }
 
     /// <summary>
@@ -53,14 +79,19 @@ namespace Rectloom.Core.Assets
     /// exist only in memory, so the bytes have to become a project asset. Decoding is separated from
     /// writing the asset so that the decoding rules can be tested without a project.
     /// <para>
-    /// Only base64 payloads are read. A percent-encoded <c>data:</c> URI is legal CSS but is not a
-    /// practical way to carry an image, and accepting it would mean guessing at a text encoding.
+    /// Binary images use base64. SVG also accepts UTF-8 text, including percent-encoded text.
     /// </para>
     /// </remarks>
     public static class DataUri
     {
         /// <summary>The scheme that introduces a data URI.</summary>
         public const string Scheme = "data:";
+
+        /// <summary>Media type of an SVG image.</summary>
+        public const string SvgMediaType = "image/svg+xml";
+
+        /// <summary>Extension an SVG payload is given.</summary>
+        public const string SvgExtension = ".svg";
 
         /// <summary>Marker that says the payload is base64 encoded.</summary>
         public const string Base64Marker = ";base64,";
@@ -75,6 +106,7 @@ namespace Rectloom.Core.Assets
                 { "image/bmp", ".bmp" },
                 { "image/x-tga", ".tga" },
                 { "image/tga", ".tga" },
+                { SvgMediaType, SvgExtension },
             };
 
         /// <summary>
@@ -117,16 +149,23 @@ namespace Rectloom.Core.Assets
             }
 
             string header = uri.Substring(Scheme.Length, comma - Scheme.Length);
+            int parameters = header.IndexOf(';');
             bool isBase64 = header.EndsWith("base64", StringComparison.OrdinalIgnoreCase)
-                && header.IndexOf(';') >= 0;
+                && parameters >= 0;
 
-            if (!isBase64)
+            string mediaType = (parameters >= 0 ? header.Substring(0, parameters) : header)
+                .Trim()
+                .ToLowerInvariant();
+
+            // SVG is text, and is routinely embedded as text: percent-encoded, or written out as it is.
+            // Every other format here is binary, where anything but base64 would mean guessing.
+            bool isSvgText = !isBase64 && string.Equals(mediaType, SvgMediaType, StringComparison.Ordinal);
+
+            if (!isBase64 && !isSvgText)
             {
                 error = "only base64 data: URIs are supported";
                 return false;
             }
-
-            string mediaType = header.Substring(0, header.IndexOf(';')).Trim().ToLowerInvariant();
 
             if (mediaType.Length == 0)
             {
@@ -137,12 +176,7 @@ namespace Rectloom.Core.Assets
 
             if (!ImageExtensions.TryGetValue(mediaType, out string extension))
             {
-                // SVG is singled out because it is what this is nearly always about: design tools embed
-                // logos and icons as SVG, and Unity has no importer for it without an extra package.
-                error = string.Equals(mediaType, "image/svg+xml", StringComparison.Ordinal)
-                    ? "it is an SVG, which Unity cannot import as an image"
-                    : "'" + mediaType + "' is not an image format Unity can import";
-
+                error = "'" + mediaType + "' is not an image format Unity can import";
                 return false;
             }
 
@@ -150,7 +184,9 @@ namespace Rectloom.Core.Assets
 
             try
             {
-                bytes = Convert.FromBase64String(StripWhitespace(uri.Substring(comma + 1)));
+                bytes = isSvgText
+                    ? Encoding.UTF8.GetBytes(Uri.UnescapeDataString(uri.Substring(comma + 1)))
+                    : Convert.FromBase64String(StripWhitespace(uri.Substring(comma + 1)));
             }
             catch (FormatException)
             {

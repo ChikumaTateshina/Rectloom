@@ -258,7 +258,8 @@ namespace Rectloom.Ugui.Compilation
                 layout.Stop();
                 statistics.LayoutMilliseconds = layout.Elapsed.TotalMilliseconds;
 
-                UiNode ir = new UiTreeBuilder(request.HtmlAssetPath, options, diagnostics, _images)
+                UiNode ir = new UiTreeBuilder(
+                        request.HtmlAssetPath, options, diagnostics, _images, SvgRasterizer.Instance)
                     .Build(solved);
 
                 foreach (UiNode _ in ir.DescendantsAndSelf())
@@ -539,6 +540,8 @@ namespace Rectloom.Ugui.Compilation
             metadata.WorldSpaceCanvas = request.Options.WorldSpaceCanvas;
             metadata.WorldUnitsPerPixel = request.Options.WorldUnitsPerPixel;
             metadata.RenderDocumentBackground = request.Options.RenderDocumentBackground;
+            metadata.VectorImageScale = request.Options.VectorImageScale;
+            metadata.FitCanvasToContent = request.Options.FitCanvasToContent;
             metadata.SourceHtmlPath = request.HtmlAssetPath ?? string.Empty;
             metadata.SourceHtmlGuid = AssetDatabase.AssetPathToGUID(request.HtmlAssetPath) ?? string.Empty;
             metadata.SourceCssPaths.AddRange(request.CssAssetPaths);

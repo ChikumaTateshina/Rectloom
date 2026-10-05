@@ -130,7 +130,7 @@ namespace Rectloom.Core.Layout
                 "The document's content reaches outside the root box"
                     + DescribeOverflow(overflowRight, "right")
                     + DescribeOverflow(overflowBottom, "bottom")
-                    + ", so the generated canvas does not contain all of it.",
+                    + ", beyond the document's layout bounds.",
                 root.Source,
                 hasPadding
                     ? "The root's padding leaves less room than its children need. Remove the padding on "

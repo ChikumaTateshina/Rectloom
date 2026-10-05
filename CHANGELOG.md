@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-05
+
+### Added
+
+- Embedded SVG images (`data:image/svg+xml;base64,...` and UTF-8 SVG data URIs) now compile
+  into ordinary PNG sprites, for both HTML images and CSS backgrounds. Vector Graphics is installed
+  as an Editor dependency; output prefabs need only uGUI. View boxes, aspect ratio, gradients and
+  transparency are preserved. Repeated compiles reuse assets named for the SVG content and raster size.
+- `CompilerOptions.VectorImageScale` controls compile-time raster resolution (default 2 pixels per
+  logical pixel, capped at 4096 pixels per side), and is recorded in output metadata.
+- The Editor's **Fit Canvas to Content** option (enabled initially) fits standalone world-space output
+  to top-level element bounds when the document background is disabled. A single Article now shares
+  the Canvas bounds despite body padding, while internal padding and spacing between articles remain.
+  The API option defaults to false to preserve document-sized output for existing callers.
+- Regression tests check rendered pixels, base64 compilation, CSS backgrounds, asset reuse and
+  recoverable failures. SVG text, filters and masks remain subject to the Vector Graphics renderer's
+  limitations; unsupported images report a source diagnostic rather than an internal exception.
+
+### Validation
+
+- 744 Unity EditMode tests passed; package validation and distribution-page checks passed.
+- The user's caption HTML generated its embedded SVG sprite and a directly selected Segoe UI Emoji
+  glyph. The Canvas and Article world corners matched exactly at 1920 × 1080 logical pixels.
+
 ### Fixed
 
 - An embedded image that cannot be read no longer fails the compile. A `data:image/svg+xml` URI, which
@@ -405,7 +429,8 @@ console lines that all say the same thing.
   a `MonoBehaviour` from an Editor-only assembly, so an extension's own code may be Editor-only but
   what it attaches may not be.
 
-[Unreleased]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.1.2...v0.1.3

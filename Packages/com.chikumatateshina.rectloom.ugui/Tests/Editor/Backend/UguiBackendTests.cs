@@ -154,6 +154,49 @@ namespace Rectloom.Ugui.Tests.Backend
         }
 
         [Test]
+        public void FitCanvasToContent_AlignsArticleBoundsWithoutChangingInternalLayout()
+        {
+            _options.FitCanvasToContent = true;
+            GameObject root = Build("<body><article id='caption'><div id='inner'></div></article></body>",
+                "body { padding:30px; } #caption { width:1920px;height:1080px;padding:20px; } "
+                + "#inner {width:100px;height:50px;}");
+            var canvas = root.GetComponent<RectTransform>();
+            var article = Child(root, "caption").GetComponent<RectTransform>();
+            Assert.That(canvas.rect.size, Is.EqualTo(article.rect.size));
+            var canvasCorners = new Vector3[4];
+            var articleCorners = new Vector3[4];
+            canvas.GetWorldCorners(canvasCorners);
+            article.GetWorldCorners(articleCorners);
+            for (int i = 0; i < 4; i++)
+                Assert.That(Vector3.Distance(canvasCorners[i], articleCorners[i]), Is.LessThan(0.00001f));
+            Assert.That(Child(article.gameObject, "inner").GetComponent<RectTransform>().anchoredPosition,
+                Is.EqualTo(new Vector2(20f, -20f)));
+        }
+
+        [Test]
+        public void FitCanvasToContent_KeepsSpacingBetweenMultipleArticles()
+        {
+            _options.FitCanvasToContent = true;
+            GameObject root = Build("<body><article id='a'></article><article id='b'></article></body>",
+                "body {padding:30px;} article {width:100px;height:50px;} #b {margin-top:10px;}");
+            Assert.That(root.GetComponent<RectTransform>().rect.size, Is.EqualTo(new Vector2(100f, 110f)));
+            Assert.That(Child(root, "a").GetComponent<RectTransform>().anchoredPosition, Is.EqualTo(Vector2.zero));
+            Assert.That(Child(root, "b").GetComponent<RectTransform>().anchoredPosition, Is.EqualTo(new Vector2(0f, -60f)));
+        }
+
+        [Test]
+        public void FitCanvasToContent_DoesNotRemoveAnEnabledDocumentBackground()
+        {
+            _options.FitCanvasToContent = true;
+            _options.RenderDocumentBackground = true;
+            GameObject root = Build("<body><article id='a'></article></body>",
+                "body {padding:30px;background:white;} article {width:100px;height:50px;}");
+            Assert.That(root.GetComponent<Image>(), Is.Not.Null);
+            Assert.That(Child(root, "a").GetComponent<RectTransform>().anchoredPosition,
+                Is.EqualTo(new Vector2(30f, -30f)));
+        }
+
+        [Test]
         public void DocumentBackground_CanBeExplicitlyEnabled()
         {
             _options.RenderDocumentBackground = true;

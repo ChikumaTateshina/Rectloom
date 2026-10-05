@@ -23,6 +23,19 @@ namespace Rectloom.Core.Compilation
         /// <summary>Paint the document root background, rather than only its content.</summary>
         public bool RenderDocumentBackground { get; set; }
 
+        /// <summary>Fit a standalone world-space canvas to its top-level content bounds, excluding document padding.</summary>
+        public bool FitCanvasToContent { get; set; }
+
+        /// <summary>
+        /// Pixels rendered per logical pixel when a vector image is rasterized. Defaults to 2.
+        /// </summary>
+        /// <remarks>
+        /// A vector image is rendered once, at compile time, so it has to be rendered large enough for
+        /// how closely it will be looked at. World-space UI is routinely viewed from nearer than its
+        /// design size assumes, which is why the default is not 1.
+        /// </remarks>
+        public float VectorImageScale { get; set; } = 2f;
+
         /// <summary>Default canvas reference resolution, in logical pixels.</summary>
         public static readonly Vector2 DefaultReferenceResolution = new Vector2(1920f, 1080f);
 
@@ -91,6 +104,8 @@ namespace Rectloom.Core.Compilation
                 WorldSpaceCanvas = WorldSpaceCanvas,
                 WorldUnitsPerPixel = WorldUnitsPerPixel,
                 RenderDocumentBackground = RenderDocumentBackground,
+                FitCanvasToContent = FitCanvasToContent,
+                VectorImageScale = VectorImageScale,
                 StrictMode = StrictMode,
                 UseDefaultStyleSheet = UseDefaultStyleSheet,
                 PreserveModifiedGeneratedObjects = PreserveModifiedGeneratedObjects,
