@@ -153,6 +153,71 @@ namespace Rectloom.Ugui.Tests.Compilation
         }
 
         [Test]
+        public void AnEmbeddedSvg_CostsOnlyItself()
+        {
+            // Design tools embed logos as SVG, which Unity cannot import. That used to fail the whole
+            // compile, so one logo cost the entire page. It now costs the logo: the rest compiles, the
+            // image's box keeps its place, and exactly one diagnostic says which image is missing.
+            const string svg = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciLz4=";
+
+            WriteDocument(
+                "<p id=\"text\">kept</p><img id=\"vector\" src=\"" + svg + "\">"
+                    + "<img id=\"logo\" src=\"" + PngDataUri + "\">");
+
+            CompileResult result = Compiler().Compile(Request());
+
+            Assert.That(result.Success, Is.True, Describe(result));
+
+            CompilerDiagnostic[] aboutImages = result.Diagnostics
+                .Where(d => d.Code == DiagnosticCodes.Asset.UnsupportedType
+                    || d.Code == DiagnosticCodes.Asset.NotFound)
+                .Where(d => d.Severity >= DiagnosticSeverity.Warning)
+                .ToArray();
+
+            Assert.That(aboutImages.Length, Is.EqualTo(1), Describe(result));
+            Assert.That(aboutImages[0].Severity, Is.EqualTo(DiagnosticSeverity.Warning));
+            Assert.That(aboutImages[0].Message, Does.Contain("SVG"));
+            Assert.That(aboutImages[0].Suggestion, Does.Contain("PNG"));
+
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
+            GameObject instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+            _created.Add(instance);
+
+            Transform? vector = instance.GetComponentsInChildren<Transform>(true)
+                .FirstOrDefault(t => t.name == "vector");
+
+            Assert.That(vector, Is.Not.Null, "the box keeps its place in the hierarchy");
+
+            var placeholder = vector!.GetComponent<UnityEngine.UI.Image>();
+            Assert.That(placeholder.sprite, Is.Null);
+            Assert.That(placeholder.color.a, Is.Zero, "no white square where the logo was meant to be");
+            Assert.That(((RectTransform)vector).rect.width, Is.EqualTo(64f).Within(0.01f));
+
+            Assert.That(
+                instance.GetComponentsInChildren<UnityEngine.UI.Image>(true).Any(i => i.sprite != null),
+                Is.True,
+                "the PNG beside it is unaffected");
+        }
+
+        [Test]
+        public void AnEmbeddedSvg_IsAnErrorInStrictMode()
+        {
+            WriteDocument("<img src=\"data:image/svg+xml;base64,AAAA\">");
+
+            CompileRequest request = Request();
+            request.Options.StrictMode = true;
+
+            CompileResult result = Compiler().Compile(request);
+
+            Assert.That(result.Success, Is.False);
+            Assert.That(
+                result.Diagnostics.Any(d => d.Code == DiagnosticCodes.Asset.UnsupportedType
+                    && d.Severity == DiagnosticSeverity.Error),
+                Is.True,
+                Describe(result));
+        }
+
+        [Test]
         public void TheSameEmbeddedImageTwice_BecomesOneAsset()
         {
             WriteDocument(

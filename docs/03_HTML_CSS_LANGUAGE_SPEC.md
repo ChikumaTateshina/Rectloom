@@ -357,7 +357,14 @@ image/png image/jpeg image/gif image/bmp image/tga
 ```
 
 base64以外のdata URI、および `image/svg+xml` のようにUnityがimportできない
-formatはErrorとする。
+formatは**Warning**とし、そのimageのboxを空のまま残す (Strict ModeではError)。
+読めない画像1枚はdocument全体を生成しない理由にならない。残りは通常どおりcompileし、
+boxはlayoutが置いた場所に残り、どの画像が欠けたかを1件だけ報告する。
+placeholderは不透明に塗らない (logoがあるはずの場所に白い四角が出るため)。
+
+SVGはUnityに標準のimporterが無い。PNG / JPEGに書き出して埋め込むこと。
+
+assetを書き出せなかった場合 (folderが書き込めない等) は環境の問題なのでErrorのまま。
 
 ## 16. @import
 

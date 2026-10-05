@@ -137,7 +137,12 @@ namespace Rectloom.Core.Assets
 
             if (!ImageExtensions.TryGetValue(mediaType, out string extension))
             {
-                error = "'" + mediaType + "' is not an image format Unity can import";
+                // SVG is singled out because it is what this is nearly always about: design tools embed
+                // logos and icons as SVG, and Unity has no importer for it without an extra package.
+                error = string.Equals(mediaType, "image/svg+xml", StringComparison.Ordinal)
+                    ? "it is an SVG, which Unity cannot import as an image"
+                    : "'" + mediaType + "' is not an image format Unity can import";
+
                 return false;
             }
 

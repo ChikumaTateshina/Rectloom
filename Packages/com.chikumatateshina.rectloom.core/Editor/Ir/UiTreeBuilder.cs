@@ -32,6 +32,10 @@ namespace Rectloom.Core.Ir
         private readonly string _documentPath;
         private readonly IEmbeddedImageStore _images;
 
+        // Set while resolving one node's asset, when the source named an image that turned out to be
+        // unusable. Read back straight afterwards and cleared, so it never outlives the node it is for.
+        private bool _unusableAsset;
+
         // One data URI can appear on several elements, and decoding a base64 image is not free, so the
         // asset path a URI produced is remembered for the rest of the pass.
         private readonly Dictionary<string, string?> _embedded =
@@ -100,8 +104,12 @@ namespace Rectloom.Core.Ir
                 ? documentName
                 : box.Element?.Id ?? (box.IsAnonymous ? "Text" : tagName));
 
+            _unusableAsset = false;
+            AssetReference asset = ResolveAsset(box);
+
             var node = new UiNode(stableId, kind, name, box.Source, box.Style.ExtensionProperties)
             {
+                AssetUnusable = _unusableAsset,
                 Rect = new UiRect(
                     result.X,
                     result.Y,
@@ -114,7 +122,7 @@ namespace Rectloom.Core.Ir
                 TextContent = box.TextContent,
                 Visual = UiStyleFactory.FromComputed(box.Style.Visual),
                 TextStyle = UiStyleFactory.FromComputed(box.Style.Text),
-                Asset = ResolveAsset(box),
+                Asset = asset,
                 SourceTag = box.Element?.TagName ?? string.Empty,
             };
 
@@ -293,18 +301,35 @@ namespace Rectloom.Core.Ir
         {
             if (_embedded.TryGetValue(dataUri, out string? cached))
             {
+                // Reported the first time it was seen; the node still has to know its image is absent.
+                _unusableAsset |= cached == null;
                 return cached == null ? AssetReference.None : AssetReference.FromPath(cached, source);
             }
 
             if (!DataUri.TryDecode(dataUri, out DataUriPayload payload, out string decodeError))
             {
                 _embedded[dataUri] = null;
+                _unusableAsset = true;
 
-                _diagnostics.Error(
-                    DiagnosticCodes.Asset.UnsupportedType,
-                    "The embedded image could not be read because " + decodeError + ".",
-                    source,
-                    "Embed the image as base64 PNG or JPEG, or reference a file in the project.");
+                // One image that cannot be read is not a reason to produce nothing. The rest of the
+                // document compiles exactly as it would have, the image's box stays where layout put
+                // it, and the author is told which image is missing. Failing the whole compile here
+                // made a single SVG logo cost the entire page.
+                string message = "The embedded image could not be read because " + decodeError
+                    + ", so its box is left empty.";
+
+                const string suggestion =
+                    "Export the image as PNG or JPEG and embed that, or reference an image file in "
+                    + "the project.";
+
+                if (_options.StrictMode)
+                {
+                    _diagnostics.Error(DiagnosticCodes.Asset.UnsupportedType, message, source, suggestion);
+                }
+                else
+                {
+                    _diagnostics.Warning(DiagnosticCodes.Asset.UnsupportedType, message, source, suggestion);
+                }
 
                 return AssetReference.None;
             }

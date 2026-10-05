@@ -805,8 +805,18 @@ namespace Rectloom.Ugui.Backend
                 // placeholder visible instead of silently leaving a hole in the layout.
                 Image placeholder = pass.EnsureImage(target, entry);
                 placeholder.sprite = null;
-                placeholder.color = tint;
                 placeholder.raycastTarget = ReadRaycastTarget(node);
+
+                if (node.AssetUnusable)
+                {
+                    // The source was there and could not be used, which was reported where that was
+                    // found out. An opaque placeholder would put a white square where a logo was meant
+                    // to be, so the box keeps its place and paints only a background the author gave it.
+                    placeholder.color = node.Visual.BackgroundColor ?? Color.clear;
+                    return;
+                }
+
+                placeholder.color = tint;
 
                 _diagnostics.Warning(
                     DiagnosticCodes.Asset.NotFound,

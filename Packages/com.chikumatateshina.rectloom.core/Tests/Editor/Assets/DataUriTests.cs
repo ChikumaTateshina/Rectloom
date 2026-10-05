@@ -64,7 +64,7 @@ namespace Rectloom.Core.Tests.Assets
         }
 
         [TestCase("data:image/png,AAAA", "base64")]
-        [TestCase("data:image/svg+xml;base64,AAAA", "not an image format")]
+        [TestCase("data:image/svg+xml;base64,AAAA", "SVG")]
         [TestCase("data:text/plain;base64,AAAA", "not an image format")]
         [TestCase("data:image/png;base64,====", "malformed")]
         [TestCase("data:image/png;base64,", "empty")]

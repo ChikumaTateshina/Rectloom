@@ -124,6 +124,17 @@ namespace Rectloom.Core.Ir
         /// </summary>
         public AssetReference Asset { get; internal set; }
 
+        /// <summary>
+        /// Whether the source named an image that could not be used, so <see cref="Asset"/> is empty
+        /// for a reason that has already been reported.
+        /// </summary>
+        /// <remarks>
+        /// Lets a backend tell "no image was asked for" from "the image asked for was unusable". Both
+        /// leave the node without an asset, but only the first is news to the author by the time the
+        /// backend sees it, and reporting the second again would describe one problem twice.
+        /// </remarks>
+        public bool AssetUnusable { get; internal set; }
+
         /// <summary>Components the markup asked for, in source order.</summary>
         public IReadOnlyList<ComponentRequest> Components =>
             _components.Count == 0 ? NoComponents : _components;

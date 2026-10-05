@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- An embedded image that cannot be read no longer fails the compile. A `data:image/svg+xml` URI, which
+  is how design tools embed logos, was an error, so one logo cost the whole page. It is now a warning
+  that names the image and says to export it as PNG or JPEG; the rest of the document compiles and the
+  image's box keeps its place, painted with nothing rather than with an opaque placeholder. Strict mode
+  still makes it an error. This was not new in 0.3.0: it dates from when embedded images were first
+  supported, and was only met once an export contained an SVG.
+
 - A failure while making the emoji font available to a player no longer takes the compile with it.
   Relocating the font asset into a Resources folder threw on a failed copy and dereferenced the copy
   without checking it, and the compiler turns an escaped exception into a fatal `INTERNAL9001`. Until
