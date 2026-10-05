@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.4] - 2026-10-05
+
 ### Added
 
 - **Feature Showcase sample** in the uGUI package (`Samples~/FeatureShowcase`): one 1920x1080 page whose HTML and CSS use every supported element, property, unit, selector and extension property at least once, with a README listing what each part demonstrates. A test compiles the shipped files and fails on any warning, so the sample cannot drift from the compiler.
@@ -471,7 +473,8 @@ console lines that all say the same thing.
   a `MonoBehaviour` from an Editor-only assembly, so an extension's own code may be Editor-only but
   what it attaches may not be.
 
-[Unreleased]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.4.3...HEAD
+[Unreleased]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.4.4...HEAD
+[0.4.4]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.4.3...v0.4.4
 [0.4.3]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.4.0...v0.4.1

@@ -1,7 +1,7 @@
 {
   "name": "com.chikumatateshina.rectloom.ugui",
   "displayName": "Rectloom uGUI Backend",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "unity": "2022.3",
   "description": "uGUI and TextMeshPro backend for Rectloom. Turns the compiler's Unity UI IR into RectTransform, Image, Button and TextMeshProUGUI objects.",
   "keywords": [
@@ -21,7 +21,7 @@
   "changelogUrl": "https://github.com/ChikumaTateshina/Rectloom/blob/main/CHANGELOG.md",
   "licensesUrl": "https://github.com/ChikumaTateshina/Rectloom/blob/main/LICENSE",
   "dependencies": {
-    "com.chikumatateshina.rectloom.core": "0.4.3",
+    "com.chikumatateshina.rectloom.core": "0.4.4",
     "com.unity.ugui": "1.0.0",
     "com.unity.textmeshpro": "3.0.6",
     "com.unity.vectorgraphics": "2.0.0-preview.24"
@@ -35,6 +35,6 @@
     }
   ],
   "vpmDependencies": {
-    "com.chikumatateshina.rectloom.core": "0.4.3"
+    "com.chikumatateshina.rectloom.core": "0.4.4"
   }
 }
