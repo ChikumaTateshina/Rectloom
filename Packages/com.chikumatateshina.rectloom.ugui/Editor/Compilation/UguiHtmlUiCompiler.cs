@@ -59,10 +59,6 @@ namespace Rectloom.Ugui.Compilation
         private readonly Func<ITextMeasurer>? _measurerFactory;
         private readonly IEmbeddedImageStore? _images;
 
-        // Created once per pass and shared by the measurer and the backend, so that a box is filled
-        // with the font it was sized for.
-        private TmpFontLibrary? _fonts;
-
         /// <summary>
         /// Creates a compiler.
         /// </summary>
@@ -214,8 +210,9 @@ namespace Rectloom.Ugui.Compilation
             }
 
             var layout = Stopwatch.StartNew();
-            _fonts = new TmpFontLibrary(null, diagnostics);
-            ITextMeasurer measurer = CreateMeasurer(diagnostics);
+            // Keep the font cache local to this pass, shared by measurement and generation.
+            var fonts = new TmpFontLibrary(null, diagnostics);
+            ITextMeasurer measurer = CreateMeasurer(diagnostics, fonts);
 
             try
             {
@@ -244,7 +241,7 @@ namespace Rectloom.Ugui.Compilation
                         : CompileResult.Create(null, diagnostics.ToArray(), statistics);
                 }
 
-                return Emit(request, options, ir, html, diagnostics, statistics, total);
+                return Emit(request, options, ir, html, diagnostics, statistics, total, fonts);
             }
             finally
             {
@@ -259,11 +256,12 @@ namespace Rectloom.Ugui.Compilation
             string html,
             DiagnosticSink diagnostics,
             CompileStatistics statistics,
-            Stopwatch total)
+            Stopwatch total,
+            TmpFontLibrary fonts)
         {
             return request.CompileMode == CompileMode.Update
-                ? EmitUpdate(request, options, ir, html, diagnostics, statistics, total)
-                : EmitCreate(request, options, ir, html, diagnostics, statistics, total);
+                ? EmitUpdate(request, options, ir, html, diagnostics, statistics, total, fonts)
+                : EmitCreate(request, options, ir, html, diagnostics, statistics, total, fonts);
         }
 
         private CompileResult EmitCreate(
@@ -273,10 +271,11 @@ namespace Rectloom.Ugui.Compilation
             string html,
             DiagnosticSink diagnostics,
             CompileStatistics statistics,
-            Stopwatch total)
+            Stopwatch total,
+            TmpFontLibrary fonts)
         {
             var backendTimer = Stopwatch.StartNew();
-            var backend = new UguiBackend(_assets, options, diagnostics, _fonts);
+            var backend = new UguiBackend(_assets, options, diagnostics, fonts);
 
             // Built detached so that an error found while generating leaves nothing behind.
             BackendResult staged = backend.Build(ir, parent: null);
@@ -321,7 +320,8 @@ namespace Rectloom.Ugui.Compilation
             string html,
             DiagnosticSink diagnostics,
             CompileStatistics statistics,
-            Stopwatch total)
+            Stopwatch total,
+            TmpFontLibrary fonts)
         {
             string? metadataPath = MetadataStore.GetMetadataPath(request);
             RectloomDocumentMetadata? previous = MetadataStore.Load(metadataPath);
@@ -353,8 +353,8 @@ namespace Rectloom.Ugui.Compilation
             }
 
             return request.OutputType == CompileOutputType.Prefab
-                ? UpdatePrefab(request, options, ir, html, previous, diagnostics, statistics, total)
-                : UpdateSceneObject(request, options, ir, html, previous, diagnostics, statistics, total);
+                ? UpdatePrefab(request, options, ir, html, previous, diagnostics, statistics, total, fonts)
+                : UpdateSceneObject(request, options, ir, html, previous, diagnostics, statistics, total, fonts);
         }
 
         private CompileResult UpdatePrefab(
@@ -365,7 +365,8 @@ namespace Rectloom.Ugui.Compilation
             RectloomDocumentMetadata previous,
             DiagnosticSink diagnostics,
             CompileStatistics statistics,
-            Stopwatch total)
+            Stopwatch total,
+            TmpFontLibrary fonts)
         {
             string path = request.OutputPath!;
 
@@ -385,7 +386,7 @@ namespace Rectloom.Ugui.Compilation
             try
             {
                 var backendTimer = Stopwatch.StartNew();
-                BackendResult result = new UguiBackend(_assets, options, diagnostics, _fonts)
+                BackendResult result = new UguiBackend(_assets, options, diagnostics, fonts)
                     .Update(ir, contents, previous);
 
                 RunExtensions(request, ir, result, diagnostics);
@@ -437,7 +438,8 @@ namespace Rectloom.Ugui.Compilation
             RectloomDocumentMetadata previous,
             DiagnosticSink diagnostics,
             CompileStatistics statistics,
-            Stopwatch total)
+            Stopwatch total,
+            TmpFontLibrary fonts)
         {
             GameObject? existing = MetadataStore.ResolveGlobalObjectId(previous.RootGlobalObjectId);
 
@@ -456,7 +458,7 @@ namespace Rectloom.Ugui.Compilation
             Undo.RegisterFullObjectHierarchyUndo(existing, "Update " + existing.name);
 
             var backendTimer = Stopwatch.StartNew();
-            BackendResult result = new UguiBackend(_assets, options, diagnostics, _fonts)
+            BackendResult result = new UguiBackend(_assets, options, diagnostics, fonts)
                 .Update(ir, existing, previous);
 
             RunExtensions(request, ir, result, diagnostics);
@@ -637,11 +639,11 @@ namespace Rectloom.Ugui.Compilation
             pipeline.Run(ir, result.Objects, context);
         }
 
-        private ITextMeasurer CreateMeasurer(IDiagnosticSink diagnostics)
+        private ITextMeasurer CreateMeasurer(IDiagnosticSink diagnostics, TmpFontLibrary fonts)
         {
             return _measurerFactory != null
                 ? _measurerFactory()
-                : new TmpTextMeasurer(null, diagnostics, _fonts);
+                : new TmpTextMeasurer(null, diagnostics, fonts);
         }
 
         private void ValidateAssets(UiNode root, IDiagnosticSink diagnostics)

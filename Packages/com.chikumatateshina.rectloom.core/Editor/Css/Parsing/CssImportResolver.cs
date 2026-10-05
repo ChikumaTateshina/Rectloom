@@ -46,40 +46,7 @@ namespace Rectloom.Core.Css.Parsing
             IReadOnlyList<string> entryPaths,
             IDiagnosticSink diagnostics)
         {
-            if (entryPaths == null)
-            {
-                throw new ArgumentNullException(nameof(entryPaths));
-            }
-
-            if (diagnostics == null)
-            {
-                throw new ArgumentNullException(nameof(diagnostics));
-            }
-
-            var ordered = new List<CssStyleSheet>();
-
-            // Case-insensitive because the same file can be written with different casing on
-            // Windows, and treating those as two files would make a cycle invisible.
-            var loaded = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var inProgress = new List<string>();
-
-            foreach (string entryPath in entryPaths)
-            {
-                string? resolved = CssPathResolver.Resolve(null, entryPath);
-
-                if (resolved == null)
-                {
-                    diagnostics.Error(
-                        DiagnosticCodes.Asset.NotFound,
-                        "'" + entryPath + "' is not a usable stylesheet path.",
-                        SourceLocation.None);
-                    continue;
-                }
-
-                Load(resolved, SourceLocation.None, ordered, loaded, inProgress, diagnostics);
-            }
-
-            return ordered;
+            return Resolve(entryPaths, null, null, diagnostics);
         }
 
         /// <summary>
@@ -191,21 +158,7 @@ namespace Rectloom.Core.Css.Parsing
             string path = documentPath ?? sheet.Source.FilePath ?? "<html>";
             CssStyleSheet parsed = CssParser.Parse(path, sheet.Text!, diagnostics);
 
-            foreach (CssImport import in parsed.Imports)
-            {
-                string? importPath = CssPathResolver.Resolve(path, import.Path);
-
-                if (importPath == null)
-                {
-                    diagnostics.Error(
-                        DiagnosticCodes.Asset.NotFound,
-                        "'" + import.Path + "' is not a usable stylesheet path.",
-                        import.Source);
-                    continue;
-                }
-
-                Load(importPath, import.Source, ordered, loaded, inProgress, diagnostics);
-            }
+            LoadImports(parsed, path, ordered, loaded, inProgress, diagnostics);
 
             ordered.Add(parsed);
         }
@@ -249,9 +202,26 @@ namespace Rectloom.Core.Css.Parsing
 
             inProgress.Add(assetPath);
 
+            LoadImports(sheet, assetPath, ordered, loaded, inProgress, diagnostics);
+
+            inProgress.RemoveAt(inProgress.Count - 1);
+
+            // Added after its imports, so the importing sheet wins ties against what it imported.
+            ordered.Add(sheet);
+        }
+
+        // Embedded and external sheets resolve imports through the same path and diagnostic rules.
+        private void LoadImports(
+            CssStyleSheet sheet,
+            string sourcePath,
+            List<CssStyleSheet> ordered,
+            HashSet<string> loaded,
+            List<string> inProgress,
+            IDiagnosticSink diagnostics)
+        {
             foreach (CssImport import in sheet.Imports)
             {
-                string? importPath = CssPathResolver.Resolve(assetPath, import.Path);
+                string? importPath = CssPathResolver.Resolve(sourcePath, import.Path);
 
                 if (importPath == null)
                 {
@@ -264,11 +234,6 @@ namespace Rectloom.Core.Css.Parsing
 
                 Load(importPath, import.Source, ordered, loaded, inProgress, diagnostics);
             }
-
-            inProgress.RemoveAt(inProgress.Count - 1);
-
-            // Added after its imports, so the importing sheet wins ties against what it imported.
-            ordered.Add(sheet);
         }
 
         private static bool IsInProgress(List<string> inProgress, string assetPath)

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-05
+
+### Internal
+
+- Separate CSS declaration application from style inheritance and variable resolution.
+- Share stylesheet import resolution between external and embedded stylesheets.
+- Keep the font cache local to each compile pass while sharing it with layout and generation.
+
+
+## [0.1.1] - 2026-10-05
+
 ### Added
 
 #### Self-contained documents
@@ -261,5 +272,7 @@ console lines that all say the same thing.
   a `MonoBehaviour` from an Editor-only assembly, so an extension's own code may be Editor-only but
   what it attaches may not be.
 
-[Unreleased]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.1.1...v0.1.2
+[0.1.1]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/ChikumaTateshina/Rectloom/releases/tag/v0.1.0
