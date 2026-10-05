@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Text;
+using Rectloom.Core.Diagnostics;
 using Rectloom.Core.Metadata;
 using TMPro;
 using UnityEditor;
@@ -67,7 +68,14 @@ namespace Rectloom.Ugui.Backend
 
         // TMP resolves font tags via Resources in a player. Registering only in the Editor would
         // look correct there but lose the emoji font after building a world.
-        internal static TMP_FontAsset? EnsureResource(TMP_FontAsset? source, string generatedFolder)
+        //
+        // Nothing here is allowed to throw. An emoji font that cannot be relocated costs the emoji in a
+        // build; it must not cost the compile, which would take the whole document down with it,
+        // images and all.
+        internal static TMP_FontAsset? EnsureResource(
+            TMP_FontAsset? source,
+            string generatedFolder,
+            IDiagnosticSink? diagnostics = null)
         {
             if (source == null) return null;
             string path = AssetDatabase.GetAssetPath(source);
@@ -78,21 +86,64 @@ namespace Rectloom.Ugui.Backend
             string resourceSuffix = "/Resources/" + (resourceFolder.Length == 0 ? "" : resourceFolder + "/")
                 + source.name + ".asset";
             if (path.EndsWith(resourceSuffix, StringComparison.Ordinal)) return source;
-            string name = "RectloomEmoji_" + AssetDatabase.AssetPathToGUID(path);
+
+            // A freshly created asset may not have a GUID yet, and an empty one would give every font
+            // the same name.
+            string guid = AssetDatabase.AssetPathToGUID(path);
+            string name = "RectloomEmoji_" + (string.IsNullOrEmpty(guid) ? source.name : guid);
             string folder = generatedFolder.TrimEnd('/') + "/Resources"
                 + (resourceFolder.Length == 0 ? "" : "/" + resourceFolder);
             string destination = folder + "/" + name + ".asset";
             var existing = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(destination);
             if (existing != null) return existing;
-            MetadataStore.EnsureFolder(folder);
-            if (!AssetDatabase.CopyAsset(path, destination))
-                throw new InvalidOperationException("Cannot make the emoji font available to a player: " + path);
-            var copy = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(destination);
+
+            TMP_FontAsset? copy = null;
+
+            try
+            {
+                MetadataStore.EnsureFolder(folder);
+
+                if (AssetDatabase.CopyAsset(path, destination))
+                {
+                    copy = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(destination);
+                }
+            }
+            catch (Exception exception)
+            {
+                ReportNotRelocated(diagnostics, path, exception.Message);
+                return source;
+            }
+
+            if (copy == null)
+            {
+                ReportNotRelocated(diagnostics, path, "it could not be copied to '" + destination + "'");
+                return source;
+            }
+
             copy.name = name;
             copy.ReadFontAssetDefinition();
             EditorUtility.SetDirty(copy);
             AssetDatabase.SaveAssets();
             return copy;
+        }
+
+        /// <summary>
+        /// Reports an emoji font that stays where it is.
+        /// </summary>
+        /// <remarks>
+        /// The font still renders in the Editor, because the font tag resolves against the assets loaded
+        /// in the session. A built player resolves it through Resources instead, so the warning is about
+        /// the build rather than about what is on screen now.
+        /// </remarks>
+        private static void ReportNotRelocated(IDiagnosticSink? diagnostics, string path, string reason)
+        {
+            diagnostics?.Warning(
+                DiagnosticCodes.Asset.NotFound,
+                "The emoji font at '" + path + "' was not copied into a Resources folder because "
+                    + reason + ". Emoji render in the Editor but will be missing from a build.",
+                SourceLocation.None,
+                "Move the font asset into a Resources folder yourself, or set the Emoji TMP Font to one "
+                    + "that already lives in one.");
         }
     }
 }

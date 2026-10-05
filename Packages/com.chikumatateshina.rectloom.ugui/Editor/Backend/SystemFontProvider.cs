@@ -120,14 +120,39 @@ namespace Rectloom.Ugui.Backend
                 return null;
             }
 
-            TMP_FontAsset? asset = TMP_FontAsset.CreateFontAsset(
-                font,
-                samplingPointSize: 90,
-                atlasPadding: 9,
-                renderMode: GlyphRenderMode.SDFAA,
-                atlasWidth: 1024,
-                atlasHeight: 1024,
-                atlasPopulationMode: AtlasPopulationMode.Dynamic);
+            // Nothing here is allowed to escape. A font that cannot be generated costs the emoji; it
+            // must not cost the compile, which would take the whole document down with it.
+            TMP_FontAsset? asset;
+
+            try
+            {
+                asset = TMP_FontAsset.CreateFontAsset(
+                    font,
+                    samplingPointSize: 90,
+                    atlasPadding: 9,
+                    renderMode: GlyphRenderMode.SDFAA,
+                    atlasWidth: 1024,
+                    atlasHeight: 1024,
+                    atlasPopulationMode: AtlasPopulationMode.Dynamic);
+
+                if (asset != null)
+                {
+                    AssetDatabase.CreateAsset(asset, assetPath);
+                    AssetDatabase.SaveAssets();
+                    asset.ReadFontAssetDefinition();
+                }
+            }
+            catch (Exception exception)
+            {
+                Report(
+                    diagnostics,
+                    DiagnosticCodes.Asset.UnsupportedType,
+                    family,
+                    "TextMeshPro could not build a font asset from '" + source + "': " + exception.Message,
+                    "Create the font asset by hand with Window > TextMeshPro > Font Asset Creator.");
+
+                return null;
+            }
 
             if (asset == null)
             {
@@ -140,10 +165,6 @@ namespace Rectloom.Ugui.Backend
 
                 return null;
             }
-
-            AssetDatabase.CreateAsset(asset, assetPath);
-            AssetDatabase.SaveAssets();
-            asset.ReadFontAssetDefinition();
 
             Report(
                 diagnostics,

@@ -246,7 +246,7 @@ namespace Rectloom.Ugui.Compilation
                     ?? SystemFontProvider.TryCreate(EmojiFontFamily, options.GeneratedAssetFolder, diagnostics);
             }
 
-            if (commitOutput) emoji = EmojiText.EnsureResource(emoji, options.GeneratedAssetFolder);
+            if (commitOutput) emoji = EmojiText.EnsureResource(emoji, options.GeneratedAssetFolder, diagnostics);
             var fonts = new TmpFontLibrary(_defaultFont, diagnostics, emoji);
             ITextMeasurer measurer = CreateMeasurer(diagnostics, fonts);
 

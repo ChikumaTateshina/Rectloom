@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- A failure while making the emoji font available to a player no longer takes the compile with it.
+  Relocating the font asset into a Resources folder threw on a failed copy and dereferenced the copy
+  without checking it, and the compiler turns an escaped exception into a fatal `INTERNAL9001`. Until
+  0.3.0 the emoji font was always null and none of that code ran; now that a font asset is generated,
+  it does. Either failure would have taken down the whole document, an embedded image included, which
+  is a poor trade for an emoji. Both are now reported as a warning naming what a build will be missing,
+  and the rest of the document compiles.
+
+  Generating the font asset is wrapped the same way, for the same reason.
+
+### Added
+
+- `EmbeddedImageCompileTests`, which compiles a `data:` URI through the real store and the real asset
+  resolver rather than a double. The other embedded-image tests decode without writing or write without
+  compiling; what can break is the order the two happen in, so the whole thing is now covered, including
+  a document that has an emoji beside the image.
+
 ## [0.3.0] - 2026-10-05
 
 A minor rather than a patch release: the generated prefab's origin moved, so output compiled
