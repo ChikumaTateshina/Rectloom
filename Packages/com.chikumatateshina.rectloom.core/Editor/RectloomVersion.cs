@@ -12,6 +12,6 @@ namespace Rectloom.Core
     public static class RectloomVersion
     {
         /// <summary>Version of the compiler, matching the package version.</summary>
-        public const string Current = "0.4.4";
+        public const string Current = "0.4.5";
     }
 }

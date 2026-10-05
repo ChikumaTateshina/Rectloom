@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.5] - 2026-10-06
+
 ### Fixed
 
 - **Updating through VCC now makes Unity recompile.** Every file in the release zip was stamped 1980-01-01, VCC restores those times on install, and Unity decides whether a script changed by its modification time. Installing a new version over an old one therefore left the new source on disk while the previous version's assemblies kept running, so fixes appeared not to work. Entries are now stamped with the time of the commit being released. If a project is already in this state, right-click the Rectloom package and choose Reimport once.
@@ -478,7 +480,8 @@ console lines that all say the same thing.
   a `MonoBehaviour` from an Editor-only assembly, so an extension's own code may be Editor-only but
   what it attaches may not be.
 
-[Unreleased]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.4.4...HEAD
+[Unreleased]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.4.5...HEAD
+[0.4.5]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.4.4...v0.4.5
 [0.4.4]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.4.3...v0.4.4
 [0.4.3]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.4.1...v0.4.2
