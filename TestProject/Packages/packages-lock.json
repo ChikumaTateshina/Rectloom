@@ -11,7 +11,7 @@
       "depth": 0,
       "source": "local",
       "dependencies": {
-        "com.chikumatateshina.rectloom.core": "0.4.5",
+        "com.chikumatateshina.rectloom.core": "0.5.0",
         "com.unity.ugui": "1.0.0",
         "com.unity.textmeshpro": "3.0.6",
         "com.unity.vectorgraphics": "2.0.0-preview.24"
@@ -22,8 +22,8 @@
       "depth": 0,
       "source": "local",
       "dependencies": {
-        "com.chikumatateshina.rectloom.core": "0.4.5",
-        "com.chikumatateshina.rectloom.ugui": "0.4.5"
+        "com.chikumatateshina.rectloom.core": "0.5.0",
+        "com.chikumatateshina.rectloom.ugui": "0.5.0"
       }
     },
     "com.unity.2d.sprite": {
