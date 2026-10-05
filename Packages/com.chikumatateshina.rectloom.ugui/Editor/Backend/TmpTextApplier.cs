@@ -2,6 +2,7 @@
 
 using Rectloom.Core.Ir;
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 
@@ -43,6 +44,7 @@ namespace Rectloom.Ugui.Backend
                 text.font = font;
             }
 
+            text.spriteAsset = emojiSprites != null && emojiSprites.Count > 0 ? emojiSprites.First().Value : null;
             text.text = EmojiText.FormatColor(content ?? string.Empty, emojiFont, emojiSprites);
             text.color = style.Color;
             text.fontSize = style.FontSize;

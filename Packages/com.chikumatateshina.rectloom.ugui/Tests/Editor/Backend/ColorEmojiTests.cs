@@ -10,6 +10,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.TextCore;
 using UnityEngine.TextCore.LowLevel;
+using Rectloom.Core.Ir;
 
 namespace Rectloom.Ugui.Tests.Backend
 {
@@ -57,7 +58,18 @@ namespace Rectloom.Ugui.Tests.Backend
                     .GetMethod("FormatColor", BindingFlags.NonPublic | BindingFlags.Static)!;
                 var sprites = new Dictionary<uint, TMP_SpriteAsset> { [0x1F642] = sprite };
                 string text = (string)format.Invoke(null, new object?[] { "日本🙂\uFE0F<b>", null, sprites });
-                Assert.That(text, Is.EqualTo("日本<sprite=\"SegoeEmoji_Test\" index=0 tint=0 color=#FFFFFFFF><noparse><</noparse>b>"));
+                Assert.That(text, Is.EqualTo("日本<sprite name=\"1F642\" tint=0 color=#FFFFFFFF><noparse><</noparse>b>"));
+                var host = new GameObject("DirectEmojiReference", typeof(RectTransform));
+                try
+                {
+                    var component = host.AddComponent<TextMeshProUGUI>();
+                    TmpTextApplier.Apply(component, "日本🙂", new UiTextStyle(), emojiSprites: sprites);
+                    Assert.That(component.spriteAsset, Is.SameAs(sprite), "AssetBundle must see a serialized dependency");
+                    Assert.That(component.text, Does.Not.Contain("<sprite="));
+                    TmpTextApplier.Apply(component, "日本", new UiTextStyle());
+                    Assert.That(component.spriteAsset, Is.Null, "Update must clear the obsolete dependency");
+                }
+                finally { UnityEngine.Object.DestroyImmediate(host); }
             }
             finally { UnityEngine.Object.DestroyImmediate(sprite); }
         }

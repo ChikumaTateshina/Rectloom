@@ -189,7 +189,9 @@ Segoe UI Emoji の COLR レイヤーと CPAL パレットからカラー画像�
 本文フォントのフォールバックには追加しません。単独の Unicode 絵文字に対応し、
 ZWJ・肌色などの複合シーケンスの合字や COLR v1 専用の表現は未対応です。
 対応するカラーレイヤーのない文字はフォントの単色字形を使用します。
-タグを保存後やビルド後にも解決できるよう、生成アセットフォルダの `Resources` 内にアセットを用意します。
+生成した絵文字セットを TMP コンポーネントの Sprite Asset に直接指定します。
+セットから各字形・マテリアル・画像を参照するため、VRChat の AssetBundle にも含まれます。
+アセット名による Resources の実行時検索には依存しません。
 日本語は従来どおり Default TMP Font または CSS の font-family で指定できます。
 
 最後の字形補完には、**Project Settings > TextMesh Pro > Fallback Font Assets** の末尾に

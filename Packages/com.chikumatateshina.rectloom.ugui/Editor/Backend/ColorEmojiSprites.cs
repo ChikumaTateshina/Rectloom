@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Rectloom.Core.Diagnostics;
 using Rectloom.Core.Assets;
 using Rectloom.Core.Metadata;
@@ -91,6 +92,28 @@ namespace Rectloom.Ugui.Backend
                         result[code] = asset;
                     }
                     finally { if (!AssetDatabase.Contains(pixels)) UnityEngine.Object.DestroyImmediate(pixels); }
+                }
+                if (result.Count > 0)
+                {
+                    // AssetBundles do not expose their Resources entries through Resources.Load.
+                    // A serialized sprite root includes every glyph dependency in the world bundle.
+                    string setKey = DataUri.ContentHash(System.Text.Encoding.UTF8.GetBytes(
+                        string.Join(";", result.OrderBy(pair => pair.Key).Select(pair => pair.Value.name))));
+                    string rootPath = folder + "/SegoeEmojiSet_" + setKey + ".asset";
+                    var root = AssetDatabase.LoadAssetAtPath<TMP_SpriteAsset>(rootPath);
+                    if (root == null)
+                    {
+                        root = ScriptableObject.CreateInstance<TMP_SpriteAsset>();
+                        root.name = "SegoeEmojiSet_" + setKey;
+                        var first = result.First().Value;
+                        JsonUtility.FromJsonOverwrite("{\"m_Version\":\"1.1.0\",\"m_FaceInfo\":" + JsonUtility.ToJson(first.faceInfo) + "}", root);
+                        root.spriteSheet = first.spriteSheet;
+                        root.material = first.material;
+                        root.fallbackSpriteAssets = result.OrderBy(pair => pair.Key).Select(pair => pair.Value).ToList();
+                        root.UpdateLookupTables();
+                        AssetDatabase.CreateAsset(root, rootPath);
+                    }
+                    foreach (uint code in result.Keys.ToArray()) result[code] = root;
                 }
                 AssetDatabase.SaveAssets();
             }

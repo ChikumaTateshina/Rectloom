@@ -59,8 +59,7 @@ namespace Rectloom.Ugui.Backend
                 if (sprites != null && sprites.TryGetValue(code, out TMP_SpriteAsset sprite))
                 {
                     if (inEmoji) { output.Append("</font>"); inEmoji = false; }
-                    MaterialReferenceManager.AddSpriteAsset(sprite);
-                    output.Append("<sprite=\"").Append(sprite.name).Append("\" index=0 tint=0 color=#FFFFFFFF>");
+                    output.Append("<sprite name=\"").Append(code.ToString("X")).Append("\" tint=0 color=#FFFFFFFF>");
                     if (code > 0xFFFF) index++;
                     if (index + 1 < content.Length && content[index + 1] == '\uFE0F') index++;
                     continue;
