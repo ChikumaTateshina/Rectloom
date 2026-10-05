@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Rectloom — VPM Repository</title>
-<meta name="description" content="HTML/CSS を Unity uGUI へコンパイルする Editor ツール Rectloom の VPM リポジトリ。VCC へワンクリックで追加できます。">
+<title>Rectloom — HTML/CSS からワールドの UI をつくる</title>
+<meta name="description" content="HTML/CSS から Unity の UI・Prefab を生成する Rectloom。VRChat ワールドの展示キャプションや案内パネルに。VCC への追加、利用手順、ユースケースを紹介します。">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232b6cb0'/%3E%3Crect x='7' y='9' width='18' height='5' rx='1.5' fill='white'/%3E%3Crect x='7' y='18' width='11' height='5' rx='1.5' fill='white' opacity='.75'/%3E%3C/svg%3E">
 <style>
 :root {
@@ -45,7 +45,30 @@ header { margin-bottom: 2.5rem; }
 h1 { font-size: clamp(1.75rem, 5vw, 2.25rem); margin: 0 0 .35rem; letter-spacing: -.02em; }
 .tagline { color: var(--muted); margin: 0; font-size: 1.05rem; }
 h2 { font-size: 1.05rem; margin: 2.5rem 0 .75rem; letter-spacing: .01em; }
+h3 { font-size: 1rem; margin: 0 0 .5rem; }
 p { margin: 0 0 1rem; }
+.intro { margin-top: 1.25rem; max-width: 40rem; }
+.page-nav { display: flex; flex-wrap: wrap; gap: .5rem 1.25rem; margin-top: 1.5rem; font-size: .9rem; }
+.flow { display: flex; align-items: center; gap: .75rem; margin: 1.5rem 0; }
+.flow-item { flex: 1; padding: 1rem; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.flow-item strong, .flow-item span { display: block; }
+.flow-item span { color: var(--muted); font-size: .85rem; }
+.flow-arrow { color: var(--accent); font-size: 1.5rem; }
+.use-cases { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
+.use-case { padding: 1rem; border: 1px solid var(--line); border-radius: 10px; }
+.use-case p { color: var(--muted); font-size: .9rem; margin: 0; }
+.steps { padding-left: 1.5rem; }
+.steps li { padding-left: .25rem; margin-bottom: 1rem; }
+.steps li::marker { color: var(--accent); font-weight: 700; }
+.steps p { margin: .25rem 0 0; }
+.note { border-left: 3px solid var(--accent); padding: .75rem 1rem; background: var(--panel); font-size: .9rem; }
+section[id] { scroll-margin-top: 1.5rem; }
+@media (max-width: 560px) {
+  .use-cases { grid-template-columns: 1fr; }
+  .flow { gap: .5rem; }
+  .flow-item { padding: .75rem; }
+  td code { overflow-wrap: anywhere; }
+}
 a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
 code, pre, input { font-family: ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo, Consolas, monospace; }
 code { font-size: .9em; background: var(--panel); padding: .1em .35em; border-radius: 4px; }
@@ -57,7 +80,7 @@ pre code { background: none; padding: 0; }
 
 .install {
   background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
-  padding: 1.5rem; margin-bottom: .75rem;
+  padding: 1.5rem; margin-top: 2.5rem; margin-bottom: .75rem;
 }
 .cta {
   display: inline-flex; align-items: center; gap: .55rem;
@@ -116,11 +139,45 @@ footer a { color: var(--muted); }
 <main>
   <header>
     <h1>Rectloom</h1>
-    <p class="tagline">HTML/CSS を Unity uGUI へコンパイルする Editor ツールです。</p>
+    <p class="tagline">HTML/CSS から、ワールドに置ける Unity UI を。</p>
+    <p class="intro">展示のキャプション、入口の案内、イベントの情報パネル。
+      文章とレイアウトを HTML/CSS で用意して、Unity の UI と Prefab に変換できます。
+      生成した UI は Scene に配置し、通常の Unity オブジェクトとして編集できます。</p>
+    <nav class="page-nav" aria-label="ページ内の案内">
+      <a href="#about">Rectloom とは</a><a href="#use-cases">ユースケース</a>
+      <a href="#install-heading">VCC に追加</a><a href="#usage">使い方</a><a href="#fonts">フォントと画像</a>
+    </nav>
   </header>
 
+  <section id="about" aria-labelledby="about-heading">
+    <h2 id="about-heading">Rectloom とは</h2>
+    <p>Unity Editor 上で HTML/CSS を読み取り、Canvas、TextMeshPro、Image、Button などを
+      組み合わせた UI を生成するツールです。生成後は HTML を実行せず、普通の uGUI として動作します。
+      VRChat ワールドの空間に置くパネルにも、通常の Unity の画面 UI にも使えます。</p>
+    <div class="flow" aria-label="HTML と CSS をコンパイルして Unity UI の Prefab を生成">
+      <div class="flow-item"><strong>HTML / CSS</strong><span>文章・色・レイアウトを用意</span></div>
+      <span class="flow-arrow" aria-hidden="true">→</span>
+      <div class="flow-item"><strong>Unity UI / Prefab</strong><span>Scene に置いて使う</span></div>
+    </div>
+    <p>同じ見た目のパネルをまとめて作り、内容を変更したら再コンパイルして更新できます。
+      <strong>Update</strong> は差分を反映し、設定済みのボタンイベントや追加した Component を保持します。
+      更新を続ける要素には HTML の <code>id</code> を付けておくと、同じ要素として識別できます。</p>
+  </section>
+
+  <section id="use-cases" aria-labelledby="use-cases-heading">
+    <h2 id="use-cases-heading">こんな場面に</h2>
+    <div class="use-cases">
+      <article class="use-case"><h3>展示キャプション</h3><p>作品名、作者、解説、ロゴをまとめたパネルに。
+        共通の CSS を使い、作品ごとの HTML からそれぞれの Prefab を作れます。</p></article>
+      <article class="use-case"><h3>ワールドの案内</h3><p>入口の説明、利用ルール、エリアの紹介に。
+        World Space Canvas で生成し、壁や展示台のそばに配置できます。</p></article>
+      <article class="use-case"><h3>イベント情報</h3><p>開催日時、出演者、プログラムの掲示に。
+        文章を HTML で更新し、既存の Prefab に変更を反映できます。</p></article>
+    </div>
+  </section>
+
   <section class="install" aria-labelledby="install-heading">
-    <h2 id="install-heading" style="margin-top:0">インストール</h2>
+    <h2 id="install-heading" style="margin-top:0">VCC に追加</h2>
 
     <button type="button" class="cta" id="add-to-vcc">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
@@ -163,21 +220,89 @@ footer a { color: var(--muted); }
     </p>
   </details>
 
-  <details>
-    <summary>プロジェクトへの追加と使い方</summary>
-    <ol>
-      <li>VCC でワールドプロジェクトの <strong>Manage Project</strong> を開きます</li>
-      <li><strong>Rectloom</strong> の <code>+</code> を押します<br>
-        <span class="pkg-desc">コンパイラ、uGUI バックエンド、VRChat アダプタがまとめて入ります</span></li>
-      <li>Unity で <strong>Tools → Rectloom → Compiler</strong> を開きます</li>
-      <li>HTML と CSS を指定して <strong>Compile</strong> します</li>
+  <section id="usage" aria-labelledby="usage-heading">
+    <h2 id="usage-heading">最初のパネルを作る</h2>
+    <p>Unity 2022.3 と TextMeshPro を使用します。VRChat では VCC で用意したワールドプロジェクトに導入してください。</p>
+    <ol class="steps">
+      <li><strong>プロジェクトに Rectloom を入れる</strong><p>上のボタンでリポジトリを追加したら、
+        VCC の <strong>Manage Project</strong> で <strong>Rectloom</strong> の <code>+</code> を押し、Unity を開きます。
+        TMP のリソースが未導入なら、<strong>Window → TextMeshPro → Import TMP Essential Resources</strong> からインポートします。</p></li>
+      <li><strong>HTML を Assets 内に用意する</strong><p>文章を HTML、見た目を CSS に記述します。
+        CSS は HTML 内の <code>&lt;style&gt;</code>、外部 CSS のリンク、Compiler の追加 CSS で指定できます。
+        まずは下の例を <code>caption.html</code> として保存してみてください。</p></li>
+      <li><strong>Compiler で出力を設定する</strong><p><strong>Tools → Rectloom → Compiler</strong> を開き、
+        ソース HTML と <strong>Default TMP Font</strong> を指定します。
+        <strong>Output Folder</strong> の <strong>Browse</strong> から、Assets 内の Prefab 保存先を選びます。</p></li>
+      <li><strong>Compile して Scene に置く</strong><p>初回は <strong>Create</strong> でコンパイルします。
+        HTML と同じ名前の Prefab が出力されるので、Scene にドラッグし、位置と向きを調整してください。
+        World Space の既定設定では <strong>HTML の 1px が 1mm</strong> に相当します（親の倍率が 1 の場合）。</p></li>
+      <li><strong>内容を更新する</strong><p>HTML/CSS を編集し、<strong>Update</strong> で再コンパイルします。
+        一緒に生成される <code>.rectloom.asset</code> は更新用の記録なので、Prefab とともに残してください。
+        VRChat に反映するには、更新後のワールドをビルド・アップロードします。</p></li>
     </ol>
-    <p style="margin-top:.75rem">
-      詳細は
-      <a href="https://github.com/ChikumaTateshina/Rectloom/blob/main/docs/VCC_INSTALL.md">導入手順</a>
-      を参照してください。
-    </p>
-  </details>
+    <details>
+      <summary>コピーして試せる展示キャプション</summary>
+      <p style="margin-top:.75rem">日本語対応の TMP Font Asset を指定してください。この例のパネルは、既定の World Space 設定で幅 600mm になります。</p>
+<pre><code>&lt;!doctype html&gt;
+&lt;html lang="ja"&gt;
+&lt;head&gt;
+  &lt;meta charset="utf-8"&gt;
+  &lt;style&gt;
+    body { margin: 0; }
+    .caption {
+      box-sizing: border-box; width: 600px; padding: 32px;
+      background: #202631; color: #ffffff;
+    }
+    h1 { font-size: 40px; margin: 0 0 16px; }
+    p { font-size: 24px; line-height: 1.5; margin: 0; }
+  &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;article id="caption" class="caption"&gt;
+    &lt;h1 id="title"&gt;星空の記録&lt;/h1&gt;
+    &lt;p id="description"&gt;作者：サンプル&lt;br&gt;夜空を撮影した作品です。&lt;/p&gt;
+  &lt;/article&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+    </details>
+    <p class="note"><strong>複数の HTML をまとめて出力するには：</strong>
+      <strong>Batch HTML files</strong> をオンにし、<strong>Add HTML file</strong> で追加するか、
+      Project でファイル・フォルダを選択して <strong>Add selected HTML files / folders</strong> を押します。
+      <strong>Compile All HTML Files</strong> で、HTML ごとに独立した Prefab を出力します。</p>
+  </section>
+
+  <section id="fonts" aria-labelledby="fonts-heading">
+    <h2 id="fonts-heading">フォントと画像</h2>
+    <p><strong>日本語：</strong>Noto Sans JP などから TMP Font Asset を作り、
+      <strong>Default TMP Font</strong> に指定します。フォントファイルを Assets に入れ、Project で右クリックして
+      <strong>Create → TextMeshPro → Font Asset</strong> から作成できます。
+      Dynamic の場合は、元フォントの <strong>Include Font Data</strong> を有効にしてください。
+      既定の LiberationSans には日本語の字形がありません。
+      最後の字形補完に Meiryo を使う場合は、Meiryo の TMP Font Asset を
+      <strong>Project Settings → TextMesh Pro → Fallback Font Assets</strong> の末尾に追加します。</p>
+    <p><strong>絵文字：</strong>インストール済みの Segoe UI Emoji がある環境では、対応する絵文字をカラー画像として生成します。
+      <strong>Emoji TMP Font</strong> でフォントを明示することもできます。生成 Prefab は絵文字アセットを直接参照します。
+      単独の Unicode 絵文字が対象で、肌色や ZWJ を使う複合絵文字などは未対応です。</p>
+    <p><strong>画像・ロゴ：</strong><code>&lt;img&gt;</code> と CSS の背景画像を使えます。
+      PNG/JPEG のほか、base64 で埋め込んだ SVG をコンパイル時に画像へ変換します。
+      SVG 内の文字はアウトライン化し、フィルターなど未対応の表現は PNG にしてください。</p>
+  </section>
+
+  <section id="tips" aria-labelledby="tips-heading">
+    <h2 id="tips-heading">使う前に知っておくこと</h2>
+    <p>HTML/CSS の対応範囲は、文字・画像・ボックス・Flex レイアウトなどです。
+      JavaScript、ブラウザ固有の動作、<code>::before</code> / <code>::after</code>、印刷用ルールは再現しません。
+      HTML に直接書いた SVG 要素は対象外なので、画像として埋め込んでください。</p>
+    <p>ボタンの見た目は生成できますが、押したときの動作は Unity のイベントや Udon で設定します。
+      <strong>Rebuild</strong> は完全再生成で手作業の設定を失うため、通常の編集には <strong>Update</strong> を使ってください。</p>
+    <p>HTML の <code>body</code> のプレビュー背景は既定では出力せず、本文要素の背景を生成します。
+      ページ全体の背景が必要な場合は <strong>Document Background</strong> をオンにしてください。
+      画面用の UI を作る場合は <strong>World Space (1px = 1mm)</strong> をオフにします。</p>
+    <p>コンパイル時の診断にソース位置と対処方法が表示されます。擬似要素や印刷ルールのスキップは情報です。
+      字形不足が出たらフォント設定を確認してください。詳しい対応範囲・設定は
+      <a href="https://github.com/ChikumaTateshina/Rectloom#使い方">README</a> と
+      <a href="https://github.com/ChikumaTateshina/Rectloom/blob/main/docs/VCC_INSTALL.md">導入手順</a> を参照できます。</p>
+  </section>
 
   <h2>パッケージ</h2>
   <table>
@@ -201,8 +326,9 @@ footer a { color: var(--muted); }
 
   <h2>ワールドビルドへの影響</h2>
   <p>
-    ありません。全アセンブリが Editor 専用で、コンパイル記録も Editor 専用アセットです。
-    生成物は通常の uGUI オブジェクトなので、ワールドビルドに Rectloom のコードは含まれません。
+    Rectloom の処理は Editor 専用で、ワールドビルドにコンパイラのコードは含まれません。
+    生成した UI と、その画像・フォントなどの参照アセットがワールドに含まれます。
+    表示に必要な容量や負荷は、パネル数、画像の解像度、使用するフォントに応じて変わります。
   </p>
 
   <footer>
