@@ -125,7 +125,10 @@ https://chikumatateshina.github.io/Rectloom/index.json
 ### 日本語フォント
 
 TextMeshPro の既定フォント (LiberationSans) には日本語の字形がありません。
-日本語フォントから TMP Font Asset を作り、CSS で指定してください。
+日本語フォントから TMP Font Asset を作り、Compiler の **Default TMP Font** に指定してください。
+CSS の `font-family` で要素ごとに上書きすることもできます。Dynamic の TMP Font Asset を使う場合は、
+元のフォントの Import Settings で **Include Font Data** を有効にしてください。
+印刷用の HTML で使用していたフォント名だけでは Unity のフォントアセットは作成されません。
 
 ```css
 body { font-family: "Noto Sans JP", sans-serif; }
@@ -139,9 +142,19 @@ body { font-family: "Noto Sans JP", sans-serif; }
 
 `Tools → Rectloom → Compiler` を開き、HTML と CSS を指定して `Compile` します。
 
-- `Create` — 新規生成。既存の出力は上書きしません
+- `Create` — 新規生成。既存の出力は上書きしません。ウィンドウの初期モードです。
+  成功すると次回のモードは `Update` に切り替わります。古いウィンドウが `Update` を保持していても、
+  Prefab とメタデータの両方が存在しない場合は `Create` として初回生成します。
 - `Update` — 差分更新。**ユーザーが設定したイベントや Component を保持します**
 - `Rebuild` — 完全再生成。生成物内の手作業は失われます (確認ダイアログあり)
+
+### 診断の見方
+
+`CSS1003` の擬似要素と `CSS1005` の印刷用ルールのスキップは情報で、コンパイル失敗ではありません。
+ウィンドウの **Show information** で詳細表示を切り替えられます。
+`ASSET1002` の字形不足は、Default TMP Font または CSS の font-family を日本語対応アセットに変更して解消します。
+`UNITY1008` が既存の Prefab に対して出る場合は、対応する `.rectloom.asset` を復元するか、
+新しい出力パスで Create してください。手作業を破棄してよい場合だけ Rebuild を使用します。
 
 ## 動作環境
 

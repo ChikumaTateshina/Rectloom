@@ -3,6 +3,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using Rectloom.Ugui.Windows;
 using NUnit.Framework;
 using Rectloom.Core.Assets;
 using Rectloom.Core.Compilation;
@@ -110,6 +112,92 @@ namespace Rectloom.Ugui.Tests.Compilation
             return string.Join(
                 "\n",
                 result.Diagnostics.Select(d => d.ToString()));
+        }
+
+        private static CompileMode WindowMode(CompileRequest request)
+        {
+            var method = typeof(RectloomCompilerWindow).GetMethod(
+                "ResolveInitialMode", BindingFlags.Static | BindingFlags.NonPublic);
+            return (CompileMode)method!.Invoke(null, new object[] { request });
+        }
+
+        [Test]
+        public void Window_InitialUpdateCreatesThenUpdatesTheSamePrefab()
+        {
+            CompileRequest request = Request(mode: CompileMode.Update);
+            request.CompileMode = WindowMode(request);
+            Assert.That(request.CompileMode, Is.EqualTo(CompileMode.Create));
+            Assert.That(Compiler().Compile(request).Success, Is.True);
+
+            request.CompileMode = CompileMode.Update;
+            Assert.That(WindowMode(request), Is.EqualTo(CompileMode.Update));
+            Assert.That(Compiler().Compile(request).Success, Is.True);
+        }
+
+        [Test]
+        public void Window_ExistingPrefabWithoutMetadataStillRequiresUpdateMetadata()
+        {
+            Assert.That(Compiler().Compile(Request()).Success, Is.True);
+            Rectloom.Core.Metadata.MetadataStore.Delete(
+                Rectloom.Core.Metadata.MetadataStore.GetMetadataPath(Request()));
+            Assert.That(WindowMode(Request(mode: CompileMode.Update)), Is.EqualTo(CompileMode.Update));
+        }
+
+        [Test]
+        public void Window_MissingPrefabWithMetadataDoesNotCreateOverTheOldRecord()
+        {
+            Assert.That(Compiler().Compile(Request()).Success, Is.True);
+            AssetDatabase.DeleteAsset(PrefabPath);
+            Assert.That(WindowMode(Request(mode: CompileMode.Update)), Is.EqualTo(CompileMode.Update));
+        }
+
+        [Test]
+        public void Window_SceneUpdateDoesNotCreateADuplicateHierarchy()
+        {
+            Assert.That(WindowMode(Request(CompileOutputType.SceneObject, CompileMode.Update)),
+                Is.EqualTo(CompileMode.Update));
+        }
+
+        [Test]
+        public void DefaultFont_IsAppliedToGeneratedText()
+        {
+            // The bare test project has no imported TMP Essential Resources.
+            var settingsField = typeof(TMP_Settings).GetField("s_Instance", BindingFlags.Static | BindingFlags.NonPublic);
+            var previousSettings = settingsField!.GetValue(null);
+            var settings = ScriptableObject.CreateInstance<TMP_Settings>();
+            settingsField.SetValue(null, settings);
+            var font = ScriptableObject.CreateInstance<TMP_FontAsset>();
+            font.name = "Rectloom Test Default Font";
+            font.atlasTextures = new[] { new Texture2D(16, 16) };
+            font.atlasPopulationMode = AtlasPopulationMode.Static;
+            font.material = new Material(Shader.Find("UI/Default"));
+            using (var serialized = new SerializedObject(font))
+            {
+                serialized.FindProperty("m_Version").stringValue = "1.1.0";
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+            }
+            font.ReadFontAssetDefinition();
+            try
+            {
+                var compiler = new UguiHtmlUiCompiler(_sources, new EmptyAssetResolver(),
+                    () => new UnitTextMeasurer(), defaultFont: font);
+                CompileResult result = compiler.Compile(Request(CompileOutputType.SceneObject));
+                Assert.That(result.Success, Is.True, Describe(result));
+                _sceneObjects.Add(result.RootObject!);
+                Assert.That(result.RootObject!.GetComponentsInChildren<TMP_Text>().Length, Is.GreaterThan(0));
+                foreach (TMP_Text text in result.RootObject.GetComponentsInChildren<TMP_Text>())
+                {
+                    Assert.That(text.font, Is.SameAs(font));
+                }
+            }
+            finally
+            {
+                settingsField.SetValue(null, previousSettings);
+                UnityEngine.Object.DestroyImmediate(settings);
+                UnityEngine.Object.DestroyImmediate(font.atlasTextures[0]);
+                UnityEngine.Object.DestroyImmediate(font.material);
+                UnityEngine.Object.DestroyImmediate(font);
+            }
         }
 
         [Test]

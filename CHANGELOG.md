@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-10-05
+
+### Fixed
+
+- The Compiler window now starts in Create mode and switches to Update after successful generation.
+  Older windows saved in Update mode create initial prefab output only when both output and metadata
+  are absent. Existing output without metadata is still protected.
+- Dynamic TMP fonts can populate missing glyphs during measurement, including their fallback fonts.
+
+### Added
+
+- A Default TMP Font field shared by text measurement and generated text. CSS font-family overrides it.
+- A Show information toggle for informational diagnostics such as skipped print CSS and pseudo-elements.
+
+### Validation
+
+- All 697 EditMode tests passed, including initial compilation and existing-output protection.
+- The reported Japanese caption compiled in the supplied Unity project using Noto Sans CJK JP with
+  Segoe UI Emoji as its fallback, without errors or warnings.
+
+
 ## [0.1.2] - 2026-10-05
 
 ### Internal
@@ -272,7 +293,8 @@ console lines that all say the same thing.
   a `MonoBehaviour` from an Editor-only assembly, so an extension's own code may be Editor-only but
   what it attaches may not be.
 
-[Unreleased]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/ChikumaTateshina/Rectloom/releases/tag/v0.1.0

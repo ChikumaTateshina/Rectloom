@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using Rectloom.Core.Compilation;
 using Rectloom.Core.Diagnostics;
+using Rectloom.Core.Metadata;
+using TMPro;
 using Rectloom.Ugui.Compilation;
 using UnityEditor;
 using UnityEngine;
@@ -32,11 +34,13 @@ namespace Rectloom.Ugui.Windows
         [SerializeField] private List<string> _cssPaths = new List<string>();
         [SerializeField] private CompileOutputType _outputType = CompileOutputType.Prefab;
         [SerializeField] private string _outputPath = "Assets/UI/Generated.prefab";
-        [SerializeField] private CompileMode _compileMode = CompileMode.Update;
+        [SerializeField] private CompileMode _compileMode = CompileMode.Create;
         [SerializeField] private LayoutMode _layoutMode = LayoutMode.Bake;
         [SerializeField] private Vector2 _referenceResolution = CompilerOptions.DefaultReferenceResolution;
         [SerializeField] private bool _useDefaultStyleSheet = true;
         [SerializeField] private bool _strictMode;
+        [SerializeField] private TMP_FontAsset? _defaultFont;
+        [SerializeField] private bool _showInformation;
         [SerializeField] private Vector2 _diagnosticsScroll;
         [SerializeField] private string _summary = string.Empty;
 
@@ -71,6 +75,13 @@ namespace Rectloom.Ugui.Windows
             _referenceResolution = EditorGUILayout.Vector2Field("Reference Resolution", _referenceResolution);
             _useDefaultStyleSheet = EditorGUILayout.Toggle("Built-in Stylesheet", _useDefaultStyleSheet);
             _strictMode = EditorGUILayout.Toggle("Strict Mode", _strictMode);
+
+            _defaultFont = (TMP_FontAsset?)EditorGUILayout.ObjectField(
+                "Default TMP Font", _defaultFont, typeof(TMP_FontAsset), false);
+            EditorGUILayout.HelpBox(
+                "For Japanese text, choose a TMP font asset containing Japanese glyphs. "
+                    + "CSS font-family overrides this font. Dynamic assets need their source font included.",
+                MessageType.Info);
 
             DrawModeHelp();
 
@@ -232,10 +243,20 @@ namespace Rectloom.Ugui.Windows
                 EditorGUILayout.LabelField(_summary, EditorStyles.miniLabel);
             }
 
+            _showInformation = EditorGUILayout.Toggle("Show information", _showInformation);
+
             if (_diagnostics.Count == 0)
             {
                 EditorGUILayout.HelpBox("Nothing reported.", MessageType.None);
                 return;
+            }
+
+            int hidden = _showInformation ? 0 : _diagnostics.FindAll(
+                diagnostic => diagnostic.Severity == DiagnosticSeverity.Info).Count;
+            if (hidden > 0)
+            {
+                EditorGUILayout.HelpBox(hidden + " informational messages hidden. "
+                    + "Ignored print CSS and pseudo-elements do not prevent compilation.", MessageType.None);
             }
 
             using (var scroll = new EditorGUILayout.ScrollViewScope(_diagnosticsScroll))
@@ -244,6 +265,11 @@ namespace Rectloom.Ugui.Windows
 
                 foreach (CompilerDiagnostic diagnostic in _diagnostics)
                 {
+                    if (diagnostic.Severity == DiagnosticSeverity.Info && !_showInformation)
+                    {
+                        continue;
+                    }
+
                     DrawDiagnostic(diagnostic);
                 }
             }
@@ -321,7 +347,12 @@ namespace Rectloom.Ugui.Windows
                 },
             };
 
-            var compiler = new UguiHtmlUiCompiler();
+            if (!validateOnly)
+            {
+                request.CompileMode = ResolveInitialMode(request);
+            }
+
+            var compiler = new UguiHtmlUiCompiler(defaultFont: _defaultFont);
             CompileResult result = validateOnly ? compiler.Validate(request) : compiler.Compile(request);
 
             _diagnostics.Clear();
@@ -330,10 +361,27 @@ namespace Rectloom.Ugui.Windows
 
             if (!validateOnly && result.Success && result.RootObject != null)
             {
+                _compileMode = CompileMode.Update;
                 EditorGUIUtility.PingObject(result.RootObject);
             }
 
             Repaint();
+        }
+
+        // Recover old windows serialized with Update as the default, without overwriting any
+        // existing output or bypassing ownership metadata for an existing prefab.
+        private static CompileMode ResolveInitialMode(CompileRequest request)
+        {
+            if (request.CompileMode == CompileMode.Update
+                && request.OutputType == CompileOutputType.Prefab
+                && !string.IsNullOrWhiteSpace(request.OutputPath)
+                && AssetDatabase.LoadMainAssetAtPath(request.OutputPath) == null
+                && MetadataStore.Load(MetadataStore.GetMetadataPath(request)) == null)
+            {
+                return CompileMode.Create;
+            }
+
+            return request.CompileMode;
         }
 
         private static string Summarise(CompileResult result, bool validateOnly)

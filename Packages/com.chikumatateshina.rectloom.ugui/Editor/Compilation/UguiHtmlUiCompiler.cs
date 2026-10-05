@@ -19,6 +19,7 @@ using Rectloom.Core.Layout;
 using Rectloom.Core.Metadata;
 using Rectloom.Core.Parsing;
 using Rectloom.Ugui.Backend;
+using TMPro;
 using UnityEditor;
 using UnityEngine;
 
@@ -58,6 +59,7 @@ namespace Rectloom.Ugui.Compilation
         private readonly IAssetResolver _assets;
         private readonly Func<ITextMeasurer>? _measurerFactory;
         private readonly IEmbeddedImageStore? _images;
+        private readonly TMP_FontAsset? _defaultFont;
 
         /// <summary>
         /// Creates a compiler.
@@ -73,16 +75,20 @@ namespace Rectloom.Ugui.Compilation
         /// <param name="images">
         /// Store for images embedded as <c>data:</c> URIs, or null to write them into the project.
         /// </param>
+        /// <param name="defaultFont">Default font used by both measurement and generated text.
+        /// CSS font-family can override it.</param>
         public UguiHtmlUiCompiler(
             ISourceTextLoader? sources = null,
             IAssetResolver? assets = null,
             Func<ITextMeasurer>? measurerFactory = null,
-            IEmbeddedImageStore? images = null)
+            IEmbeddedImageStore? images = null,
+            TMP_FontAsset? defaultFont = null)
         {
             _sources = sources ?? new FileSourceTextLoader();
             _assets = assets ?? AssetDatabaseResolver.Instance;
             _measurerFactory = measurerFactory;
             _images = images;
+            _defaultFont = defaultFont;
         }
 
         /// <inheritdoc />
@@ -211,7 +217,7 @@ namespace Rectloom.Ugui.Compilation
 
             var layout = Stopwatch.StartNew();
             // Keep the font cache local to this pass, shared by measurement and generation.
-            var fonts = new TmpFontLibrary(null, diagnostics);
+            var fonts = new TmpFontLibrary(_defaultFont, diagnostics);
             ITextMeasurer measurer = CreateMeasurer(diagnostics, fonts);
 
             try

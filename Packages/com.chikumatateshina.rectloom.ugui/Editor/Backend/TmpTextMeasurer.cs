@@ -170,7 +170,7 @@ namespace Rectloom.Ugui.Backend
 
         private static bool HasCharacter(TMP_FontAsset font, char character)
         {
-            if (font.HasCharacter(character, searchFallbacks: true, tryAddCharacter: false))
+            if (font.HasCharacter(character, searchFallbacks: true, tryAddCharacter: true))
             {
                 return true;
             }
@@ -185,7 +185,7 @@ namespace Rectloom.Ugui.Backend
             foreach (TMP_FontAsset fallback in global)
             {
                 if (fallback != null
-                    && fallback.HasCharacter(character, searchFallbacks: true, tryAddCharacter: false))
+                    && fallback.HasCharacter(character, searchFallbacks: true, tryAddCharacter: true))
                 {
                     return true;
                 }
@@ -208,7 +208,8 @@ namespace Rectloom.Ugui.Backend
                     + "), so text using it was measured approximately and will render with "
                     + "placeholder boxes.",
                 SourceLocation.None,
-                "Set font-family to a font asset that covers these characters, or add one to "
+                "Choose a Japanese-capable Default TMP Font in the Rectloom window, "
+                    + "set font-family, or add a matching asset to "
                     + "Project Settings > TextMesh Pro > Fallback Font Assets.");
         }
     }
