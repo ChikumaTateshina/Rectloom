@@ -1,6 +1,7 @@
 #nullable enable
 
 using Rectloom.Core.Ir;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
@@ -28,8 +29,9 @@ namespace Rectloom.Ugui.Backend
         /// the text it was sized for.
         /// </param>
         /// <param name="emojiFont">Font explicitly used for emoji runs.</param>
+        /// <param name="emojiSprites">Color emoji sprites that retain the font's palette independently of text color.</param>
         public static void Apply(TMP_Text text, string? content, UiTextStyle style, TMP_FontAsset? font = null,
-            TMP_FontAsset? emojiFont = null)
+            TMP_FontAsset? emojiFont = null, IReadOnlyDictionary<uint, TMP_SpriteAsset>? emojiSprites = null)
         {
             if (text == null || style == null)
             {
@@ -41,13 +43,13 @@ namespace Rectloom.Ugui.Backend
                 text.font = font;
             }
 
-            text.text = EmojiText.Format(content ?? string.Empty, emojiFont);
+            text.text = EmojiText.FormatColor(content ?? string.Empty, emojiFont, emojiSprites);
             text.color = style.Color;
             text.fontSize = style.FontSize;
             text.fontStyle = ResolveFontStyle(style);
             text.alignment = ResolveAlignment(style.Alignment);
             text.enableWordWrapping = style.Wrap;
-            text.richText = emojiFont != null;
+            text.richText = emojiFont != null || (emojiSprites != null && emojiSprites.Count > 0);
 
             // TextMeshPro expresses both of these as a percentage of the font size rather than in
             // pixels, so a style that says 1.5 line height becomes 50 extra percent.

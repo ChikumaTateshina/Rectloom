@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Text;
+using System.Collections.Generic;
 using Rectloom.Core.Diagnostics;
 using Rectloom.Core.Metadata;
 using TMPro;
@@ -42,14 +43,29 @@ namespace Rectloom.Ugui.Backend
         }
 
         internal static string Format(string content, TMP_FontAsset? emoji)
+            => FormatColor(content, emoji, null);
+
+        internal static string FormatColor(string content, TMP_FontAsset? emoji,
+            IReadOnlyDictionary<uint, TMP_SpriteAsset>? sprites)
         {
-            if (emoji == null) return content;
-            MaterialReferenceManager.AddFontAsset(emoji);
+            if (emoji == null && (sprites == null || sprites.Count == 0)) return content;
+            if (emoji != null) MaterialReferenceManager.AddFontAsset(emoji);
             var output = new StringBuilder(content.Length);
             bool inEmoji = false;
             for (int index = 0; index < content.Length; index++)
             {
-                bool selected = IsEmojiAt(content, index);
+                uint code = char.IsHighSurrogate(content[index]) && index + 1 < content.Length && char.IsLowSurrogate(content[index + 1])
+                    ? (uint)char.ConvertToUtf32(content, index) : content[index];
+                if (sprites != null && sprites.TryGetValue(code, out TMP_SpriteAsset sprite))
+                {
+                    if (inEmoji) { output.Append("</font>"); inEmoji = false; }
+                    MaterialReferenceManager.AddSpriteAsset(sprite);
+                    output.Append("<sprite=\"").Append(sprite.name).Append("\" index=0 tint=0 color=#FFFFFFFF>");
+                    if (code > 0xFFFF) index++;
+                    if (index + 1 < content.Length && content[index + 1] == '\uFE0F') index++;
+                    continue;
+                }
+                bool selected = emoji != null && IsEmojiAt(content, index);
                 if (selected != inEmoji)
                 {
                     if (inEmoji) output.Append("</font>");

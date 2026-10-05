@@ -54,11 +54,13 @@ namespace Rectloom.Ugui.Backend
         /// Sink for a family that could not be found, or null to resolve silently.
         /// </param>
         /// <param name="emojiFont">Font explicitly used for emoji runs, independent of body font fallback.</param>
+        /// <param name="emojiSprites">Color sprites generated from that font, or null for monochrome font runs.</param>
         public TmpFontLibrary(TMP_FontAsset? fallback = null, IDiagnosticSink? diagnostics = null,
-            TMP_FontAsset? emojiFont = null)
+            TMP_FontAsset? emojiFont = null, IReadOnlyDictionary<uint, TMP_SpriteAsset>? emojiSprites = null)
         {
             _fallback = fallback;
             EmojiFont = emojiFont;
+            EmojiSprites = emojiSprites;
             _diagnostics = diagnostics;
         }
 
@@ -67,6 +69,8 @@ namespace Rectloom.Ugui.Backend
 
         /// <summary>Font used directly for emoji runs.</summary>
         public TMP_FontAsset? EmojiFont { get; }
+        /// <summary>Color sprites generated from the emoji font, indexed by Unicode scalar.</summary>
+        public IReadOnlyDictionary<uint, TMP_SpriteAsset>? EmojiSprites { get; }
 
         /// <summary>Finds an installed named font without applying a style.</summary>
         public TMP_FontAsset? FindFamily(string family) => Find(Normalise(family));

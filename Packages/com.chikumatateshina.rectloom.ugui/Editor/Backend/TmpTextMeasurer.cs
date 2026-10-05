@@ -101,7 +101,7 @@ namespace Rectloom.Ugui.Backend
                 return ApproximateTextMeasurer.Instance.Measure(text, style, availableWidth);
             }
 
-            TmpTextApplier.Apply(_probe, text, resolved, font, _fonts.EmojiFont);
+            TmpTextApplier.Apply(_probe, text, resolved, font, _fonts.EmojiFont, _fonts.EmojiSprites);
 
             bool wraps = style.WrapsText
                 && availableWidth > 0f

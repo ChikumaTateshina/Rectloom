@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-05
+
+### Fixed
+
+- Segoe UI Emoji now retains color. Selecting its SDF font previously rendered a monochrome outline,
+  so selecting the correct font did not produce the intended appearance. The compiler now reads the
+  font's COLR compatibility layers and CPAL palette, renders them into transparent RGBA images, and
+  emits TMP sprite tags with text tint disabled. Japanese text continues using its original font.
+- Generated sprite assets live in Resources and are cached by font content and Unicode scalar, so
+  opening a saved prefab in a fresh Unity session does not depend on compiler registration. Glyph
+  metrics are shared between measurement and output; no Rectloom runtime components are required.
+- Regression tests inspect actual yellow and transparent pixels from Segoe's smiley glyphs and verify
+  that Japanese text remains literal. The actual caption was checked after restarting Unity, including
+  its rendered appearance. Single Unicode emoji with compatible COLR layers are supported; complex
+  emoji ligatures and COLR v1-only paints remain limitations.
+- 747 Unity EditMode tests, package validation and distribution-page tests passed.
+
 ## [0.4.0] - 2026-10-05
 
 ### Added
@@ -429,7 +446,8 @@ console lines that all say the same thing.
   a `MonoBehaviour` from an Editor-only assembly, so an extension's own code may be Editor-only but
   what it attaches may not be.
 
-[Unreleased]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.1.3...v0.2.0

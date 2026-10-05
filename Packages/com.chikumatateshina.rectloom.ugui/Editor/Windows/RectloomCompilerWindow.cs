@@ -120,7 +120,7 @@ namespace Rectloom.Ugui.Windows
             _emojiFont = (TMP_FontAsset?)EditorGUILayout.ObjectField(
                 "Emoji TMP Font", _emojiFont, typeof(TMP_FontAsset), false);
             EditorGUILayout.HelpBox(
-                "Emoji use Segoe UI Emoji. If the project has no font asset for it, one is generated "
+                "Emoji use Segoe UI Emoji color sprites. If the project has no font asset for it, one is generated "
                     + "from the installed font, which copies that font into the project.",
                 MessageType.Info);
 

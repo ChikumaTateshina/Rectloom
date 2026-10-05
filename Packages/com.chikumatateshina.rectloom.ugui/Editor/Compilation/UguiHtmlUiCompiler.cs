@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using Rectloom.Core;
 using Rectloom.Core.Assets;
 using Rectloom.Core.Compilation;
@@ -247,7 +248,9 @@ namespace Rectloom.Ugui.Compilation
             }
 
             if (commitOutput) emoji = EmojiText.EnsureResource(emoji, options.GeneratedAssetFolder, diagnostics);
-            var fonts = new TmpFontLibrary(_defaultFont, diagnostics, emoji);
+            var sprites = ColorEmojiSprites.Create(emoji, document.DescendantsAndSelf().OfType<DomText>().Select(text => text.Text),
+                options.GeneratedAssetFolder, diagnostics);
+            var fonts = new TmpFontLibrary(_defaultFont, diagnostics, emoji, sprites);
             ITextMeasurer measurer = CreateMeasurer(diagnostics, fonts);
 
             try
