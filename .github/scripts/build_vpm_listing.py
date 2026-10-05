@@ -54,10 +54,12 @@ import hashlib
 import json
 import os
 import shutil
+import subprocess
 import sys
 import urllib.error
 import urllib.request
 import zipfile
+from datetime import datetime, timezone
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -100,8 +102,36 @@ OPTIONAL_VPM_DEPENDENCIES = frozenset({"com.vrchat.worlds", "com.vrchat.base", "
 EXCLUDED_NAMES = {"Library", "Temp", "obj", "Logs", ".git", ".vs", ".idea", "Tests"}
 EXCLUDED_FILES = {"package.json", "package.json.meta"}
 
-# The earliest timestamp a zip entry can carry. Fixed so an archive is reproducible.
-ZIP_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
+# The earliest timestamp a zip entry can carry, used only when the commit time is unknown.
+ZIP_EPOCH = (1980, 1, 1, 0, 0, 0)
+
+
+def zip_timestamp() -> tuple[int, int, int, int, int, int]:
+    """The time every entry of the archive is stamped with: that of the commit being built.
+
+    It has to differ between releases. Unity decides whether a script changed by its
+    modification time, and VCC restores the times stored in the zip, so an archive whose
+    entries all say 1980 installs over the previous version without Unity recompiling
+    anything: the new source sits on disk while the old assemblies keep running. The commit
+    time changes with every release and is still the same for the same commit, so the
+    archive stays reproducible.
+    """
+    try:
+        seconds = int(
+            subprocess.run(
+                ["git", "log", "-1", "--format=%ct"],
+                cwd=REPO_ROOT,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+        )
+    except (OSError, ValueError, subprocess.CalledProcessError):
+        return ZIP_EPOCH
+
+    moment = datetime.fromtimestamp(seconds, tz=timezone.utc)
+    stamp = (moment.year, moment.month, moment.day, moment.hour, moment.minute, moment.second)
+    return max(stamp, ZIP_EPOCH)
 
 
 def read_manifest(package_dir: Path) -> dict:
@@ -186,7 +216,7 @@ def build_bundle_manifest(version: str) -> dict:
 def zip_bundle(destination: Path, manifest: dict) -> tuple[int, str]:
     """Zip the three packages into one archive with the bundle manifest at its root.
 
-    Entries are sorted and stamped with a fixed timestamp, so the same commit always
+    Entries are sorted and stamped with the commit's time, so the same commit always
     produces the same bytes. Without that, re-running a release would change the
     archive's hash while its contents stayed identical.
     """
@@ -211,9 +241,11 @@ def zip_bundle(destination: Path, manifest: dict) -> tuple[int, str]:
 
             entries.append((f"{folder}/{relative.as_posix()}", path.read_bytes()))
 
+    timestamp = zip_timestamp()
+
     with zipfile.ZipFile(destination, "w", zipfile.ZIP_DEFLATED) as archive:
         for name, data in sorted(entries):
-            info = zipfile.ZipInfo(name, ZIP_TIMESTAMP)
+            info = zipfile.ZipInfo(name, timestamp)
             info.compress_type = zipfile.ZIP_DEFLATED
             info.external_attr = 0o644 << 16
             archive.writestr(info, data)

@@ -33,10 +33,10 @@
 
   <main id="columns">
 
-    <!-- ===== Column 1: units, box model, position ===== -->
-    <section>
+    <!-- ===== Column 1: units, box model, buttons ===== -->
+    <section id="column-1">
 
-      <article class="card">
+      <article class="card units">
         <h2 class="card-title">Units</h2>
         <p class="label">240px</p>          <div class="bar u-px"></div>
         <p class="label">50%</p>            <div class="bar u-pct"></div>
@@ -56,7 +56,7 @@
         <div class="row">
           <div class="box margins">margin</div>
           <div class="box paddings">padding</div>
-          <div class="box clamped">min / max</div>
+          <div class="box clamped">min max</div>
           <div class="box rounded">radius</div>
         </div>
         <div class="row" style="margin-top: 12px;">
@@ -66,6 +66,26 @@
           <div class="box nudged">relative</div>
         </div>
       </article>
+
+      <article class="card">
+        <h2 class="card-title">Buttons and Unity</h2>
+        <!-- Each button becomes a real Button component with a TextMeshPro label. -->
+        <div class="row">
+          <button id="ok-button" class="primary quiet">Primary</button>
+          <button class="ghost">Ghost</button>
+          <button class="disabled">Disabled</button>
+        </div>
+        <!-- component adds a Unity component by full type name; component.x sets a property on it. -->
+        <div id="group" class="row blocker" style="margin-top: 12px; padding: 8px; background-color: var(--glass);"
+             component="UnityEngine.CanvasGroup" component.alpha="0.85" component.interactable="true">
+          <span class="label">CanvasGroup from markup, alpha 0.85</span>
+        </div>
+      </article>
+
+    </section>
+
+    <!-- ===== Column 2: position, structure, images ===== -->
+    <section id="column-2">
 
       <article class="card">
         <h2 class="card-title">Position and clipping</h2>
@@ -80,17 +100,61 @@
           <p>The second line is cut off by a RectMask2D.</p>
         </div>
         <div class="clip clip-x clip-y" style="margin-top: 6px;">
-          <p>overflow-x and overflow-y work separately.</p>
+          <p>overflow-x and overflow-y also work.</p>
           <p>This line is clipped as well.</p>
         </div>
         <div class="hidden">display: none: this never reaches the output.</div>
         <div class="centred" style="margin-top: 8px;">margin: 0 auto</div>
       </article>
 
+      <article class="card lists">
+        <h2 class="card-title">Lists and structure</h2>
+        <div class="row">
+          <ul>
+            <li>Item one</li>
+            <li>Item two</li>
+          </ul>
+          <ol>
+            <li>Item one</li>
+            <li>Item two</li>
+          </ol>
+          <dl>
+            <dt>Term</dt>
+            <dd>Description</dd>
+          </dl>
+        </div>
+        <hr>
+        <blockquote>A blockquote, laid out as a block.</blockquote>
+        <figure>
+          <figcaption class="label">figure and figcaption</figcaption>
+        </figure>
+      </article>
+
+      <article class="card">
+        <h2 class="card-title">Images</h2>
+        <div class="row">
+          <!-- A file beside the document. -->
+          <img class="thumb" src="./badge.png" alt="file">
+          <!-- object-fit decides how the picture fills a box of another shape. -->
+          <img class="thumb wide fit-fill" src="./badge.png" alt="fill">
+          <img class="thumb wide fit-contain" src="./badge.png" alt="contain">
+          <img class="thumb wide" style="object-fit: cover;" src="./badge.png" alt="cover">
+        </div>
+        <div class="row" style="margin-top: 12px;">
+          <!-- A PNG carried in the document itself. -->
+          <img class="thumb" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAJ0lEQVR42mP4f4ThPzLW0DBAwYTkGYaBAaRqQJcfDgaMpoPRdADEANaPIJ/IIbxzAAAAAElFTkSuQmCC" alt="data png">
+          <!-- An SVG carried in the document. Needs the Vector Graphics package. -->
+          <img class="thumb" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 84 84'%3E%3Ccircle cx='42' cy='42' r='38' fill='%233080ff'/%3E%3Cpath d='M24 44l12 12 24-28' fill='none' stroke='%23fff' stroke-width='8'/%3E%3C/svg%3E" alt="data svg">
+          <!-- background-image, from a file and from a data URI. -->
+          <div class="photo"></div>
+          <div class="tiled"></div>
+        </div>
+      </article>
+
     </section>
 
-    <!-- ===== Column 2: flex ===== -->
-    <section>
+    <!-- ===== Column 3: flex ===== -->
+    <section id="column-3">
 
       <article class="card column">
         <h2 class="card-title">justify-content</h2>
@@ -146,35 +210,10 @@
         </div>
       </article>
 
-      <article class="card">
-        <h2 class="card-title">Lists and structure</h2>
-        <div class="row">
-          <ul style="flex: 1; margin: 0;">
-            <li>Unordered item</li>
-            <li>Another item</li>
-          </ul>
-          <ol style="flex: 1; margin: 0;">
-            <li>Ordered item</li>
-            <li>Another item</li>
-          </ol>
-          <dl style="flex: 1; margin: 0;">
-            <dt>Term</dt>
-            <dd style="margin: 0;">Description</dd>
-          </dl>
-        </div>
-        <hr>
-        <blockquote style="margin: 0; padding: 4px 12px; background-color: var(--glass);">
-          A blockquote, laid out as a block.
-        </blockquote>
-        <figure style="margin: 8px 0 0 0;">
-          <figcaption class="label">figure and figcaption</figcaption>
-        </figure>
-      </article>
-
     </section>
 
-    <!-- ===== Column 3: text, images, Unity ===== -->
-    <section>
+    <!-- ===== Column 4: text ===== -->
+    <section id="column-4">
 
       <article class="card heads">
         <h2 class="card-title">Text</h2>
@@ -182,7 +221,7 @@
         <h4>Heading 4</h4>
         <h5>Heading 5</h5>
         <h6>Heading 6</h6>
-        <div class="row" style="flex-wrap: wrap; row-gap: 2px;">
+        <div class="row words">
           <span class="w-normal">normal</span>
           <span class="w-bold">bold</span>
           <span class="w-900">900</span>
@@ -191,7 +230,7 @@
           <span class="strike">line-through</span>
           <span class="spaced">spacing</span>
         </div>
-        <div class="row" style="flex-wrap: wrap; row-gap: 2px;">
+        <div class="row words">
           <strong>strong</strong>
           <em>em</em>
           <u>u</u>
@@ -202,7 +241,7 @@
           <a href="https://example.com/">link</a>
           <span class="from-style-block">style block</span>
         </div>
-        <div class="row" style="flex-wrap: wrap; row-gap: 2px;">
+        <div class="row words">
           <span class="c-hex3">#36c</span>
           <span class="c-hex6">#3366cc</span>
           <span class="c-hex8">#3366ccaa</span>
@@ -213,49 +252,14 @@
         <p class="t-left">text-align: left</p>
         <p class="t-center">text-align: center</p>
         <p class="t-right">text-align: right</p>
-        <p class="t-justify tall">text-align: justify with a line-height of 32px, long enough that it wraps onto a second line inside this card.</p>
-        <p class="ws-nowrap">white-space: nowrap keeps this on one line.</p>
-        <pre class="ws-pre" style="margin: 0;">pre   keeps   spaces
+        <p class="t-justify tall">text-align: justify, with a line-height of 32px, wrapping onto a second line.</p>
+        <p class="ws-nowrap">nowrap stays on one line.</p>
+        <pre class="ws-pre">pre   keeps   spaces
 and line breaks</pre>
         <p class="ws-line">pre-line keeps
 line breaks only</p>
         <p>A br element<br>starts a new line.</p>
         <p>日本語と絵文字 🎉 も表示できます。</p>
-      </article>
-
-      <article class="card">
-        <h2 class="card-title">Images</h2>
-        <div class="row">
-          <!-- A file beside the document. -->
-          <img class="thumb" src="./badge.png" alt="file">
-          <!-- object-fit decides how the picture fills a box of another shape. -->
-          <img class="thumb wide fit-fill" src="./badge.png" alt="fill">
-          <img class="thumb wide fit-contain" src="./badge.png" alt="contain">
-          <img class="thumb wide" style="object-fit: cover;" src="./badge.png" alt="cover">
-        </div>
-        <div class="row" style="margin-top: 12px;">
-          <!-- A PNG carried in the document itself. -->
-          <img class="thumb" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAJ0lEQVR42mP4f4ThPzLW0DBAwYTkGYaBAaRqQJcfDgaMpoPRdADEANaPIJ/IIbxzAAAAAElFTkSuQmCC" alt="data png">
-          <!-- An SVG carried in the document. Needs the Vector Graphics package. -->
-          <img class="thumb" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 84 84'%3E%3Ccircle cx='42' cy='42' r='38' fill='%233080ff'/%3E%3Cpath d='M24 44l12 12 24-28' fill='none' stroke='%23fff' stroke-width='8'/%3E%3C/svg%3E" alt="data svg">
-          <!-- background-image, from a file and from a data URI. -->
-          <div class="photo"></div>
-          <div class="tiled"></div>
-        </div>
-      </article>
-
-      <article class="card">
-        <h2 class="card-title">Buttons and Unity</h2>
-        <div class="row">
-          <button id="ok-button" class="primary quiet">Primary</button>
-          <button class="ghost">Ghost</button>
-          <button class="disabled">Disabled</button>
-        </div>
-        <!-- component adds a Unity component by full type name; component.x sets a property on it. -->
-        <div id="group" class="row blocker" style="margin-top: 12px; padding: 8px; background-color: var(--glass);"
-             component="UnityEngine.CanvasGroup" component.alpha="0.85" component.interactable="true">
-          <span class="label">CanvasGroup added from markup, alpha 0.85</span>
-        </div>
       </article>
 
     </section>

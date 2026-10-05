@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Updating through VCC now makes Unity recompile.** Every file in the release zip was stamped 1980-01-01, VCC restores those times on install, and Unity decides whether a script changed by its modification time. Installing a new version over an old one therefore left the new source on disk while the previous version's assemblies kept running, so fixes appeared not to work. Entries are now stamped with the time of the commit being released. If a project is already in this state, right-click the Rectloom package and choose Reimport once.
+- The Feature Showcase sample no longer runs off the bottom of its columns. It is laid out in four columns instead of three, cards are no longer squeezed by the column, and the test now checks that nothing reaches outside its column with a tenth of the height to spare, using metrics wider than a real font.
+
 ## [0.4.4] - 2026-10-05
 
 ### Added

@@ -168,31 +168,67 @@ namespace Rectloom.Ugui.Tests.Compilation
             var columns = (RectTransform)Find(root, "columns");
             var footer = (RectTransform)Find(root, "footer");
 
-            Assert.That(header.rect.height, Is.EqualTo(110f).Within(0.01f));
-            Assert.That(footer.rect.height, Is.EqualTo(60f).Within(0.01f));
-            Assert.That(columns.rect.height, Is.EqualTo(910f).Within(0.01f), "what the header and footer leave");
+            Assert.That(header.rect.height, Is.EqualTo(90f).Within(0.01f));
+            Assert.That(footer.rect.height, Is.EqualTo(50f).Within(0.01f));
+            Assert.That(columns.rect.height, Is.EqualTo(940f).Within(0.01f), "what the header and footer leave");
         }
 
-        [Test]
-        public void EveryCardFitsInsideItsColumn()
+        [TestCase("column-1")]
+        [TestCase("column-2")]
+        [TestCase("column-3")]
+        [TestCase("column-4")]
+        public void NothingReachesOutsideItsColumn(string columnName)
         {
             GameObject root = Instantiate();
-            var columns = (RectTransform)Find(root, "columns");
+            var column = (RectTransform)Find(root, columnName);
+            Rect bounds = column.rect;
+            var corners = new Vector3[4];
 
-            // 16 pixels of padding on each side of a 910 pixel band.
-            const float Available = 910f - 32f;
+            // A tenth of the column has to be left over at the bottom: these metrics are an
+            // approximation, and a real font is allowed to be that much taller.
+            float lowest = bounds.yMin + (bounds.height * 0.1f);
 
-            foreach (RectTransform column in columns)
+            foreach (RectTransform descendant in column.GetComponentsInChildren<RectTransform>(true))
             {
-                float bottom = 0f;
-
-                foreach (RectTransform card in column)
+                if (descendant == column || IsClipped(descendant, column))
                 {
-                    bottom = Mathf.Max(bottom, -card.anchoredPosition.y + card.rect.height * (1f - card.pivot.y));
+                    continue;
                 }
 
-                Assert.That(bottom, Is.LessThanOrEqualTo(Available + 0.5f), column.name + " overflows");
+                descendant.GetWorldCorners(corners);
+
+                foreach (Vector3 corner in corners)
+                {
+                    Vector3 local = column.InverseTransformPoint(corner);
+
+                    Assert.That(
+                        local.x,
+                        Is.InRange(bounds.xMin - 0.5f, bounds.xMax + 0.5f),
+                        descendant.name + " is too wide");
+
+                    Assert.That(
+                        local.y,
+                        Is.InRange(lowest, bounds.yMax + 0.5f),
+                        descendant.name + " is too low");
+                }
             }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether something between an object and its column clips it, in
+        /// which case reaching outside is the point of the demonstration.
+        /// </summary>
+        private static bool IsClipped(Transform descendant, Transform column)
+        {
+            for (Transform parent = descendant.parent; parent != null && parent != column; parent = parent.parent)
+            {
+                if (parent.GetComponent<UnityEngine.UI.RectMask2D>() != null)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         [Test]
@@ -233,10 +269,16 @@ namespace Rectloom.Ugui.Tests.Compilation
                     return TextMeasurement.Empty;
                 }
 
-                // Half an em per character, wrapped at the available width, which is close enough to a
-                // real font for the cards to be as tall as they will be in the Editor.
-                float width = text.Length * style.FontSize * 0.5f;
-                int lines = 1;
+                // Wider than most fonts: 0.6 em for a Latin character and a full em for anything else,
+                // wrapped at the available width. A layout that fits these metrics fits a real font.
+                float width = 0f;
+
+                foreach (char character in text)
+                {
+                    width += style.FontSize * (character < 0x2E80 ? 0.6f : 1f);
+                }
+
+                int lines = 1 + text.Count(character => character == '\n');
 
                 if (style.WrapsText && availableWidth > 0f && !float.IsPositiveInfinity(availableWidth)
                     && width > availableWidth)

@@ -32,16 +32,16 @@ Rectloom がコンパイルできる HTML / CSS の機能を、1 枚の 1920×10
 | 場所 | 見られる機能 |
 | --- | --- |
 | ヘッダー | `display: flex`、`justify-content: space-between`、`align-items: center`、子孫セレクタ |
-| 左列 Units | `px` `%` `mm` `cm` `in` `pt` `pc` `q` `em` `rem`、`var()` とそのフォールバック |
-| 左列 Box model | `margin` / `padding` と各辺の指定、`min-*` / `max-*`、`border`、`border-radius`、`opacity`、`position: relative` |
-| 左列 Position and clipping | `position: absolute` と `top` / `right` / `bottom` / `left`、`overflow`（RectMask2D）、`display: none`、`margin: 0 auto` |
-| 中列 justify-content | `flex-start` `center` `flex-end` `space-between` `space-around` `space-evenly` |
-| 中列 align-items | `flex-start` `center` `flex-end` `stretch` `baseline`、`align-self`、主軸方向の `margin-left: auto` |
-| 中列 grow, shrink, basis, wrap | `flex` と `flex-grow` / `flex-shrink` / `flex-basis`、`flex-wrap`、`row-gap` / `column-gap`、`align-content` |
-| 中列 Lists and structure | `ul` `ol` `li` `dl` `dt` `dd` `hr` `blockquote` `figure` `figcaption` |
-| 右列 Text | `h1`〜`h6`、`font-weight` `font-style` `text-decoration` `letter-spacing` `line-height` `text-align` `white-space`、色の書式 6 種、`<br>`、日本語と絵文字 |
-| 右列 Images | ファイル参照、PNG / SVG の `data:` URI、`object-fit`、`background-image` |
-| 右列 Buttons and Unity | `<button>` → Button、`unity-interactable`、`unity-raycast-target`、`vrc-interact`、`component` 属性 |
+| 1 列目 Units | `px` `%` `mm` `cm` `in` `pt` `pc` `q` `em` `rem`、`var()` とそのフォールバック |
+| 1 列目 Box model | `margin` / `padding` と各辺の指定、`min-*` / `max-*`、`border`、`border-radius`、`opacity`、`position: relative` |
+| 1 列目 Buttons and Unity | `<button>` → Button（3 個）、`unity-interactable`、`unity-raycast-target`、`vrc-interact`、`component` 属性 |
+| 2 列目 Position and clipping | `position: absolute` と `top` / `right` / `bottom` / `left`、`overflow`（RectMask2D）、`display: none`、`margin: 0 auto` |
+| 2 列目 Lists and structure | `ul` `ol` `li` `dl` `dt` `dd` `hr` `blockquote` `figure` `figcaption` |
+| 2 列目 Images | ファイル参照、PNG / SVG の `data:` URI、`object-fit`、`background-image` |
+| 3 列目 justify-content | `flex-start` `center` `flex-end` `space-between` `space-around` `space-evenly` |
+| 3 列目 align-items | `flex-start` `center` `flex-end` `stretch` `baseline`、`align-self`、主軸方向の `margin-left: auto` |
+| 3 列目 grow, shrink, basis, wrap | `flex` と `flex-grow` / `flex-shrink` / `flex-basis`、`flex-wrap`、`row-gap` / `column-gap`、`align-content` |
+| 4 列目 Text | `h1`〜`h6`、`font-weight` `font-style` `text-decoration` `letter-spacing` `line-height` `text-align` `white-space`、色の書式 6 種、`<br>`、日本語と絵文字 |
 | フッター | `!important` と詳細度 |
 
 `body` には `vrc-world-space` と `vrc-world-scale` も指定してあります。VRChat アダプタが

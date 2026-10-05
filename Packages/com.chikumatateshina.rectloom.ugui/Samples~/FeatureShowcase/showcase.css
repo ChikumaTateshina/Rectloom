@@ -48,6 +48,8 @@ body {
 
 /* Class selector. */
 .card {
+  /* Never squeezed by the column: a card is as tall as what is in it. */
+  flex: none;
   background-color: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -57,7 +59,7 @@ body {
 /* Id selector. */
 #header {
   flex: none;
-  height: 110px;
+  height: 90px;
   padding: 0 32px;
 
   display: flex;
@@ -116,7 +118,7 @@ h2.card-title {
 }
 
 #footer {
-  flex: 0 0 60px;
+  flex: 0 0 50px;
   padding: 0 32px;
 
   display: flex;
@@ -143,6 +145,9 @@ p { margin: 0; }
   border-radius: 3px;
 }
 
+.units .label { font-size: 12px; }
+.units .bar { height: 8px; margin-top: 2px; }
+
 .u-px  { width: 240px; }
 .u-pct { width: 50%; }
 .u-mm  { width: 60mm; }
@@ -163,13 +168,13 @@ p { margin: 0; }
 }
 
 .box {
-  width: 120px;
+  width: 90px;
   height: 64px;
-  padding: 6px 10px;
+  padding: 6px 8px;
   background-color: #e6efff;
   border-width: 2px;
   border-color: var(--accent);
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .box.margins {
@@ -188,8 +193,8 @@ p { margin: 0; }
 
 .box.clamped {
   width: 60%;
-  min-width: 100px;
-  max-width: 150px;
+  min-width: 60px;
+  max-width: 90px;
   height: auto;
   min-height: 40px;
   max-height: 64px;
@@ -262,6 +267,16 @@ p { margin: 0; }
   font-size: 15px;
 }
 
+/* ---- Lists and structure ---------------------------------------------------- */
+
+.lists { font-size: 16px; }
+.lists ul, .lists ol { flex: 1; margin: 0; padding-left: 24px; }
+.lists dl { flex: 1; margin: 0; }
+.lists dd { margin: 0; }
+.lists hr { margin: 8px 0; }
+.lists blockquote { margin: 0; padding: 4px 12px; background-color: var(--glass); }
+.lists figure { margin: 8px 0 0 0; }
+
 /* ---- Flex ------------------------------------------------------------------- */
 
 .flexline {
@@ -314,7 +329,7 @@ p { margin: 0; }
   border-radius: 4px;
 }
 
-.wrapping .dot { width: 150px; }
+.wrapping .dot { width: 120px; }
 
 /* Grow, shrink and basis. */
 .grow1 { flex: 1; height: 22px; background-color: var(--accent); }
@@ -370,6 +385,15 @@ h1, h2, h3, h4, h5, h6 { margin: 0; }
 .ws-pre    { white-space: pre; }
 .ws-line   { white-space: pre-line; }
 
+/* A row of short samples that wraps when the column is too narrow for all of them. */
+.words {
+  flex-wrap: wrap;
+  row-gap: 2px;
+  font-size: 16px;
+}
+
+pre { margin: 0; }
+
 /* Colour forms. */
 .c-hex3  { color: #36c; }
 .c-hex6  { color: #3366cc; }
@@ -381,26 +405,26 @@ h1, h2, h3, h4, h5, h6 { margin: 0; }
 /* ---- Images ----------------------------------------------------------------- */
 
 .thumb {
-  width: 84px;
-  height: 84px;
+  width: 72px;
+  height: 72px;
   flex: none;
 }
 
-.thumb.wide { width: 150px; }
+.thumb.wide { width: 100px; }
 .fit-fill    { object-fit: fill; }
 .fit-contain { object-fit: contain; }
 
 /* background-image paints the box itself; a relative path is relative to this file. */
 .photo {
-  width: 84px;
-  height: 84px;
+  width: 72px;
+  height: 72px;
   flex: none;
   background-image: url("./badge.png");
 }
 
 .tiled {
-  width: 84px;
-  height: 84px;
+  width: 72px;
+  height: 72px;
   flex: none;
   border-radius: 12px;
   background: #202028 url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAJ0lEQVR42mP4f4ThPzLW0DBAwYTkGYaBAaRqQJcfDgaMpoPRdADEANaPIJ/IIbxzAAAAAElFTkSuQmCC") no-repeat center;
@@ -409,28 +433,28 @@ h1, h2, h3, h4, h5, h6 { margin: 0; }
 /* ---- Buttons and Unity ------------------------------------------------------ */
 
 button.primary {
-  width: 150px;
+  width: 120px;
   height: 44px;
   background-color: var(--accent);
   color: var(--accent-ink);
   border-radius: 6px;
   border: none;
-  font-size: 18px;
+  font-size: 16px;
 }
 
 button.ghost {
-  width: 150px;
+  width: 120px;
   height: 44px;
   background-color: #ffffff;
   border: 2px solid var(--accent);
   color: var(--accent);
   border-radius: 22px;
-  font-size: 18px;
+  font-size: 16px;
 }
 
 /* Starts disabled. The Button component is real; wire onClick in the Inspector. */
 button.disabled {
-  width: 150px;
+  width: 120px;
   height: 44px;
   unity-interactable: false;
   opacity: 0.5;
