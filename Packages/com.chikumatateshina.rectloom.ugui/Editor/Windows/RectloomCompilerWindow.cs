@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using Rectloom.Core.Compilation;
 using Rectloom.Core.Diagnostics;
+using Rectloom.Core.Extensions;
 using Rectloom.Core.Metadata;
 using TMPro;
 using Rectloom.Ugui.Compilation;
@@ -30,6 +31,9 @@ namespace Rectloom.Ugui.Windows
     public sealed class RectloomCompilerWindow : EditorWindow
     {
         private const string MenuPath = "Tools/Rectloom/Compiler";
+
+        // Found once per window: the set only changes with a domain reload, which recreates this.
+        [NonSerialized] private IReadOnlyList<ICompilerSettingsSection>? _settingsSections;
         private const string HtmlExtension = ".html";
         private const string CssExtension = ".css";
 
@@ -124,6 +128,7 @@ namespace Rectloom.Ugui.Windows
                     + "from the installed font, which copies that font into the project.",
                 MessageType.Info);
 
+            DrawSettingsSections();
             DrawModeHelp();
 
             EditorGUILayout.Space();
@@ -132,6 +137,21 @@ namespace Rectloom.Ugui.Windows
 
             EditorGUILayout.Space();
             DrawDiagnostics();
+        }
+
+        /// <summary>
+        /// Draws the settings adapter packages contribute, such as the VRChat ones.
+        /// </summary>
+        private void DrawSettingsSections()
+        {
+            _settingsSections ??= OutputProcessorRegistry.DiscoverSettingsSections();
+
+            foreach (ICompilerSettingsSection section in _settingsSections)
+            {
+                EditorGUILayout.Space();
+                EditorGUILayout.LabelField(section.Title, EditorStyles.boldLabel);
+                section.OnGUI();
+            }
         }
 
         private void DrawModeHelp()

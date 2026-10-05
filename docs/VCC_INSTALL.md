@@ -139,7 +139,33 @@ body {
 
 `vrc-world-scale: 0.001` で、`1920 x 1080` の参照解像度が約 1.92m x 1.08m になります。
 
-## 7. UPM (非 VRChat) で使う場合
+## 7. VRC Ui Shape (クリックできるようにする)
+
+World Space キャンバスは VRChat で見えますが、`VRCUiShape` コンポーネントが付いていないと
+ポインタが当たらず、ボタンを押せません。
+
+VRChat アダプタは、コンパイルした各キャンバス (出力のルート) に `VRCUiShape` を自動で付けます。
+既定でオンです。
+
+- **プロジェクト全体で切り替える**: `Tools → Rectloom → Compiler` の **VRChat** 欄にある
+  **Add VRC Ui Shape** のチェックを外します。設定はプロジェクトごとに保存されます。
+- **文書ごとに切り替える**: CSS で指定すると、ウィンドウの設定より優先されます。
+
+```css
+body {
+  vrc-ui-shape: false;  /* この文書には付けない。true なら設定がオフでも付ける */
+}
+```
+
+補足:
+
+- Worlds SDK が無いプロジェクトでは何も付きません (エラーにもなりません)。
+- World Space でないキャンバスには付けず、警告を出します。
+- オフにしても、すでに付いている `VRCUiShape` は外しません (手で付けたものと区別できないため)。
+  外したい場合は手動で削除するか、`Rebuild` でコンパイルしてください。
+- 既存のキャンバスの下に生成した場合 (ルートに Canvas が無い場合) は、何もしません。
+
+## 8. UPM (非 VRChat) で使う場合
 
 VRChat を使わない通常の Unity プロジェクトでは VCC は不要です。
 `Packages/manifest.json` へ以下を追加してください。
@@ -162,6 +188,7 @@ Core は依存として入ります。VRChat パッケージは不要です。
 | `does not contain a valid repository listing` | リスティングがまだ公開されていません。GitHub Actions の `Pages` ワークフローが成功しているか確認してください |
 | VCC にパッケージが出てこない | リポジトリ URL を再確認し、VCC を再起動してください |
 | `Update` が拒否される | 出力の隣にある `*.rectloom.asset` が必要です。消してしまった場合は `Rebuild` を使ってください |
+| ワールドでボタンが押せない | キャンバスに `VRCUiShape` が付いているか確認してください (上記 7)。キャンバスのレイヤーが `UI` だと押せないので `Default` にします |
 | ワールドで UI が見えない | キャンバスが World Space か確認してください (`vrc-world-space`) |
 | テキストが表示されない | TextMeshPro の Essential Resources を `Window → TextMeshPro` から導入してください |
 | 日本語が □ になる | 既定フォント (LiberationSans) に日本語の字形がありません。日本語フォントの TMP Font Asset を作り、CSS で `font-family` に指定してください (下記) |

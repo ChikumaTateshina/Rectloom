@@ -321,6 +321,7 @@ namespace Rectloom.Ugui.Compilation
             BackendResult staged = backend.Build(ir, parent: null);
 
             RunExtensions(request, ir, staged, diagnostics);
+            RunOutputProcessors(request, ir, staged.Root, diagnostics);
 
             backendTimer.Stop();
             Record(statistics, staged, backendTimer);
@@ -430,6 +431,7 @@ namespace Rectloom.Ugui.Compilation
                     .Update(ir, contents, previous);
 
                 RunExtensions(request, ir, result, diagnostics);
+                RunOutputProcessors(request, ir, result.Root, diagnostics);
 
                 backendTimer.Stop();
                 Record(statistics, result, backendTimer);
@@ -502,6 +504,7 @@ namespace Rectloom.Ugui.Compilation
                 .Update(ir, existing, previous);
 
             RunExtensions(request, ir, result, diagnostics);
+            RunOutputProcessors(request, ir, result.Root, diagnostics);
 
             backendTimer.Stop();
             Record(statistics, result, backendTimer);
@@ -682,6 +685,43 @@ namespace Rectloom.Ugui.Compilation
             var pipeline = new ExtensionPipeline(ExtensionRegistry.Discover(diagnostics));
 
             pipeline.Run(ir, result.Objects, context);
+        }
+
+        /// <summary>
+        /// Lets adapter packages adjust the generated hierarchy as a whole.
+        /// </summary>
+        /// <remarks>
+        /// Runs before the output is committed, so what a processor adds is saved with the prefab and
+        /// an error it reports rolls the compile back like any other.
+        /// </remarks>
+        private static void RunOutputProcessors(
+            CompileRequest request,
+            UiNode ir,
+            GameObject root,
+            DiagnosticSink diagnostics)
+        {
+            if (root == null || diagnostics.HasErrors)
+            {
+                return;
+            }
+
+            var context = new OutputProcessorContext(request, ir, root, diagnostics);
+
+            foreach (IOutputProcessor processor in OutputProcessorRegistry.Discover(diagnostics))
+            {
+                try
+                {
+                    processor.Process(context);
+                }
+                catch (Exception exception)
+                {
+                    diagnostics.Error(
+                        DiagnosticCodes.Extension.ExtensionException,
+                        processor.Id + " failed while adjusting the output: "
+                            + exception.GetType().Name + ": " + exception.Message,
+                        SourceLocation.None);
+                }
+            }
         }
 
         /// <summary>

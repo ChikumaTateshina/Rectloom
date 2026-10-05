@@ -35,11 +35,17 @@ namespace Rectloom.VRChat
         /// <summary>Whether a graphic should be pickupable by VRChat's interact system.</summary>
         public const string Interact = "vrc-interact";
 
+        /// <summary>
+        /// Whether a compiled canvas gets a <c>VRCUiShape</c>, overriding the project setting.
+        /// </summary>
+        public const string UiShape = "vrc-ui-shape";
+
         private static readonly HashSet<string> Known = new HashSet<string>(StringComparer.Ordinal)
         {
             WorldSpace,
             WorldScale,
             Interact,
+            UiShape,
         };
 
         /// <summary>Default world units per logical pixel, giving a 1920 wide canvas about 2 metres.</summary>

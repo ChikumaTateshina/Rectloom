@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **VRC Ui Shape.** The VRChat adapter now adds a `VRCUiShape` to each compiled canvas, which is what lets players point at and click a world UI. It is on by default and can be turned off under **VRChat > Add VRC Ui Shape** in the compiler window (kept per project), or per document with `vrc-ui-shape: true | false` on the `body` rule. Nothing is added without the Worlds SDK, on a canvas that is not world space, or under an existing canvas; an existing component is never removed.
+- `IOutputProcessor` and `ICompilerSettingsSection` in the core, so an adapter package can adjust every compiled hierarchy and add its own settings to the compiler window without the compiler referencing it.
+
 ## [0.4.5] - 2026-10-06
 
 ### Fixed
