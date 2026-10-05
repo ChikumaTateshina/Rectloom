@@ -192,6 +192,11 @@ ZWJ・肌色などの複合シーケンスの合字や COLR v1 専用の表現�
 タグを保存後やビルド後にも解決できるよう、生成アセットフォルダの `Resources` 内にアセットを用意します。
 日本語は従来どおり Default TMP Font または CSS の font-family で指定できます。
 
+最後の字形補完には、**Project Settings > TextMesh Pro > Fallback Font Assets** の末尾に
+Meiryo の TMP Font Asset を指定できます。本文の Noto とカラー絵文字の Segoe を優先し、
+不足する文字だけ Meiryo で補います。環境フォントから生成する場合はソースフォント、
+アトラス、マテリアルもプロジェクト内に保存されるため、再起動後も参照を維持します。
+
 ### 複数 HTML の一括コンパイル
 
 1. Compiler の **Batch HTML files** をオンにします。

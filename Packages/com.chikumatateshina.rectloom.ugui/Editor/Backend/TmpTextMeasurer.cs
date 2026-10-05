@@ -158,13 +158,9 @@ namespace Rectloom.Ugui.Backend
                     ? _fonts.EmojiFont : font;
                 index += count - 1;
                 if (code == 0xFE0F || code == 0x200D || code == 0x20E3) continue;
+                if (_fonts.EmojiSprites != null && _fonts.EmojiSprites.ContainsKey(code)) continue;
                 if (HasGlyph(selected, code, new HashSet<int>())) continue;
-                // Explicit emoji font selection never falls back to a different font.
-                if (EmojiText.IsEmojiAt(text, index - count + 1) && _fonts.EmojiFont != null)
-                {
-                    ReportMissingGlyph(selected, code);
-                    return false;
-                }
+                // The selected emoji font remains primary; a final global fallback can fill a missing glyph.
                 List<TMP_FontAsset>? global = TMP_Settings.instance == null ? null : TMP_Settings.fallbackFontAssets;
                 bool found = false;
                 if (global != null)

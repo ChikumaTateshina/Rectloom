@@ -91,7 +91,8 @@ namespace Rectloom.Ugui.Backend
             string assetPath = folder + "/" + stem + " SDF.asset";
             var existing = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(assetPath);
 
-            if (existing != null)
+            if (existing != null && existing.material != null && existing.atlasTextures != null
+                && existing.atlasTextures.Length > 0 && existing.atlasTextures[0] != null)
             {
                 return existing;
             }
@@ -137,7 +138,31 @@ namespace Rectloom.Ugui.Backend
 
                 if (asset != null)
                 {
-                    AssetDatabase.CreateAsset(asset, assetPath);
+                    asset.name = stem + " SDF";
+                    // The font asset alone cannot persist references to transient atlas/material objects.
+                    // Allocate the atlas before storing its subassets so a fresh Editor or a player can use it.
+                    asset.TryAddCharacters(new uint[] { 0x3F }, out uint[] missing);
+                    if (existing == null) AssetDatabase.CreateAsset(asset, assetPath);
+                    else
+                    {
+                        var fallbacks = existing.fallbackFontAssetTable;
+                        EditorUtility.CopySerialized(asset, existing);
+                        existing.fallbackFontAssetTable = fallbacks;
+                        UnityEngine.Object.DestroyImmediate(asset);
+                        asset = existing;
+                    }
+                    foreach (Texture2D texture in asset.atlasTextures)
+                    {
+                        if (texture == null || AssetDatabase.Contains(texture)) continue;
+                        texture.name = asset.name + " Atlas";
+                        AssetDatabase.AddObjectToAsset(texture, asset);
+                    }
+                    if (asset.material != null && !AssetDatabase.Contains(asset.material))
+                    {
+                        asset.material.name = asset.name + " Material";
+                        AssetDatabase.AddObjectToAsset(asset.material, asset);
+                    }
+                    EditorUtility.SetDirty(asset);
                     AssetDatabase.SaveAssets();
                     asset.ReadFontAssetDefinition();
                 }

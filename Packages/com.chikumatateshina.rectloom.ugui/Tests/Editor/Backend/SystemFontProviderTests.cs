@@ -82,6 +82,19 @@ namespace Rectloom.Ugui.Tests.Backend
             if (asset != null)
             {
                 Assert.That(_diagnostics.Diagnostics.Any(d => d.Severity == DiagnosticSeverity.Info), Is.True);
+                Assert.That(AssetDatabase.Contains(asset.material), Is.True, "material must survive reload");
+                Assert.That(AssetDatabase.Contains(asset.atlasTextures[0]), Is.True, "atlas must survive reload");
+                string path = AssetDatabase.GetAssetPath(asset);
+                string guid = AssetDatabase.AssetPathToGUID(path);
+                asset.material = null;
+                asset.atlasTextures = new UnityEngine.Texture2D[] { null! };
+                EditorUtility.SetDirty(asset);
+                AssetDatabase.SaveAssets();
+                TMP_FontAsset? repaired = SystemFontProvider.TryCreate("Segoe UI Emoji", Folder, _diagnostics);
+                Assert.That(repaired, Is.SameAs(asset), "repair must preserve references from saved prefabs");
+                Assert.That(AssetDatabase.AssetPathToGUID(path), Is.EqualTo(guid));
+                Assert.That(AssetDatabase.Contains(repaired!.material), Is.True);
+                Assert.That(AssetDatabase.Contains(repaired.atlasTextures[0]), Is.True);
                 return;
             }
 

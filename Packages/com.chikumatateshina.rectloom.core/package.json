@@ -1,7 +1,7 @@
 {
   "name": "com.chikumatateshina.rectloom.core",
   "displayName": "Rectloom Core",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "unity": "2022.3",
   "description": "Editor-time compiler core for Rectloom: HTML/CSS parsing, cascade, layout, Unity UI IR, diagnostics and the extension API. Contains no runtime code and no VRChat dependency.",
   "keywords": [

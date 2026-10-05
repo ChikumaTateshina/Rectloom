@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-10-05
+
+### Fixed
+
+- Generated system TMP fonts now save their atlas and material as subassets. Broken generated assets are repaired in place, preserving prefab references and GUIDs.
+- Text measurement honors the final TMP Settings fallback for glyphs missing from the selected emoji font. Existing color emoji sprites keep priority.
+- The actual caption project uses installed Meiryo as the last global fallback; primary Noto and color Segoe emoji remain selected.
+
 ## [0.4.1] - 2026-10-05
 
 ### Fixed
@@ -446,7 +454,8 @@ console lines that all say the same thing.
   a `MonoBehaviour` from an Editor-only assembly, so an extension's own code may be Editor-only but
   what it attaches may not be.
 
-[Unreleased]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.4.2...HEAD
+[0.4.2]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.2.0...v0.3.0
