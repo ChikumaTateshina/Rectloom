@@ -59,7 +59,7 @@ h2[id], h3[id] { scroll-margin-top: 1rem; }
 
 <p><a href="../">← Rectloom トップ</a></p>
 <h1>Rectloom リファレンス</h1>
-<p class="meta">対象バージョン: 0.5.0 と main ブランチ。Rectloom に書ける HTML・CSS と、Rectloom 独自の拡張をまとめた利用者向けの文書です。<span class="dev">未リリース</span> の印がある項目は main ブランチに入っていますが、まだリリースされていません。</p>
+<p class="meta">対象バージョン: 0.7.0 と main ブランチ。Rectloom に書ける HTML・CSS と、Rectloom 独自の拡張をまとめた利用者向けの文書です。</p>
 
 <nav class="toc" aria-label="目次">
 <strong>目次</strong>
@@ -88,7 +88,7 @@ h2[id], h3[id] { scroll-margin-top: 1rem; }
   <li>コンパイルは Editor 上で 1 回だけ行います。レイアウトを計算し、その結果を <code>RectTransform</code> の固定値として焼き込みます。実行時にレイアウトを計算し直すことはありません。</li>
   <li>出力されるのは素の uGUI / TextMeshPro の階層です。Rectloom のランタイムコンポーネントは含まれません。</li>
   <li><code>body</code> の箱が Canvas になります。<code>html</code> と <code>head</code> はパース時に取り除かれます。</li>
-  <li>状態に依存する表現 (<code>:hover</code>、アニメーション、スクリプト) は出力に残りません。</li>
+  <li>状態による変化は、操作部品の背景色 (<code>:hover</code> など) だけを Selectable の色として出力します。アニメーションとスクリプトは出力に残りません。</li>
   <li>既定のボックスモデルは <code>box-sizing: border-box</code> です。</li>
   <li>マージンの相殺 (margin collapsing) は行いません。縦に並んだ箱のマージンは足し算になります。</li>
 </ul>
@@ -100,11 +100,15 @@ h2[id], h3[id] { scroll-margin-top: 1rem; }
 <tr><td><code>body</code></td><td><code>Canvas</code> + <code>CanvasScaler</code> + <code>GraphicRaycaster</code></td></tr>
 <tr><td><code>button</code></td><td><code>Image</code> + <code>Button</code>。中のテキストは子の <code>TextMeshProUGUI</code></td></tr>
 <tr><td><code>img</code></td><td><code>Image</code> (Sprite)</td></tr>
-<tr><td><code>input type="checkbox"</code> <span class="dev">未リリース</span></td><td><code>Toggle</code></td></tr>
-<tr><td><code>input type="range"</code> <span class="dev">未リリース</span></td><td><code>Slider</code></td></tr>
-<tr><td>テキストだけを持つ要素、<code>p</code>、<code>h1</code>〜<code>h6</code></td><td><code>TextMeshProUGUI</code></td></tr>
+<tr><td><code>input type="checkbox"</code></td><td><code>Toggle</code></td></tr>
+<tr><td><code>input type="radio"</code></td><td><code>Toggle</code> + 同じ <code>name</code> で共有する <code>ToggleGroup</code></td></tr>
+<tr><td><code>input type="range"</code></td><td><code>Slider</code></td></tr>
+<tr><td>テキスト系 <code>input</code>、<code>textarea</code></td><td><code>TMP_InputField</code></td></tr>
+<tr><td><code>a href</code></td><td><code>Button</code> + URL コピー用パネル (<code>Link Popup</code>)</td></tr>
+<tr><td>テキストだけを持つ要素、<code>p</code>、<code>h1</code>〜<code>h6</code></td><td><code>TextMeshProUGUI</code>。文中のインライン要素はリッチテキストになります</td></tr>
 <tr><td>背景・枠線を持つ要素</td><td><code>Image</code>。角丸は生成した 9-slice Sprite</td></tr>
-<tr><td><code>overflow: hidden</code> など</td><td><code>RectMask2D</code></td></tr>
+<tr><td><code>overflow: hidden</code> / <code>clip</code></td><td><code>RectMask2D</code></td></tr>
+<tr><td><code>overflow: auto</code> / <code>scroll</code></td><td><code>RectMask2D</code> + <code>ScrollRect</code> (子は <code>Content</code> の下)</td></tr>
 <tr><td>その他の要素</td><td>空の <code>RectTransform</code></td></tr>
 </tbody>
 </table>
@@ -130,8 +134,8 @@ h2[id], h3[id] { scroll-margin-top: 1rem; }
 <tr><td>Fit Canvas to Content</td><td>背景を出力しないとき、Canvas を最上位要素の外接矩形に合わせます。</td></tr>
 <tr><td>Default TMP Font</td><td><code>font-family</code> が解決できないときに使うフォントです。</td></tr>
 <tr><td>Emoji TMP Font</td><td>絵文字に使うフォントです。既定は Segoe UI Emoji です。</td></tr>
-<tr><td>Bake Used Characters <span class="dev">未リリース</span></td><td>動的な TMP フォントを、文書で使う文字だけを焼いた静的なコピーに差し替えます。元のフォントファイルがビルドに含まれなくなります。既定は on です。<a href="#fonts">§12</a></td></tr>
-<tr><td>Update on Save <span class="dev">未リリース</span></td><td>HTML や、その文書が読み込む CSS を保存すると、出力を自動で Update します。既定は on です。<a href="#update">§13</a></td></tr>
+<tr><td>Bake Used Characters</td><td>動的な TMP フォントを、文書で使う文字だけを焼いた静的なコピーに差し替えます。元のフォントファイルがビルドに含まれなくなります。既定は on です。<a href="#fonts">§12</a></td></tr>
+<tr><td>Update on Save</td><td>HTML や、その文書が読み込む CSS を保存すると、出力を自動で Update します。既定は on です。<a href="#update">§13</a></td></tr>
 <tr><td>VRChat &gt; Add VRC Ui Shape</td><td>Canvas に <code>VRCUiShape</code> を付けます。既定は on で、設定はプロジェクトごとに保存されます。VRChat アダプタを導入している場合だけ表示されます。</td></tr>
 <tr><td>Validate / Compile / Rebuild</td><td>検証のみ / コンパイル / 出力を作り直します (手作業の変更は失われます)。</td></tr>
 <tr><td>Show information</td><td>Info レベルの診断も表示します。</td></tr>
@@ -147,7 +151,7 @@ h2[id], h3[id] { scroll-margin-top: 1rem; }
 <thead><tr><th>分類</th><th>要素</th><th>既定の display</th></tr></thead>
 <tbody>
 <tr><td>基本</td><td><code>body div p h1 h2 h3 h4 h5 h6 img br</code></td><td>block</td></tr>
-<tr><td>操作部品</td><td><code>button</code> / <code>input</code> (checkbox・radio・range・テキスト系) / <code>textarea</code> <span class="dev">未リリース</span></td><td>flex / inline-block</td></tr>
+<tr><td>操作部品</td><td><code>button</code> / <code>input</code> (checkbox・radio・range・テキスト系) / <code>textarea</code></td><td>flex / inline-block</td></tr>
 <tr><td>区分</td><td><code>article section header footer nav main aside hgroup address</code></td><td>block</td></tr>
 <tr><td>グループ</td><td><code>figure figcaption blockquote pre hr</code></td><td>block</td></tr>
 <tr><td>リスト</td><td><code>ul ol li dl dt dd</code></td><td>block</td></tr>
@@ -166,7 +170,7 @@ h2[id], h3[id] { scroll-margin-top: 1rem; }
 </tbody>
 </table>
 
-<h3>テキストとインライン要素 <span class="dev">未リリース</span></h3>
+<h3>テキストとインライン要素</h3>
 <p>文字と、見た目だけを変えるインライン要素 (<code>strong</code> <code>em</code> <code>a</code> <code>span</code> など) は 1 つのテキストにまとめ、TextMeshPro のリッチテキスト (<code>&lt;b&gt;</code> <code>&lt;i&gt;</code> <code>&lt;u&gt;</code> <code>&lt;s&gt;</code> <code>&lt;color&gt;</code> <code>&lt;size&gt;</code>) で書き分けます。<code>&lt;p&gt;これは&lt;strong&gt;重要&lt;/strong&gt;です&lt;/p&gt;</code> は 1 行の文になります。</p>
 <ul>
   <li>文中の <code>&lt;br&gt;</code> は改行になります。空白は要素の境目をまたいで 1 つにまとまります。</li>
@@ -175,7 +179,7 @@ h2[id], h3[id] { scroll-margin-top: 1rem; }
   <li>インライン要素ごとの <code>font-family</code> の違いは反映しません (本文のフォントで描きます)。</li>
 </ul>
 
-<h3 id="links">リンク <span class="dev">未リリース</span></h3>
+<h3 id="links">リンク</h3>
 <p>VRChat のワールドからはブラウザを開けないため、<code>&lt;a href&gt;</code> はクリックすると URL を表示するパネルを開きます。パネルの URL 欄は読み取り専用の入力欄で、選択して Ctrl+C でコピーできます。CSS で指定がなければ、リンクは青の下線付きで表示されます。</p>
 <ul>
   <li>パネルは URL ごとに 1 つ、Canvas の最前面に非表示で生成します。開閉は <code>GameObject.SetActive</code> で行うので、Udon は不要です。</li>
@@ -193,15 +197,15 @@ h2[id], h3[id] { scroll-margin-top: 1rem; }
 <tr><td><code>class</code></td><td>全要素</td><td>空白で区切って複数指定できます。</td></tr>
 <tr><td><code>style</code></td><td>全要素</td><td>インラインスタイル。スタイルシートより優先されます。</td></tr>
 <tr><td><code>src</code></td><td><code>img</code></td><td>画像の参照先。<a href="#assets">§11</a></td></tr>
-<tr><td><code>type</code> <span class="dev">未リリース</span></td><td><code>input</code></td><td><code>checkbox</code> → Toggle、<code>radio</code> → Toggle (同じ <code>name</code> で ToggleGroup)、<code>range</code> → Slider、<code>text</code> <code>search</code> <code>email</code> <code>url</code> <code>tel</code> <code>password</code> <code>number</code> → TMP_InputField。<code>hidden</code> は描画しません。それ以外は <code>HTML1003</code> を出し、ただの箱になります。</td></tr>
-<tr><td><code>checked</code> <span class="dev">未リリース</span></td><td>checkbox・radio</td><td>あれば初期状態が on になります。</td></tr>
-<tr><td><code>name</code> <span class="dev">未リリース</span></td><td>radio</td><td>同じ名前のラジオボタンは 1 つの ToggleGroup にまとまります。</td></tr>
-<tr><td><code>value</code> / <code>placeholder</code> / <code>maxlength</code> / <code>readonly</code> <span class="dev">未リリース</span></td><td>テキスト系 input・<code>textarea</code></td><td>初期値・入力前の表示・文字数の上限・読み取り専用。<code>textarea</code> は中身が初期値で、複数行入力になります。</td></tr>
-<tr><td><code>href</code> <span class="dev">未リリース</span></td><td><code>a</code></td><td>クリックで URL のコピー用パネルを開きます。<a href="#links">§3</a></td></tr>
-<tr><td><code>min</code> / <code>max</code> / <code>step</code> / <code>value</code> <span class="dev">未リリース</span></td><td>range</td><td>既定値は 0 / 100 / 1 / 中央値です。</td></tr>
-<tr><td><code>disabled</code> <span class="dev">未リリース</span></td><td>button・input</td><td><code>interactable = false</code> にします。</td></tr>
+<tr><td><code>type</code></td><td><code>input</code></td><td><code>checkbox</code> → Toggle、<code>range</code> → Slider。<code>radio</code> → Toggle (同じ <code>name</code> で ToggleGroup)、<code>text</code> <code>search</code> <code>email</code> <code>url</code> <code>tel</code> <code>password</code> <code>number</code> → TMP_InputField。<code>hidden</code> は描画しません。それ以外は <code>HTML1003</code> を出し、ただの箱になります。</td></tr>
+<tr><td><code>checked</code></td><td>checkbox・radio</td><td>あれば初期状態が on になります。</td></tr>
+<tr><td><code>name</code></td><td>radio</td><td>同じ名前のラジオボタンは 1 つの ToggleGroup にまとまります。</td></tr>
+<tr><td><code>value</code> / <code>placeholder</code> / <code>maxlength</code> / <code>readonly</code></td><td>テキスト系 input・<code>textarea</code></td><td>初期値・入力前の表示・文字数の上限・読み取り専用。<code>textarea</code> は中身が初期値で、複数行入力になります。</td></tr>
+<tr><td><code>href</code></td><td><code>a</code></td><td>クリックで URL のコピー用パネルを開きます。<a href="#links">§3</a></td></tr>
+<tr><td><code>min</code> / <code>max</code> / <code>step</code> / <code>value</code></td><td>range</td><td>既定値は 0 / 100 / 1 / 中央値です。</td></tr>
+<tr><td><code>disabled</code></td><td>button・input</td><td><code>interactable = false</code> にします。</td></tr>
 <tr><td><code>component</code>, <code>component.*</code></td><td>全要素</td><td>任意のコンポーネントを付けて値を設定します。<a href="#component">§10</a></td></tr>
-<tr><td><code>vrc-udon</code>, <code>vrc-event</code>, <code>vrc-target</code>, <code>vrc-var-*</code> <span class="dev">未リリース</span></td><td>全要素 / 操作部品</td><td>Udon との連携。<a href="#udon">§10</a></td></tr>
+<tr><td><code>vrc-udon</code>, <code>vrc-event</code>, <code>vrc-target</code>, <code>vrc-var-*</code></td><td>全要素 / 操作部品</td><td>Udon との連携。<a href="#udon">§10</a></td></tr>
 <tr><td><code>rel</code> / <code>href</code></td><td><code>link</code></td><td><code>rel="stylesheet"</code> のとき CSS を読み込みます。</td></tr>
 </tbody>
 </table>
@@ -216,9 +220,9 @@ h2[id], h3[id] { scroll-margin-top: 1rem; }
 <tr><td><code>A B</code> (子孫) / <code>A &gt; B</code> (子)</td><td>対応</td></tr>
 <tr><td><code>A, B</code> (セレクタリスト)</td><td>対応</td></tr>
 <tr><td><code>:root</code></td><td>対応 (<code>body</code> に一致します)</td></tr>
-<tr><td><code>[a]</code> <code>[a=v]</code> <code>[a~=v]</code> <code>[a^=v]</code> <code>[a$=v]</code> <code>[a*=v]</code> <code>[a|=v]</code>、<code>i</code> フラグ</td><td>対応 <span class="dev">未リリース</span></td></tr>
+<tr><td><code>[a]</code> <code>[a=v]</code> <code>[a~=v]</code> <code>[a^=v]</code> <code>[a$=v]</code> <code>[a*=v]</code> <code>[a|=v]</code>、<code>i</code> フラグ</td><td>対応</td></tr>
 <tr><td>擬似要素 (<code>::before</code> など)</td><td>そのセレクタを捨てます。<code>CSS1003</code> (Info)</td></tr>
-<tr><td><code>:hover</code> <code>:active</code> <code>:focus</code> <code>:focus-visible</code> <code>:disabled</code></td><td>対応 <span class="dev">未リリース</span>。button・リンク・input の背景色を、状態ごとの色 (ColorBlock) にします。スタイルを当てる要素自身にだけ書けます (<code>.panel:hover button</code> は不可)。背景色以外の変化は反映せず、Warning を出します。</td></tr>
+<tr><td><code>:hover</code> <code>:active</code> <code>:focus</code> <code>:focus-visible</code> <code>:disabled</code></td><td>対応。button・リンク・input の背景色を、状態ごとの色 (ColorBlock) にします。スタイルを当てる要素自身にだけ書けます (<code>.panel:hover button</code> は不可)。背景色以外の変化は反映せず、Warning を出します。</td></tr>
 <tr><td>その他の擬似クラス (<code>:first-child</code> など)</td><td>そのセレクタを捨てます。<code>CSS1003</code> (Warning)</td></tr>
 <tr><td>兄弟結合子 <code>+</code> <code>~</code></td><td>そのセレクタを捨てます。<code>CSS1003</code> (Warning)</td></tr>
 </tbody>
@@ -303,9 +307,9 @@ h2[id], h3[id] { scroll-margin-top: 1rem; }
 <tr><td><code>color</code> <code>opacity</code></td><td></td></tr>
 <tr><td><code>border</code> <code>border-width</code> <code>border-color</code> <code>border-style</code></td><td>四辺共通で指定します。<code>border-style</code> は <code>none</code> / <code>hidden</code> だと枠線が消えます。それ以外の値はすべて実線になります。</td></tr>
 <tr><td><code>border-radius</code></td><td>四隅共通です。複数の値を書くと先頭の値を使い、その旨を報告します。</td></tr>
-<tr><td><code>overflow</code> <code>overflow-x</code> <code>overflow-y</code></td><td><code>hidden</code> <code>clip</code> はクリップ (<code>RectMask2D</code>) になります。<code>scroll</code> <code>auto</code> はクリップに加えて、指定した軸にスクロールできる <code>ScrollRect</code> になります <span class="dev">未リリース</span>。子要素は <code>Content</code> オブジェクトにまとめます。クリップは片方の軸だけ指定しても両軸に効きます。</td></tr>
+<tr><td><code>overflow</code> <code>overflow-x</code> <code>overflow-y</code></td><td><code>hidden</code> <code>clip</code> はクリップ (<code>RectMask2D</code>) になります。<code>scroll</code> <code>auto</code> はクリップに加えて、指定した軸にスクロールできる <code>ScrollRect</code> になります。子要素は <code>Content</code> オブジェクトにまとめます。クリップは片方の軸だけ指定しても両軸に効きます。</td></tr>
 <tr><td><code>object-fit</code></td><td><code>fill</code> <code>contain</code> <code>scale-down</code> <code>none</code>。<code>cover</code> は <code>contain</code> として扱い、<code>ASSET1002</code> (Info) を出します。</td></tr>
-<tr><td><code>accent-color</code> <span class="dev">未リリース</span></td><td>チェックボックス・ラジオのチェックと、スライダーの塗りの色に使います (継承)。</td></tr>
+<tr><td><code>accent-color</code></td><td>チェックボックス・ラジオのチェックと、スライダーの塗りの色に使います (継承)。</td></tr>
 </tbody>
 </table>
 </div>
@@ -403,7 +407,7 @@ h2[id], h3[id] { scroll-margin-top: 1rem; }
 </ul>
 
 
-<h3 id="udon">VRChat Udon 属性 <span class="dev">未リリース</span></h3>
+<h3 id="udon">VRChat Udon 属性</h3>
 <p>VRChat アダプタと Worlds SDK が必要です。</p>
 <pre><code>&lt;div id="door-panel" vrc-udon="./DoorPanel.asset"&gt;
   &lt;button vrc-event="Open"&gt;開ける&lt;/button&gt;
@@ -415,7 +419,7 @@ h2[id], h3[id] { scroll-margin-top: 1rem; }
 <thead><tr><th>属性</th><th>対象</th><th>意味</th></tr></thead>
 <tbody>
 <tr><td><code>vrc-udon</code></td><td>全要素</td><td>要素の GameObject に <code>UdonBehaviour</code> を付け、program を設定します。値には Udon program asset (Udon Graph / UdonSharp)、または UdonSharp のスクリプトを指定します。指定方法は HTML からの相対パス、<code>Assets/</code> からのパス、GUID のいずれかです。</td></tr>
-<tr><td><code>vrc-event</code></td><td>button / checkbox / radio / range / テキスト入力</td><td><code>onClick</code> (button)、<code>onValueChanged</code> (checkbox・radio・range)、<code>onEndEdit</code> (テキスト入力) に <code>UdonBehaviour.SendCustomEvent("&lt;名前&gt;")</code> を登録します。</td></tr>
+<tr><td><code>vrc-event</code></td><td>button / checkbox / range / radio / テキスト入力</td><td><code>onClick</code> (button)、<code>onValueChanged</code> (checkbox・radio・range)、<code>onEndEdit</code> (テキスト入力) に <code>UdonBehaviour.SendCustomEvent("&lt;名前&gt;")</code> を登録します。</td></tr>
 <tr><td><code>vrc-var-&lt;名前&gt;</code></td><td><code>UdonBehaviour</code> を持つ要素</td><td>program の public 変数に値を設定します。HTML の属性名は小文字になるので、名前は大文字小文字・<code>-</code>・<code>_</code> を無視して照合します (<code>vrc-var-door-id</code> は <code>doorId</code>)。値は変数の型 (数値、bool、string、char、色、Vector、enum) として読みます。UdonSharp のコンポーネントがあれば、そのフィールドにも設定します。</td></tr>
 <tr><td><code>vrc-target</code></td><td><code>vrc-event</code> を持つ要素</td><td>イベントの受け手を指定します。<code>#id</code> は文書内の要素、<code>/Path/In/Scene</code> はシーン上のオブジェクトです (シーンに出力するときだけ使えます)。省略すると、自分自身から祖先へ向かって最初に <code>UdonBehaviour</code> を持つ要素が受け手になります。</td></tr>
 </tbody>
@@ -458,7 +462,7 @@ h2[id], h3[id] { scroll-margin-top: 1rem; }
   <li>どの候補も解決できないと Warning が 1 件出ます。</li>
   <li>フォントにない文字は「どのフォントにどの文字 (U+XXXX) がないか」を 1 件だけ報告します。フォント自身のフォールバックと、TMP Settings の Fallback Font Assets も調べたうえで判定します。</li>
   <li>絵文字は <code>font-family</code> とは別に、Emoji TMP Font (既定は Segoe UI Emoji) で描きます。プロジェクトにそのフォントのアセットがなければ、インストール済みのフォントをプロジェクトにコピーしてから生成します。カラー絵文字は TMP の Sprite として出力され、カラーレイヤーのない絵文字 (❀ など) は本文の文字色で塗られる単色の Sprite になります。<code>&lt;font&gt;</code> タグは出力しないので、VRChat 上でタグがそのまま表示されることはありません。</li>
-  <li>Bake Used Characters <span class="dev">未リリース</span> が on のとき、動的な TMP フォントは「文書で使う文字だけを焼いた静的なコピー」に差し替えます。コピーは <code>&lt;出力フォルダ&gt;/Fonts/</code> に作られ、元のフォントファイルを参照しないので、日本語フォントでもワールドの容量が大きく増えません。同じ文字の組み合わせなら再利用し、元のフォントアセットは変更しません。フォールバックフォントも同様にコピーします。TMP Settings の Fallback Font Assets は対象外です。</li>
+  <li>Bake Used Characters が on のとき、動的な TMP フォントは「文書で使う文字だけを焼いた静的なコピー」に差し替えます。コピーは <code>&lt;出力フォルダ&gt;/Fonts/</code> に作られ、元のフォントファイルを参照しないので、日本語フォントでもワールドの容量が大きく増えません。同じ文字の組み合わせなら再利用し、元のフォントアセットは変更しません。フォールバックフォントも同様にコピーします。TMP Settings の Fallback Font Assets は対象外です。</li>
   <li>プロジェクトにコピーしたフォントはビルドに含まれるので、ライセンスを確認してください。</li>
   <li>TMP Essential Resources が必要です (Window &gt; TextMeshPro &gt; Import TMP Essential Resources)。</li>
 </ul>
@@ -471,8 +475,8 @@ h2[id], h3[id] { scroll-margin-top: 1rem; }
   <li>手を加えた生成オブジェクトが HTML から消えた場合は、オブジェクトを残して <code>UNITY1006</code> を出します。保持の設定を切っている場合は削除して <code>UNITY1007</code> を出します。</li>
   <li>metadata がないと、どこがユーザーの変更か判断できないため、更新を拒否します (<code>UNITY1008</code>)。<code>Create</code> で既存の出力に上書きしようとすると <code>UNITY1005</code> です。</li>
   <li>Extension が追加したコンポーネントは metadata に記録されないため、ユーザーが追加したものとして扱われ、Update で削除されません。</li>
-  <li>一度もコンパイルしていない文書を Update しようとした場合、ウィンドウは自動で Create にします <span class="dev">未リリース</span>。既存の Prefab や、同名のオブジェクトがシーンにある場合は Update のままです。</li>
-  <li>Update on Save <span class="dev">未リリース</span> が on のとき、HTML や読み込んだ CSS (<code>&lt;link&gt;</code>・<code>@import</code> を含む) を保存すると、その文書から作った出力を Update します。削除された Prefab は作り直しません。シーン出力はそのシーンを開いているときだけ更新します。</li>
+  <li>一度もコンパイルしていない文書を Update しようとした場合、ウィンドウは自動で Create にします。既存の Prefab や、同名のオブジェクトがシーンにある場合は Update のままです。</li>
+  <li>Update on Save が on のとき、HTML や読み込んだ CSS (<code>&lt;link&gt;</code>・<code>@import</code> を含む) を保存すると、その文書から作った出力を Update します。削除された Prefab は作り直しません。シーン出力はそのシーンを開いているときだけ更新します。</li>
 </ul>
 
 <!-- ============================================================ -->
@@ -528,7 +532,7 @@ h2[id], h3[id] { scroll-margin-top: 1rem; }
 <tr><td><code>VRC1003</code></td><td><code>vrc-</code> の値が読めない</td></tr>
 <tr><td><code>VRC1004</code></td><td>未知の <code>vrc-</code> プロパティ</td></tr>
 <tr><td><code>VRC1005</code></td><td>VRChat SDK が入っていないため SDK 依存の処理を省略した</td></tr>
-<tr><td><code>VRC1006</code> <span class="dev">未リリース</span></td><td><code>vrc-udon</code> / <code>vrc-event</code> / <code>vrc-target</code> を適用できない</td></tr>
+<tr><td><code>VRC1006</code></td><td><code>vrc-udon</code> / <code>vrc-event</code> / <code>vrc-target</code> / <code>vrc-var-*</code> を適用できない</td></tr>
 <tr><th colspan="2">INTERNAL</th></tr>
 <tr><td><code>INTERNAL9001</code></td><td>コンパイラ内部の例外</td></tr>
 <tr><td><code>INTERNAL9002</code></td><td>不正な CompileRequest</td></tr>
