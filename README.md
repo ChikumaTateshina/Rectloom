@@ -112,9 +112,17 @@ https://chikumatateshina.github.io/Rectloom/index.json
   `align-items: baseline`、`align-self`、`align-content`、`row-gap` / `column-gap`、
   `margin: 0 auto` による中央寄せ、`position: relative` / `absolute`。
 - **描画** — `background` / `border` ショートハンド、`border-radius`、`overflow: hidden`
-  (`RectMask2D`)、`object-fit`、`opacity`。
+  (`RectMask2D`)、`overflow: auto` / `scroll` (`ScrollRect`)、`object-fit`、`opacity`。
 - **テキスト** — `font-family` (プロジェクト内の TMP Font Asset を名前で解決)、
   `text-decoration`、`white-space`、`line-height`、`letter-spacing`。
+  文中の `<strong>` `<em>` `<a>` などは TextMeshPro のリッチテキストで 1 つの文にまとめます。
+  動的フォントは、文書で使う文字だけを焼いた静的なコピーに差し替えます (ワールド容量の削減)。
+- **操作部品** — `button`、`input` (checkbox / radio / range / text 系)、`textarea` を Button / Toggle /
+  ToggleGroup / Slider / TMP_InputField に変換します。`:hover` `:active` `:focus` `:disabled` の
+  背景色は状態ごとの色になります。`<a href>` はクリックでコピー用の URL 欄を開きます。
+- **VRChat** — `vrc-udon` / `vrc-event` / `vrc-target` / `vrc-var-*` で、Udon のプログラム・イベント・
+  public 変数をコンパイル時に設定します。Canvas には `VRCUiShape` を付けます。
+- **作業の流れ** — HTML や CSS を保存すると、出力を自動で Update します。
 - **画像** — `data:` URI で埋め込まれた PNG / JPEG などを、内容のハッシュで名前を付けた
   プロジェクトアセットとして書き出して参照します。
   `data:image/svg+xml;base64,...` の SVG も対応します。`img` の `src` と CSS の

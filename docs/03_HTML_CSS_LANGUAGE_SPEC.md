@@ -30,7 +30,7 @@ layout上の意味がboxまたは継承text styleに尽きるelementを対象と
 
 ```text
 body div span p h1 h2 h3 h4 h5 h6 button img br
-input[type=checkbox] input[type=range]
+input[type=checkbox|radio|range|text|search|email|url|tel|password|number] textarea
 
 article section header footer nav main aside hgroup address
 figure figcaption blockquote pre hr
@@ -48,13 +48,36 @@ label sub sup ins del bdi bdo ruby rt rp
 | `<button>` | `Button` | `disabled` |
 | `<input type="checkbox">` | `Toggle` + 子 `Checkmark` | `checked` `disabled` |
 | `<input type="range">` | `Slider` + 子 `Background` / `Fill Area/Fill` / `Handle Slide Area/Handle` | `min`(0) `max`(100) `step`(1) `value`(中央) `disabled` |
+| `<input type="radio">` | `Toggle` (丸いチェック) + 同じ `name` で共有する `ToggleGroup` | `name` `checked` `disabled` |
+| `<input type="text">` など、`<textarea>` | `TMP_InputField` + 子 `Text Area/Placeholder` `Text Area/Text` | `value` (textarea は中身) `placeholder` `maxlength` `readonly` `disabled`。`password` `number` `email` は contentType |
+| `<a href>` | `Button` + URL ごとのコピー用パネル (`Link Popup`) | `href` |
 
 - 既定サイズはbuilt-in stylesheetで、checkboxは20x20、rangeは160x20。
 - checkboxの箱はCSSの `background` / `border` で描き、チェックは `accent-color` (既定 `#3080ff`) で塗る。
 - rangeは `step` と `min` / `max` がすべて整数のとき `wholeNumbers`。それ以外の `step` は連続値になる。
 - `disabled` と `unity-interactable: false` はどちらも `interactable = false` にする。
 - `onClick` / `onValueChanged` はユーザーのもの。compilerは書き換えない (Update後も保持)。
-- その他の `type` (`text` `radio` など) は未対応。plain boxになり `HTML1003` を報告する。
+- `type=hidden` は描画しない。その他の `type` (`date` `color` `file` など) は未対応。plain boxになり `HTML1003` を報告する。
+- ラジオのToggleGroupはrootの子 `Radio Group <name>` に置く。最初にどれも `checked` でないgroupは
+  `allowSwitchOff = true` (HTMLと同じく未選択から始められる)。
+- `<a href>`: VRChatのworldはbrowserを開けないため、clickで `Link Popup` (読み取り専用の
+  `TMP_InputField` にURL、閉じるボタン) を開く。開閉は `GameObject.SetActive` のpersistent listener
+  (UI eventから呼べる呼び出しで、Udon不要)。popupはURLごとに1つ、rootの最後の子に非表示で置く。
+  独立したboxのlinkはそのboxがButtonになり、文中のlinkはTMPで求めた文字範囲に透明なButtonを重ねる。
+  Updateではcompilerが付けた `SetActive` だけを差し替える。
+
+### Inline formatting
+
+flexでない要素の中の文字と、boxを描かないinline要素 (`display: inline`、背景・枠なし、
+`component` / `unity-` / `vrc-` 属性なし) は1つのtextにまとめ、styled spanの列として持つ。
+backendはTMP rich text (`<b>` `<i>` `<u>` `<s>` `<color>` `<size>` `<link>`) で書き分け、
+measurerもspanを適用して測る。
+
+- 空白は要素の境目をまたいでcollapseし、run全体の両端をtrimする。
+- run中の `<br>` は `\n`。block間の `<br>` は従来どおり。
+- authorが書いた `<` は `<noparse>` でescapeする。spanが無いtextはrich textをoffにする。
+- spanごとの `font-family` は反映しない (font tagはResources経由で解決され、VRChatで壊れるため)。
+- flex containerの子はflex itemなのでまとめない。
 
 ### Metadata
 
@@ -149,7 +172,17 @@ unwrapされるため、compile後のroot elementは `body` である。
 - **その他のpseudo-class** (`:hover` `:first-child` など) — selectorを捨て、
   `CSS1003` をWarningとして報告する。
 - sibling combinator (`+` `~`)。
-- `:checked` `:disabled` などの状態pseudo-class。代わりに `[checked]` `[disabled]` を使う。
+- `:checked` などの構造・状態pseudo-class。代わりに `[checked]` を使う。
+
+### Interaction state
+
+`:hover` `:active` `:focus` `:focus-visible` `:disabled` はstyleを当てる要素自身 (最後のcompound)
+にだけ書ける。通常のcascadeではstate付きのruleを無視し、button・`a[href]`・inputについて
+stateごとにcascadeし直す。背景色の差をSelectableのColorBlockにする
+(highlighted / pressed (無ければhover) / selected / disabled (無ければ通常色を暗く))。
+graphicは白にしてtintを色そのものにする。枠線付きのboxはfillと枠が1枚のspriteなので比率で
+tintし、明るくなるstateはWarning。背景色以外を変えるstate ruleはWarning (表示できない)。
+specificityはclassと同じ。
 
 Specificity:
 
@@ -294,8 +327,9 @@ overflow-y
 object-fit            /* fill | contain | cover */
 ```
 
-`overflow` はclipするかどうかのみmodelする。uGUIは `ScrollRect` 無しでは
-scrollbarを持たないため `scroll` と `auto` もclipする。
+`hidden` `clip` はclipする。`scroll` `auto` はclipし、その軸を `ScrollRect` でscrollできるようにする
+(`overflow: x y` は軸ごと)。子は `Content` objectに入り、その左上はboxの左上と一致するので
+childのbakeは変わらない。`Content` の大きさは子の外接 + padding。中身が収まるboxでは軸を動かさない。
 clipは `RectMask2D` になり、軸ではなく矩形に効くので、片軸だけclipを求めた
 boxも両軸clipされる。
 
@@ -455,7 +489,8 @@ vrc-
 | 属性 | 意味 |
 |---|---|
 | `vrc-udon` | この要素のobjectへ `UdonBehaviour` を付け、programを設定する。値はUdon program asset (Graph / UdonSharp)、またはUdonSharpのscript。HTMLからの相対path、`Assets/` からのpath、GUID |
-| `vrc-event` | button / checkbox / range の `onClick` / `onValueChanged` に `UdonBehaviour.SendCustomEvent("<名前>")` を登録する |
+| `vrc-event` | button / checkbox / radio / range の `onClick` / `onValueChanged`、text入力の `onEndEdit` に `UdonBehaviour.SendCustomEvent("<名前>")` を登録する |
+| `vrc-var-<名前>` | その要素の `UdonBehaviour` のprogramのpublic変数に値を設定する。名前は大文字小文字・`-`・`_` を無視して照合 (HTMLは属性名を小文字にするため)。値は変数の型として読む。UdonSharpのcomponentがあればそのfieldにも設定する |
 | `vrc-target` | 受け手。`#id` はこのdocument内の要素、`/Path/In/Scene` はscene上のobject (scene出力時のみ)。省略時は自分から祖先へ向かって最初に `UdonBehaviour` を持つ要素 |
 
 - 呼ぶmethodは `SendCustomEvent` 固定。markupが選べるのはevent名と受け手だけで、任意method呼び出しにはならない。
@@ -602,6 +637,15 @@ buildしたworldからは辿れない)。
   Essential Resources未import) は `ASSET1002` Warningを1件出す。
 
 projectへcopyしたfontはbuildに含まれうるため、licenceを確認すること。
+
+### 使う文字だけのfont (`BakeUsedCharacters`、既定on)
+
+出力を書き込むcompileでは、textが解決する動的font (とそのfallback) を、文書が表示しうる文字
+(text、属性値、compilerが書くlabel) だけを焼いた静的なcopyに差し替える。静的font assetは
+`m_SourceFontFile` を持たないので、font fileはbuildに入らない。copyは
+`<GeneratedAssetFolder>/Fonts/<元の名前> <hash>.asset` で、hashは元fontと文字集合から作るので
+同じtextなら再利用する。userのfont assetは変更しない。TMP Essential Resourcesが無い場合は
+元のfontをそのまま使いInfoを出す。
 
 ### 字形が無い場合
 

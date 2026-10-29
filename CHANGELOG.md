@@ -7,8 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Inline formatting.** Text and text-level elements that paint no box (`strong`, `em`, `a`, `span`, ...) now form one run of formatted text instead of stacked boxes: `<p>これは<strong>重要</strong>です</p>` is one sentence, rendered with TextMeshPro rich text and measured as such. `<br>` inside the run is a line break. Flex children stay flex items.
+- **Links.** A world cannot open a browser, so `<a href>` opens a panel holding the address in a read-only, copyable field (select and Ctrl+C), wired with `GameObject.SetActive` so no Udon is needed. Links stay blue and underlined unless CSS says otherwise; links inside text get transparent buttons over their characters.
+- **`:hover`, `:active`, `:focus`, `:disabled`** backgrounds on buttons, links and inputs become the Selectable's colour tint per state.
+- **`overflow: auto` / `scroll`** compile to a `ScrollRect` over a `Content` object.
+- **Radio buttons and text fields.** `<input type="radio">` (ToggleGroup per `name`), text input types and `<textarea>` (TMP_InputField with `value`, `placeholder`, `maxlength`, `readonly`). `vrc-event` on a text field sends on end edit.
+- **`vrc-var-<name>`** sets an Udon program's public variable from markup (names matched ignoring case, hyphens and underscores; values parsed as the variable's type).
+- **Bake Used Characters** (on by default): dynamic TMP fonts are replaced by static copies holding only the characters the document uses, so the font file stays out of the build.
+- **Update on Save** (on by default): saving an HTML file, or a stylesheet it reads, updates the outputs compiled from it.
+
 ### Fixed
 
+- The compiler window no longer fails with `UNITY1008` when the next document chosen after a compile has never been compiled; it creates it, unless the scene already holds an object of that name.
 - **Emoji no longer show up as `<font="RectloomEmoji_…">` text in VRChat.** Emoji without colour layers in Segoe UI Emoji (❀ U+2740, ✶ U+2736 and others) were wrapped in a TMP font tag, which TMP resolves through Resources; a VRChat world bundle cannot read the world's Resources, so the tag was drawn as text while the Editor looked correct. Such glyphs now become white monochrome sprites tinted with the text colour, in the same directly referenced sprite set as colour emoji. No font tag is written at all any more: an emoji font without colour tables also becomes monochrome sprites, and a character that cannot become a sprite is written as it is for the text font to draw. Joiners and variation selectors are dropped, since sprites do not combine. The emoji font is no longer copied into a Resources folder, which only font tags needed. This adopts the fix from the WorldTest07 report.
 - Colour emoji generated in a project with no cached sprites were saved under the monochrome name and tinted with the text colour. The name now follows the glyph actually drawn.
 - The emoji font file is released after sprites are generated, so it can be moved or deleted without closing the Editor.

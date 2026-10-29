@@ -119,6 +119,22 @@ Udon 側で `Toggle.isOn` / `Slider.value` を読んでください。
   `vrc-target="/World/DoorController"` (Scene Object 出力のときだけ) を書きます。
 - Prefab からシーンのオブジェクトは参照できません。Prefab 出力ではイベントの受け手を
   HTML の中 (`vrc-udon`) に置いてください。
+- ラジオボタン (`<input type="radio">`) とテキスト入力 (`<input type="text">` / `<textarea>`)
+  にも `vrc-event` を書けます。テキスト入力は入力の確定時 (onEndEdit) にイベントを送ります。
+
+### Udon の public 変数を HTML で設定する
+
+同じプログラムを複数のパネルで使い分けたいときは、`vrc-var-<変数名>` で public 変数に値を入れます。
+
+```html
+<div vrc-udon="./DoorPanel.asset" vrc-var-door-id="3" vrc-var-label="北の扉">
+  <button vrc-event="Open">開ける</button>
+</div>
+```
+
+HTML の属性名は小文字になるので、変数名は大文字小文字と `-` `_` を無視して照合します
+(`vrc-var-door-id` は `doorId` に一致します)。値は変数の型 (数値・bool・文字列・色・Vector・enum)
+として読み込みます。
 
 ### Inspector で設定する
 
@@ -129,7 +145,13 @@ Udon 側で `Toggle.isOn` / `Slider.value` を読んでください。
 **見た目だけが更新され、手で設定した `OnClick` は保持されます。** `vrc-event` で
 コンパイラが追加したものだけが、HTML の内容に合わせて差し替わります。
 
-## 5. 日本語フォント
+## 5. リンク
+
+VRChat のワールドからはブラウザを開けません。そのため `<a href="https://...">` は、クリックすると
+URL を表示するパネルを開きます。パネルの URL 欄は選択して Ctrl+C でコピーできます (デスクトップのみ)。
+Udon は不要です。CSS で指定しなければ、リンクは青の下線付きで表示されます。
+
+## 6. 日本語フォント
 
 TextMeshPro の既定フォント (LiberationSans) には日本語の字形がありません。そのままだと
 日本語は □ になります。日本語フォントから TMP Font Asset を作り、CSS で指定してください。
@@ -152,7 +174,14 @@ TextMeshPro は字形が無い文字ごとに警告を出すため、そのま�
 
 `Project Settings → TextMesh Pro → Fallback Font Assets` に追加しておく方法でも構いません。
 
-## 6. World Space キャンバス
+### ワールド容量を抑える (Bake Used Characters)
+
+日本語の動的フォントは、元のフォントファイル (数 MB〜十数 MB) をワールドに含めないと描画できません。
+Compiler ウィンドウの **Bake Used Characters** (既定 on) が有効なら、文書で使っている文字だけを焼いた
+静的なフォントのコピーを `<出力フォルダ>/Fonts/` に作り、テキストはそちらを使います。
+元のフォントファイルはビルドに含まれなくなります。文章を変えると、新しい文字を含むコピーが作られます。
+
+## 7. World Space キャンバス
 
 VRChat のワールド UI は World Space キャンバスである必要があります
 (Screen Space Overlay は他プレイヤーに見えず、VR では存在しません)。
@@ -168,7 +197,7 @@ body {
 
 `vrc-world-scale: 0.001` で、`1920 x 1080` の参照解像度が約 1.92m x 1.08m になります。
 
-## 7. VRC Ui Shape (クリックできるようにする)
+## 8. VRC Ui Shape (クリックできるようにする)
 
 World Space キャンバスは VRChat で見えますが、`VRCUiShape` コンポーネントが付いていないと
 ポインタが当たらず、ボタンを押せません。
@@ -194,7 +223,13 @@ body {
   外したい場合は手動で削除するか、`Rebuild` でコンパイルしてください。
 - 既存のキャンバスの下に生成した場合 (ルートに Canvas が無い場合) は、何もしません。
 
-## 8. UPM (非 VRChat) で使う場合
+## 9. 保存すると自動で更新 (Update on Save)
+
+一度コンパイルした文書は、HTML や読み込んでいる CSS (`<link>`・`@import` を含む) を保存するだけで、
+自動的に Update コンパイルされます。Inspector で設定したイベントなどは保持されます。
+結果は Console に 1 行で表示されます。不要なら Compiler ウィンドウの **Update on Save** をオフにします。
+
+## 10. UPM (非 VRChat) で使う場合
 
 VRChat を使わない通常の Unity プロジェクトでは VCC は不要です。
 `Packages/manifest.json` へ以下を追加してください。
@@ -217,7 +252,7 @@ Core は依存として入ります。VRChat パッケージは不要です。
 | `does not contain a valid repository listing` | リスティングがまだ公開されていません。GitHub Actions の `Pages` ワークフローが成功しているか確認してください |
 | VCC にパッケージが出てこない | リポジトリ URL を再確認し、VCC を再起動してください |
 | `Update` が拒否される | 出力の隣にある `*.rectloom.asset` が必要です。消してしまった場合は `Rebuild` を使ってください |
-| ワールドでボタンが押せない | キャンバスに `VRCUiShape` が付いているか確認してください (上記 7)。キャンバスのレイヤーが `UI` だと押せないので `Default` にします |
+| ワールドでボタンが押せない | キャンバスに `VRCUiShape` が付いているか確認してください (上記 8)。キャンバスのレイヤーが `UI` だと押せないので `Default` にします |
 | ワールドで UI が見えない | キャンバスが World Space か確認してください (`vrc-world-space`) |
 | テキストが表示されない | TextMeshPro の Essential Resources を `Window → TextMeshPro` から導入してください |
 | 日本語が □ になる | 既定フォント (LiberationSans) に日本語の字形がありません。日本語フォントの TMP Font Asset を作り、CSS で `font-family` に指定してください (下記) |
