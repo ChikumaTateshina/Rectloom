@@ -274,6 +274,11 @@ namespace Rectloom.Ugui.Backend
                     ? ApplyLinkPopups(node, target, transformPath, siblingNames)
                     : new List<string>();
 
+                if (isRoot)
+                {
+                    popups.InsertRange(0, ApplyRadioGroups(node, target, transformPath, siblingNames));
+                }
+
                 // A scrolling box holds its children in a content object the scroll rect moves.
                 GameObject childParent = target;
                 string childPath = transformPath;
@@ -316,6 +321,11 @@ namespace Rectloom.Ugui.Backend
                 if (node.Kind == UiNodeKind.Toggle)
                 {
                     ApplyToggleParts(node, target, transformPath, siblingNames, expected);
+                }
+                else if (node.Kind == UiNodeKind.Input)
+                {
+                    ApplyTextInputParts(node, target, transformPath);
+                    expected.Add(TextAreaName);
                 }
                 else if (node.Kind == UiNodeKind.Slider)
                 {
@@ -416,6 +426,9 @@ namespace Rectloom.Ugui.Backend
                     case UiNodeKind.Toggle:
                         Image? box = ApplyPaint(node, target, entry, forceGraphic: true);
                         ApplyStateColors(node, GetOrAdd<Toggle>(target, entry, ToggleProperties), box);
+                        break;
+                    case UiNodeKind.Input:
+                        ApplyTextInput(node, target, entry);
                         break;
                     case UiNodeKind.Slider:
                         // The box itself only catches the pointer; the track and handle are drawn by
@@ -567,7 +580,10 @@ namespace Rectloom.Ugui.Backend
                 Stretch(rect, inset, inset, inset, inset);
 
                 Image image = GetOrAdd<Image>(mark, entry, ImageProperties);
-                PaintShape(image, Mathf.Max(0f, node.Visual.BorderRadius - inset), 0f, accent, accent);
+                float markRadius = IsRadio(node)
+                    ? (Mathf.Min(width, height) - (inset * 2f)) / 2f
+                    : Mathf.Max(0f, node.Visual.BorderRadius - inset);
+                PaintShape(image, markRadius, 0f, accent, accent);
                 image.raycastTarget = false;
 
                 var toggle = target.GetComponent<Toggle>();
@@ -575,6 +591,7 @@ namespace Rectloom.Ugui.Backend
                 toggle.targetGraphic = target.GetComponent<Image>();
                 toggle.toggleTransition = Toggle.ToggleTransition.None;
                 toggle.interactable = _backend.ReadInteractable(node);
+                JoinRadioGroup(node, toggle);
                 toggle.SetIsOnWithoutNotify(node.TryGetAttribute("checked", out _));
 
                 FinishPart(mark, entry);
@@ -1198,7 +1215,8 @@ namespace Rectloom.Ugui.Backend
         {
             bool control = node.Kind == UiNodeKind.Button
                 || node.Kind == UiNodeKind.Toggle
-                || node.Kind == UiNodeKind.Slider;
+                || node.Kind == UiNodeKind.Slider
+                || node.Kind == UiNodeKind.Input;
 
             return ReadBoolProperty(node, RaycastTargetProperty, control);
         }

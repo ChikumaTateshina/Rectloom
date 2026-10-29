@@ -6,6 +6,7 @@
     "Rectloom.Ugui.Editor",
     "Rectloom.VRChat.Editor",
     "UnityEngine.UI",
+    "Unity.TextMeshPro",
     "UnityEngine.TestRunner",
     "UnityEditor.TestRunner"
   ],

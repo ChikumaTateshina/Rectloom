@@ -9,6 +9,7 @@ using Rectloom.Core.Compilation;
 using Rectloom.Core.Diagnostics;
 using Rectloom.Core.Layout;
 using Rectloom.Ugui.Compilation;
+using TMPro;
 using UnityEditor;
 using UnityEditor.Events;
 using UnityEngine;
@@ -196,14 +197,14 @@ namespace Rectloom.Ugui.Tests.Compilation
         [Test]
         public void AnUnsupportedInputType_IsReported()
         {
-            Write("<input id=\"name\" type=\"text\">");
+            Write("<input id=\"name\" type=\"date\">");
 
             CompileResult result = Compile();
 
             Assert.That(result.Success, Is.True, Describe(result));
             Assert.That(
                 result.Diagnostics.Any(d => d.Code == DiagnosticCodes.Html.UnknownElement
-                    && d.Message.Contains("type=\"text\"")),
+                    && d.Message.Contains("type=\"date\"")),
                 Is.True,
                 Describe(result));
         }
@@ -254,6 +255,85 @@ namespace Rectloom.Ugui.Tests.Compilation
                 prefab.GetComponentsInChildren<Transform>(true).Count(t => t.name == "Handle"),
                 Is.EqualTo(1),
                 "the handle was reused, not duplicated");
+        }
+
+        [Test]
+        public void RadioButtonsWithOneName_ShareAToggleGroup()
+        {
+            Write("<input id=\"small\" type=\"radio\" name=\"size\">"
+                + "<input id=\"large\" type=\"radio\" name=\"size\" checked>"
+                + "<input id=\"other\" type=\"radio\" name=\"colour\">");
+
+            AssertClean(Compile());
+
+            Toggle small = Find<Toggle>("small");
+            Toggle large = Find<Toggle>("large");
+            Toggle other = Find<Toggle>("other");
+
+            Assert.That(small.group, Is.Not.Null);
+            Assert.That(large.group, Is.SameAs(small.group));
+            Assert.That(other.group, Is.Not.SameAs(small.group));
+            Assert.That(large.isOn, Is.True);
+            Assert.That(small.isOn, Is.False);
+            Assert.That(small.group.allowSwitchOff, Is.False, "one is chosen, so one stays chosen");
+            Assert.That(other.group.allowSwitchOff, Is.True, "nothing is chosen yet, as HTML allows");
+
+            var rect = (RectTransform)small.transform;
+            Assert.That(rect.rect.width, Is.EqualTo(20f).Within(0.01f));
+        }
+
+        [Test]
+        public void ATextInput_BecomesAnInputFieldWithItsAttributes()
+        {
+            Write("<input id=\"name\" type=\"text\" value=\"Alice\" placeholder=\"Your name\" maxlength=\"12\">"
+                + "<input id=\"secret\" type=\"password\">"
+                + "<input id=\"count\" type=\"number\" readonly>");
+
+            AssertClean(Compile());
+
+            TMP_InputField name = Find<TMP_InputField>("name");
+            Assert.That(name.text, Is.EqualTo("Alice"));
+            Assert.That(name.characterLimit, Is.EqualTo(12));
+            Assert.That(name.lineType, Is.EqualTo(TMP_InputField.LineType.SingleLine));
+            Assert.That(name.textComponent, Is.Not.Null);
+            Assert.That(name.textViewport, Is.Not.Null);
+            Assert.That(name.placeholder, Is.Not.Null);
+            Assert.That(((TMP_Text)name.placeholder).text, Is.EqualTo("Your name"));
+            Assert.That(name.readOnly, Is.False);
+
+            Assert.That(Find<TMP_InputField>("secret").contentType, Is.EqualTo(TMP_InputField.ContentType.Password));
+            Assert.That(Find<TMP_InputField>("count").contentType, Is.EqualTo(TMP_InputField.ContentType.DecimalNumber));
+            Assert.That(Find<TMP_InputField>("count").readOnly, Is.True);
+
+            var rect = (RectTransform)name.transform;
+            Assert.That(rect.rect.width, Is.EqualTo(180f).Within(0.01f), "the built-in size");
+        }
+
+        [Test]
+        public void ATextarea_IsAMultiLineFieldStartingWithItsContent()
+        {
+            Write("<textarea id=\"note\">first line\nsecond</textarea>");
+
+            AssertClean(Compile());
+
+            TMP_InputField note = Find<TMP_InputField>("note");
+            Assert.That(note.lineType, Is.EqualTo(TMP_InputField.LineType.MultiLineNewline));
+            Assert.That(note.text, Does.StartWith("first line"));
+            Assert.That(note.GetComponentsInChildren<TMP_Text>(true).Count(t => t.name == "Label"), Is.Zero,
+                "the content is the field's value, not a label beside it");
+        }
+
+        [Test]
+        public void AnUpdate_KeepsOneTextArea()
+        {
+            Write("<input id=\"name\" type=\"text\" value=\"a\">");
+            AssertClean(Compile());
+            Write("<input id=\"name\" type=\"text\" value=\"b\">");
+            AssertClean(Compile(CompileMode.Update));
+
+            TMP_InputField name = Find<TMP_InputField>("name");
+            Assert.That(name.text, Is.EqualTo("b"));
+            Assert.That(name.transform.Cast<Transform>().Count(t => t.name == "Text Area"), Is.EqualTo(1));
         }
 
         private sealed class FixedMeasurer : ITextMeasurer

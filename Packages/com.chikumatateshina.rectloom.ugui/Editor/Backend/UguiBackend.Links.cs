@@ -39,6 +39,9 @@ namespace Rectloom.Ugui.Backend
 
         private const string SetActiveMethod = "SetActive";
 
+        /// <summary>Name of the clipped area inside a text field.</summary>
+        public const string TextAreaName = "Text Area";
+
         private static readonly Color PopupColor = new Color32(0x1E, 0x22, 0x30, 0xF2);
         private static readonly Color FieldColor = new Color32(0xF4, 0xF5, 0xF8, 0xFF);
         private static readonly Color FieldTextColor = new Color32(0x1B, 0x1F, 0x2A, 0xFF);
@@ -393,7 +396,7 @@ namespace Rectloom.Ugui.Backend
                 float size,
                 string? placeholder = null)
             {
-                GameObject area = ApplyPart(node, field, fieldPath, id + "/area", "Text Area",
+                GameObject area = ApplyPart(node, field, fieldPath, id + "/area", TextAreaName,
                     new HashSet<string>(StringComparer.Ordinal), new List<string>(), out GeneratedNodeMetadata areaEntry);
                 RectTransform areaRect = GetOrAdd<RectTransform>(area, areaEntry, RectTransformProperties);
                 Stretch(areaRect, 10f, 6f, 10f, 6f);

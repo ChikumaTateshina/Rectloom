@@ -200,7 +200,8 @@ namespace Rectloom.Core.Ir
         /// child rather than a text component beside its image.
         /// </remarks>
         public bool NeedsLabelChild =>
-            HasText && (Kind == UiNodeKind.Button || Visual.PaintsAnything || Asset.HasValue);
+            HasText && Kind != UiNodeKind.Input
+            && (Kind == UiNodeKind.Button || Visual.PaintsAnything || Asset.HasValue);
 
         /// <summary>
         /// Appends a child node.

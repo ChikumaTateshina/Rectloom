@@ -98,6 +98,10 @@ namespace Rectloom.VRChat.Tests
                     created.AddComponent<Image>();
                     created.AddComponent<Slider>();
                     break;
+                case UiNodeKind.Input:
+                    created.AddComponent<Image>();
+                    created.AddComponent<TMPro.TMP_InputField>();
+                    break;
             }
 
             _objects[node.StableId] = created;
@@ -133,7 +137,10 @@ namespace Rectloom.VRChat.Tests
 
         private static List<(UnityEngine.Object? Target, string Method, string Argument)> Listeners(Component control)
         {
-            string path = control is Button ? "m_OnClick" : control is Toggle ? "onValueChanged" : "m_OnValueChanged";
+            string path = control is Button ? "m_OnClick"
+                : control is Toggle ? "onValueChanged"
+                : control is TMPro.TMP_InputField ? "m_OnEndEdit"
+                : "m_OnValueChanged";
             var serialized = new SerializedObject(control);
             SerializedProperty calls = serialized.FindProperty(path + ".m_PersistentCalls.m_Calls");
             var found = new List<(UnityEngine.Object?, string, string)>();
@@ -266,6 +273,18 @@ namespace Rectloom.VRChat.Tests
             Assert.That(VrcUdonBinding.Apply(Context(root), _udon), Is.EqualTo(2));
             Assert.That(Listeners(_objects["light"].GetComponent<Toggle>()).Single().Argument, Is.EqualTo("ToggleLight"));
             Assert.That(Listeners(_objects["volume"].GetComponent<Slider>()).Single().Argument, Is.EqualTo("SetVolume"));
+        }
+
+        [Test]
+        public void ATextField_SendsWhenEditingEnds()
+        {
+            UiNode root = Node("root", UiNodeKind.Root);
+            root.AddChild(Node("name", UiNodeKind.Input, (VrcUdonAttributes.Event, "SetName")));
+            Build(root);
+            _objects["root"].AddComponent<BoxCollider>();
+
+            Assert.That(VrcUdonBinding.Apply(Context(root), _udon), Is.EqualTo(1));
+            Assert.That(Listeners(_objects["name"].GetComponent<TMPro.TMP_InputField>()).Single().Argument, Is.EqualTo("SetName"));
         }
 
         [Test]

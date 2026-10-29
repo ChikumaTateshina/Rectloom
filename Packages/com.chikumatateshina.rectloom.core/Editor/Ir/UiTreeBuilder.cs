@@ -243,6 +243,11 @@ namespace Rectloom.Core.Ir
                 return ResolveInputKind(box);
             }
 
+            if (string.Equals(tagName, "textarea", StringComparison.Ordinal))
+            {
+                return UiNodeKind.Input;
+            }
+
             if (string.Equals(tagName, HtmlElements.Paragraph, StringComparison.Ordinal)
                 || HtmlElements.IsHeading(tagName))
             {
@@ -275,9 +280,18 @@ namespace Rectloom.Core.Ir
             switch (type)
             {
                 case "checkbox":
+                case "radio":
                     return UiNodeKind.Toggle;
                 case "range":
                     return UiNodeKind.Slider;
+                case "text":
+                case "search":
+                case "email":
+                case "url":
+                case "tel":
+                case "password":
+                case "number":
+                    return UiNodeKind.Input;
             }
 
             string message = "<input type=\"" + type + "\"> is not supported. It compiles to a plain "
@@ -286,12 +300,12 @@ namespace Rectloom.Core.Ir
             if (_options.StrictMode)
             {
                 _diagnostics.Error(DiagnosticCodes.Html.UnknownElement, message, box.Source,
-                    "Use type=\"checkbox\" or type=\"range\", or turn strict mode off.");
+                    "Use checkbox, radio, range or a text type, or turn strict mode off.");
             }
             else
             {
                 _diagnostics.Warning(DiagnosticCodes.Html.UnknownElement, message, box.Source,
-                    "Use type=\"checkbox\" or type=\"range\", or a button.");
+                    "Use checkbox, radio, range or a text type such as text, number or password.");
             }
 
             return UiNodeKind.Container;

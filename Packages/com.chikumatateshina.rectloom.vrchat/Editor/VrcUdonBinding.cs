@@ -430,10 +430,10 @@ namespace Rectloom.VRChat
             {
                 context.Diagnostics.Warning(
                     VrcDiagnosticCodes.UdonBindingFailed,
-                    "vrc-event only works on a button, a checkbox or a range, so '" + eventName
-                        + "' was not bound here.",
+                    "vrc-event only works on a button, a checkbox, a radio button, a range or a text "
+                        + "field, so '" + eventName + "' was not bound here.",
                     node.Source,
-                    "Move vrc-event onto a <button>, <input type=\"checkbox\"> or <input type=\"range\">.");
+                    "Move vrc-event onto a <button>, an <input> or a <textarea>.");
 
                 return false;
             }
@@ -653,6 +653,14 @@ namespace Rectloom.VRChat
                 source = slider;
                 propertyPath = "m_OnValueChanged";
                 return slider.onValueChanged;
+            }
+
+            // A text field sends when editing ends, not on every keystroke.
+            if (control.TryGetComponent(out TMPro.TMP_InputField input))
+            {
+                source = input;
+                propertyPath = "m_OnEndEdit";
+                return input.onEndEdit;
             }
 
             source = null;

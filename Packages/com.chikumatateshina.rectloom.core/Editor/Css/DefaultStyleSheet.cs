@@ -83,21 +83,45 @@ hr {
     background-color: #a0a0a0;
 }
 
-input {
+input, textarea {
     display: inline-block;
-    width: 20px;
-    height: 20px;
-}
-
-input[type=checkbox] {
+    width: 180px;
+    height: 28px;
     background-color: #ffffff;
     border-width: 1px;
     border-color: #767676;
     border-radius: 3px;
+    color: #101010;
+    white-space: nowrap;
+}
+
+textarea {
+    width: 240px;
+    height: 80px;
+    white-space: pre-wrap;
+}
+
+input[type=checkbox] {
+    width: 20px;
+    height: 20px;
+}
+
+input[type=radio] {
+    width: 20px;
+    height: 20px;
+    border-radius: 10px;
 }
 
 input[type=range] {
     width: 160px;
+    height: 20px;
+    background-color: transparent;
+    border-width: 0;
+    border-radius: 0;
+}
+
+input[type=hidden] {
+    display: none;
 }
 
 button {
