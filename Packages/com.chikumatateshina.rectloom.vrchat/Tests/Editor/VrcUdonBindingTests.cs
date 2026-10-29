@@ -385,6 +385,73 @@ namespace Rectloom.VRChat.Tests
         }
 
         [Test]
+        public void Variables_AreSetOnTheElementsBehaviour_MatchedLoosely()
+        {
+            UiNode root = Node("root", UiNodeKind.Root);
+            root.AddChild(Node("panel", UiNodeKind.Container, ("vrc-var-door-id", "3"), ("vrc-var-label", "North door")));
+            Build(root);
+            _objects["panel"].AddComponent<BoxCollider>();
+
+            VrcUdonBinding.Apply(Context(root), _udon);
+
+            Assert.That(_diagnostics.Diagnostics, Is.Empty);
+            Assert.That(_udon.Variables["doorId"], Is.EqualTo("3"), "door-id is doorId: HTML lower-cases attribute names");
+            Assert.That(_udon.Variables["label"], Is.EqualTo("North door"));
+        }
+
+        [Test]
+        public void AVariableTheProgramDoesNotHave_IsReported()
+        {
+            UiNode root = Node("root", UiNodeKind.Root);
+            root.AddChild(Node("panel", UiNodeKind.Container, ("vrc-var-missing", "1")));
+            Build(root);
+            _objects["panel"].AddComponent<BoxCollider>();
+
+            VrcUdonBinding.Apply(Context(root), _udon);
+
+            Assert.That(_diagnostics.Diagnostics.Single().Code, Is.EqualTo(VrcDiagnosticCodes.UdonBindingFailed));
+        }
+
+        [Test]
+        public void AVariableOnAnElementWithoutABehaviour_IsReported()
+        {
+            UiNode root = Node("root", UiNodeKind.Root);
+            root.AddChild(Node("panel", UiNodeKind.Container, ("vrc-var-door-id", "3")));
+            Build(root);
+
+            VrcUdonBinding.Apply(Context(root), _udon);
+
+            Assert.That(_diagnostics.Diagnostics.Single().Message, Does.Contain("no UdonBehaviour"));
+        }
+
+        [TestCase("3", typeof(int), 3)]
+        [TestCase("true", typeof(bool), true)]
+        [TestCase("0.5", typeof(float), 0.5f)]
+        [TestCase("hello", typeof(string), "hello")]
+        public void ValuesAreReadAsTheVariablesType(string raw, Type type, object expected)
+        {
+            Assert.That(VrcUdonVariables.TryParse(raw, type, out object? value), Is.True);
+            Assert.That(value, Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void ColoursAndVectors_AreRead()
+        {
+            Assert.That(VrcUdonVariables.TryParse("#ff0000", typeof(Color), out object? colour), Is.True);
+            Assert.That(((Color)colour!).r, Is.EqualTo(1f));
+            Assert.That(VrcUdonVariables.TryParse("1 2 3", typeof(Vector3), out object? vector), Is.True);
+            Assert.That(vector, Is.EqualTo(new Vector3(1f, 2f, 3f)));
+            Assert.That(VrcUdonVariables.TryParse("x", typeof(int), out _), Is.False);
+        }
+
+        [Test]
+        public void AnAmbiguousName_MatchesNothing()
+        {
+            Assert.That(VrcUdonVariables.Match("door-id", new[] { "doorId", "door_id" }, out bool ambiguous), Is.Null);
+            Assert.That(ambiguous, Is.True);
+        }
+
+        [Test]
         public void TheRealApi_IsUnavailableWithoutTheSdk()
         {
             // The test project has no VRChat SDK; with one installed this is simply true.
@@ -411,6 +478,23 @@ namespace Rectloom.VRChat.Tests
             }
 
             public UnityAction<string> EventAction(Component behaviour) => behaviour.gameObject.SendMessage;
+
+            internal Dictionary<string, string> Variables { get; } = new Dictionary<string, string>(StringComparer.Ordinal);
+
+            public bool TrySetVariable(Component behaviour, string name, string value, out string error)
+            {
+                string? declared = VrcUdonVariables.Match(name, new[] { "doorId", "label" }, out _);
+
+                if (declared == null)
+                {
+                    error = "no such variable";
+                    return false;
+                }
+
+                Variables[declared] = value;
+                error = string.Empty;
+                return true;
+            }
 
             public bool IsBehaviourTarget(UnityEngine.Object? target) =>
                 target is GameObject gameObject && gameObject.GetComponent<BoxCollider>() != null;

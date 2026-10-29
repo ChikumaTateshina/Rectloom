@@ -90,6 +90,14 @@ namespace Rectloom.VRChat
         /// <returns>A delegate for the event method on it.</returns>
         UnityAction<string> EventAction(Component behaviour);
 
+        /// <summary>Sets a public variable of a behaviour's program from text.</summary>
+        /// <param name="behaviour">The behaviour.</param>
+        /// <param name="name">The variable's name as written in markup, matched loosely.</param>
+        /// <param name="value">The value as written in markup.</param>
+        /// <param name="error">Why it could not be set.</param>
+        /// <returns><see langword="true"/> when the variable was set.</returns>
+        bool TrySetVariable(Component behaviour, string name, string value, out string error);
+
         /// <summary>Gets whether a persistent listener's target is a behaviour this API binds to.</summary>
         /// <param name="target">The listener's target.</param>
         /// <returns><see langword="true"/> for a behaviour.</returns>
@@ -211,6 +219,12 @@ namespace Rectloom.VRChat
         }
 
         /// <inheritdoc />
+        public bool TrySetVariable(Component behaviour, string name, string value, out string error)
+        {
+            return UdonVariableWriter.TrySet(behaviour, name, value, out error);
+        }
+
+        /// <inheritdoc />
         public bool IsBehaviourTarget(UnityEngine.Object? target)
         {
             return target != null && _behaviour != null && _behaviour.IsInstanceOfType(target);
@@ -280,7 +294,7 @@ namespace Rectloom.VRChat
                 {
                     context.Diagnostics.Warning(
                         VrcDiagnosticCodes.SdkNotInstalled,
-                        "The document uses vrc-udon or vrc-event, but the VRChat Worlds SDK is not "
+                        "The document uses vrc-udon, vrc-event or vrc-var-, but the VRChat Worlds SDK is not "
                             + "installed, so no Udon bindings were made.",
                         SourceLocation.None,
                         "Install the VRChat Worlds SDK through the Creator Companion.");
@@ -291,6 +305,7 @@ namespace Rectloom.VRChat
 
             RemovePrevious(context, udon, previous);
             ApplyPrograms(context, udon);
+            VrcUdonVariables.Apply(context, udon);
 
             var made = new List<string>();
 
@@ -332,6 +347,11 @@ namespace Rectloom.VRChat
             anyAttribute |= node.TryGetAttribute(VrcUdonAttributes.Program, out _)
                 || node.TryGetAttribute(VrcUdonAttributes.Event, out _)
                 || node.TryGetAttribute(VrcUdonAttributes.Target, out _);
+
+            foreach (string name in node.Attributes.Keys)
+            {
+                anyAttribute |= name.StartsWith(VrcUdonVariables.Prefix, StringComparison.Ordinal);
+            }
 
             foreach (UiNode child in node.Children)
             {
