@@ -61,6 +61,7 @@ jobs:
 
           mkdir -p site
           cp Website/index.html site/
+          cp -r Website/docs site/
 
           if curl -fsSL --max-time 30 "$published" -o /tmp/published.json; then
             existing=(--existing /tmp/published.json)

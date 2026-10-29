@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rectloom リファレンス</title>
+<meta name="description" content="Rectloom が受け付ける HTML 要素・CSS プロパティ・独自プロパティ・診断コードのリファレンス。">
+<style>
+:root {
+  color-scheme: light dark;
+  --fg: #1a1a1a;
+  --bg: #ffffff;
+  --muted: #555;
+  --line: #d0d0d0;
+  --code-bg: #f3f3f3;
+  --link: #0645ad;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fg: #e4e4e4;
+    --bg: #161616;
+    --muted: #a0a0a0;
+    --line: #3a3a3a;
+    --code-bg: #242424;
+    --link: #8ab4f8;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 15px/1.6 "Segoe UI", "Hiragino Sans", "Noto Sans JP", Meiryo, sans-serif;
+}
+.wrap { max-width: 60rem; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+a { color: var(--link); }
+h1 { font-size: 1.6rem; margin: 0 0 .25rem; }
+h2 { font-size: 1.25rem; margin: 2.5rem 0 .75rem; padding-bottom: .25rem; border-bottom: 1px solid var(--line); }
+h3 { font-size: 1.05rem; margin: 1.5rem 0 .5rem; }
+p, ul, ol { margin: 0 0 .75rem; }
+.meta { color: var(--muted); font-size: .9rem; margin-bottom: 1.5rem; }
+code, pre { font-family: Consolas, "Cascadia Mono", Menlo, monospace; font-size: .88em; }
+code { background: var(--code-bg); padding: 0 .25em; }
+pre { background: var(--code-bg); border: 1px solid var(--line); padding: .6rem .8rem; overflow-x: auto; margin: 0 0 .75rem; }
+pre code { padding: 0; background: none; }
+table { border-collapse: collapse; width: 100%; margin: 0 0 1rem; font-size: .92rem; }
+th, td { border: 1px solid var(--line); padding: .3rem .5rem; text-align: left; vertical-align: top; }
+th { background: var(--code-bg); font-weight: 600; }
+.table-scroll { overflow-x: auto; }
+nav.toc { border: 1px solid var(--line); padding: .5rem 1rem; margin-bottom: 1.5rem; font-size: .92rem; }
+nav.toc ol { margin: .25rem 0; padding-left: 1.5rem; }
+.dev { font-size: .75rem; border: 1px solid var(--line); padding: 0 .3em; color: var(--muted); white-space: nowrap; }
+.note { border-left: 3px solid var(--line); padding: .25rem .75rem; color: var(--muted); }
+h2[id], h3[id] { scroll-margin-top: 1rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<p><a href="../">← Rectloom トップ</a></p>
+<h1>Rectloom リファレンス</h1>
+<p class="meta">対象バージョン: 0.5.0 と main ブランチ。Rectloom に書ける HTML・CSS と、Rectloom 独自の拡張をまとめた利用者向けの文書です。<span class="dev">未リリース</span> の印がある項目は main ブランチに入っていますが、まだリリースされていません。</p>
+
+<nav class="toc" aria-label="目次">
+<strong>目次</strong>
+<ol>
+  <li><a href="#model">基本モデル</a></li>
+  <li><a href="#window">Compiler ウィンドウ</a></li>
+  <li><a href="#elements">HTML 要素</a></li>
+  <li><a href="#attributes">HTML 属性</a></li>
+  <li><a href="#selectors">セレクタとカスケード</a></li>
+  <li><a href="#units">値と単位</a></li>
+  <li><a href="#properties">CSS プロパティ</a></li>
+  <li><a href="#ignored">読み飛ばすプロパティ・at-rule</a></li>
+  <li><a href="#extension-props">独自プロパティ (<code>unity-</code> / <code>vrc-</code>)</a></li>
+  <li><a href="#component">component 属性と Udon 属性</a></li>
+  <li><a href="#assets">画像とアセット参照</a></li>
+  <li><a href="#fonts">フォントと絵文字</a></li>
+  <li><a href="#update">Update コンパイル</a></li>
+  <li><a href="#diagnostics">診断コード</a></li>
+  <li><a href="#limits">非対応の機能</a></li>
+</ol>
+</nav>
+
+<!-- ============================================================ -->
+<h2 id="model">1. 基本モデル</h2>
+<ul>
+  <li>コンパイルは Editor 上で 1 回だけ行います。レイアウトを計算し、その結果を <code>RectTransform</code> の固定値として焼き込みます。実行時にレイアウトを計算し直すことはありません。</li>
+  <li>出力されるのは素の uGUI / TextMeshPro の階層です。Rectloom のランタイムコンポーネントは含まれません。</li>
+  <li><code>body</code> の箱が Canvas になります。<code>html</code> と <code>head</code> はパース時に取り除かれます。</li>
+  <li>状態に依存する表現 (<code>:hover</code>、アニメーション、スクリプト) は出力に残りません。</li>
+  <li>既定のボックスモデルは <code>box-sizing: border-box</code> です。</li>
+  <li>マージンの相殺 (margin collapsing) は行いません。縦に並んだ箱のマージンは足し算になります。</li>
+</ul>
+
+<h3>要素から生成されるもの</h3>
+<table>
+<thead><tr><th>入力</th><th>生成されるもの</th></tr></thead>
+<tbody>
+<tr><td><code>body</code></td><td><code>Canvas</code> + <code>CanvasScaler</code> + <code>GraphicRaycaster</code></td></tr>
+<tr><td><code>button</code></td><td><code>Image</code> + <code>Button</code>。中のテキストは子の <code>TextMeshProUGUI</code></td></tr>
+<tr><td><code>img</code></td><td><code>Image</code> (Sprite)</td></tr>
+<tr><td><code>input type="checkbox"</code> <span class="dev">未リリース</span></td><td><code>Toggle</code></td></tr>
+<tr><td><code>input type="range"</code> <span class="dev">未リリース</span></td><td><code>Slider</code></td></tr>
+<tr><td>テキストだけを持つ要素、<code>p</code>、<code>h1</code>〜<code>h6</code></td><td><code>TextMeshProUGUI</code></td></tr>
+<tr><td>背景・枠線を持つ要素</td><td><code>Image</code>。角丸は生成した 9-slice Sprite</td></tr>
+<tr><td><code>overflow: hidden</code> など</td><td><code>RectMask2D</code></td></tr>
+<tr><td>その他の要素</td><td>空の <code>RectTransform</code></td></tr>
+</tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="window">2. Compiler ウィンドウ</h2>
+<p>メニュー <strong>Tools &gt; Rectloom &gt; Compiler</strong> で開きます。</p>
+<div class="table-scroll">
+<table>
+<thead><tr><th>項目</th><th>内容</th></tr></thead>
+<tbody>
+<tr><td>Batch HTML files</td><td>複数の HTML をまとめてコンパイルします。HTML ごとに Prefab と metadata が作られます。</td></tr>
+<tr><td>HTML / CSS</td><td>入力ファイル。CSS は省略できます。HTML 内の <code>&lt;link&gt;</code> と <code>&lt;style&gt;</code> も読み込みます。</td></tr>
+<tr><td>Type</td><td><code>Prefab</code> (Prefab アセットを出力) / <code>SceneObject</code> (開いているシーンに生成)。</td></tr>
+<tr><td>Output Folder / Prefab Name</td><td>出力先フォルダ (プロジェクト内のみ) と Prefab 名。名前の既定値は HTML のファイル名です。</td></tr>
+<tr><td>Compile Mode</td><td><code>Create</code> (新規作成) / <code>Update</code> (既存出力の差分更新)。<a href="#update">§13</a></td></tr>
+<tr><td>Layout Mode</td><td><code>Bake</code> (既定。座標を固定値で書き込む) / <code>UnityLayout</code> (実験的。LayoutGroup で実行時にも再配置する)。</td></tr>
+<tr><td>Reference Resolution</td><td>文書のサイズ (論理 px)。<code>body</code> の <code>width: 100%</code> などはこの値を基準にします。</td></tr>
+<tr><td>Built-in Stylesheet</td><td>ブラウザ相当の既定スタイル (見出しの大きさ、リストの字下げなど) を適用します。</td></tr>
+<tr><td>Strict Mode</td><td>一部の Warning を Error に格上げします。</td></tr>
+<tr><td>World Space (1px = 1mm)</td><td>World Space の Canvas を出力します。スケールは 0.001 (1 論理 px = 1 mm) です。</td></tr>
+<tr><td>Document Background</td><td><code>body</code> の背景を <code>Image</code> として出力します。既定は off です。</td></tr>
+<tr><td>Fit Canvas to Content</td><td>背景を出力しないとき、Canvas を最上位要素の外接矩形に合わせます。</td></tr>
+<tr><td>Default TMP Font</td><td><code>font-family</code> が解決できないときに使うフォントです。</td></tr>
+<tr><td>Emoji TMP Font</td><td>絵文字に使うフォントです。既定は Segoe UI Emoji です。</td></tr>
+<tr><td>VRChat &gt; Add VRC Ui Shape</td><td>Canvas に <code>VRCUiShape</code> を付けます。既定は on で、設定はプロジェクトごとに保存されます。VRChat アダプタを導入している場合だけ表示されます。</td></tr>
+<tr><td>Validate / Compile / Rebuild</td><td>検証のみ / コンパイル / 出力を作り直します (手作業の変更は失われます)。</td></tr>
+<tr><td>Show information</td><td>Info レベルの診断も表示します。</td></tr>
+</tbody>
+</table>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="elements">3. HTML 要素</h2>
+
+<h3>対応要素</h3>
+<table>
+<thead><tr><th>分類</th><th>要素</th><th>既定の display</th></tr></thead>
+<tbody>
+<tr><td>基本</td><td><code>body div p h1 h2 h3 h4 h5 h6 img br</code></td><td>block</td></tr>
+<tr><td>操作部品</td><td><code>button</code> / <code>input</code> (checkbox・range のみ) <span class="dev">未リリース</span></td><td>flex / inline-block</td></tr>
+<tr><td>区分</td><td><code>article section header footer nav main aside hgroup address</code></td><td>block</td></tr>
+<tr><td>グループ</td><td><code>figure figcaption blockquote pre hr</code></td><td>block</td></tr>
+<tr><td>リスト</td><td><code>ul ol li dl dt dd</code></td><td>block</td></tr>
+<tr><td>テキスト</td><td><code>span a strong b em i u s strike small big code kbd samp var mark cite q abbr time label sub sup ins del bdi bdo ruby rt rp</code></td><td>inline</td></tr>
+</tbody>
+</table>
+<p class="note">リストのマーカー (・や番号) は描画しません。<code>a</code> はリンクとして動作せず、色と下線だけが付きます。</p>
+
+<h3>除外される要素</h3>
+<table>
+<thead><tr><th>分類</th><th>要素</th><th>扱い</th></tr></thead>
+<tbody>
+<tr><td>メタデータ</td><td><code>style script title meta link base noscript template</code></td><td>中身ごと除外します。診断は出しません。<code>style</code> と <code>link rel="stylesheet"</code> は CSS として読み込みます。</td></tr>
+<tr><td>描画できない要素</td><td><code>svg math canvas video audio iframe object embed applet</code></td><td>中身ごと削除し、<code>HTML1003</code> を 1 件出します。</td></tr>
+<tr><td>未知の要素</td><td>上記以外 (<code>table</code>、<code>form</code> など)</td><td><code>HTML1003</code> (Warning) を出し、汎用コンテナとして扱います。</td></tr>
+</tbody>
+</table>
+
+<h3>テキストとインライン要素</h3>
+<p>インライン整形 (1 行の中に文字とインライン要素を混ぜて流し込むこと) は行いません。<code>&lt;p&gt;これは&lt;strong&gt;重要&lt;/strong&gt;です&lt;/p&gt;</code> は、3 つの箱が縦に並んで出力されます。横に並べたいときは <code>display: flex</code> の行の中に <code>span</code> を並べてください。</p>
+
+<!-- ============================================================ -->
+<h2 id="attributes">4. HTML 属性</h2>
+<div class="table-scroll">
+<table>
+<thead><tr><th>属性</th><th>対象</th><th>意味</th></tr></thead>
+<tbody>
+<tr><td><code>id</code></td><td>全要素</td><td>安定 ID として使います。Update コンパイルで要素を照合する鍵になるので、文書内で一意にしてください。重複すると <code>HTML1002</code> になります。</td></tr>
+<tr><td><code>class</code></td><td>全要素</td><td>空白で区切って複数指定できます。</td></tr>
+<tr><td><code>style</code></td><td>全要素</td><td>インラインスタイル。スタイルシートより優先されます。</td></tr>
+<tr><td><code>src</code></td><td><code>img</code></td><td>画像の参照先。<a href="#assets">§11</a></td></tr>
+<tr><td><code>type</code> <span class="dev">未リリース</span></td><td><code>input</code></td><td><code>checkbox</code> → Toggle、<code>range</code> → Slider。それ以外は <code>HTML1003</code> を出し、ただの箱になります。</td></tr>
+<tr><td><code>checked</code> <span class="dev">未リリース</span></td><td>checkbox</td><td>あれば初期状態が on になります。</td></tr>
+<tr><td><code>min</code> / <code>max</code> / <code>step</code> / <code>value</code> <span class="dev">未リリース</span></td><td>range</td><td>既定値は 0 / 100 / 1 / 中央値です。</td></tr>
+<tr><td><code>disabled</code> <span class="dev">未リリース</span></td><td>button・input</td><td><code>interactable = false</code> にします。</td></tr>
+<tr><td><code>component</code>, <code>component.*</code></td><td>全要素</td><td>任意のコンポーネントを付けて値を設定します。<a href="#component">§10</a></td></tr>
+<tr><td><code>vrc-udon</code>, <code>vrc-event</code>, <code>vrc-target</code> <span class="dev">未リリース</span></td><td>全要素 / 操作部品</td><td>Udon との連携。<a href="#udon">§10</a></td></tr>
+<tr><td><code>rel</code> / <code>href</code></td><td><code>link</code></td><td><code>rel="stylesheet"</code> のとき CSS を読み込みます。</td></tr>
+</tbody>
+</table>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="selectors">5. セレクタとカスケード</h2>
+<table>
+<thead><tr><th>書式</th><th>対応</th></tr></thead>
+<tbody>
+<tr><td><code>*</code> <code>div</code> <code>.class</code> <code>#id</code> <code>button.primary</code></td><td>対応</td></tr>
+<tr><td><code>A B</code> (子孫) / <code>A &gt; B</code> (子)</td><td>対応</td></tr>
+<tr><td><code>A, B</code> (セレクタリスト)</td><td>対応</td></tr>
+<tr><td><code>:root</code></td><td>対応 (<code>body</code> に一致します)</td></tr>
+<tr><td><code>[a]</code> <code>[a=v]</code> <code>[a~=v]</code> <code>[a^=v]</code> <code>[a$=v]</code> <code>[a*=v]</code> <code>[a|=v]</code>、<code>i</code> フラグ</td><td>対応 <span class="dev">未リリース</span></td></tr>
+<tr><td>擬似要素 (<code>::before</code> など)</td><td>そのセレクタを捨てます。<code>CSS1003</code> (Info)</td></tr>
+<tr><td>その他の擬似クラス (<code>:hover</code> <code>:first-child</code> など)</td><td>そのセレクタを捨てます。<code>CSS1003</code> (Warning)</td></tr>
+<tr><td>兄弟結合子 <code>+</code> <code>~</code></td><td>そのセレクタを捨てます。<code>CSS1003</code> (Warning)</td></tr>
+</tbody>
+</table>
+<p>優先順位は詳細度 (ID 100 / class・属性 10 / 要素 1) で決まります。同点ならソース上で後にあるものが勝ちます。<code>!important</code> は通常の宣言より優先されます。</p>
+<p>スタイルシートは次の順で適用されます。</p>
+<ol>
+  <li>組み込みスタイルシート (Built-in Stylesheet が on のとき)</li>
+  <li>Compiler ウィンドウで指定した CSS</li>
+  <li>文書内の <code>&lt;link&gt;</code> と <code>&lt;style&gt;</code> (文書に現れる順)</li>
+  <li>インラインの <code>style</code> 属性</li>
+</ol>
+<p><code>@import "./common.css";</code> に対応しています。パスは読み込み元のファイルを基準に解決します。<code>@import</code> は最初のルールより前に書いてください。後ろに書くと <code>CSS1007</code> になります。循環した import は <code>CSS1004</code> です。</p>
+
+<!-- ============================================================ -->
+<h2 id="units">6. 値と単位</h2>
+<table>
+<thead><tr><th>種類</th><th>書式</th><th>備考</th></tr></thead>
+<tbody>
+<tr><td>長さ</td><td><code>px</code> <code>%</code> <code>auto</code></td><td>単位なしで書けるのは <code>0</code> だけです。</td></tr>
+<tr><td>絶対単位</td><td><code>mm cm in pt pc q</code></td><td>1in = 96px で px に換算します。World Space では 1px = 1mm なので、<code>mm</code> を使うと実寸で指定できます。</td></tr>
+<tr><td>フォント相対</td><td><code>em</code> <code>rem</code></td><td><code>font-size</code> に書いた <code>em</code> だけは親要素のサイズを基準にします。</td></tr>
+<tr><td>色</td><td><code>#RGB</code> <code>#RGBA</code> <code>#RRGGBB</code> <code>#RRGGBBAA</code> <code>rgb()</code> <code>rgba()</code>、色名、<code>currentcolor</code></td><td></td></tr>
+<tr><td>カスタムプロパティ</td><td><code>--name: 値;</code> / <code>var(--name, 代替値)</code></td><td>継承されます。<code>var()</code> は、各プロパティの値を解釈する前にテキストとして置換します。解決できない宣言は捨てて Warning を出します。</td></tr>
+<tr><td>CSS 全体のキーワード</td><td><code>initial</code></td><td></td></tr>
+</tbody>
+</table>
+<p class="note">非対応: <code>vw</code> <code>vh</code> <code>ch</code> <code>ex</code> と <code>calc()</code>。</p>
+
+<!-- ============================================================ -->
+<h2 id="properties">7. CSS プロパティ</h2>
+
+<h3>表示・配置</h3>
+<div class="table-scroll">
+<table>
+<thead><tr><th>プロパティ</th><th>値</th><th>備考</th></tr></thead>
+<tbody>
+<tr><td><code>display</code></td><td><code>block</code> <code>inline</code> <code>inline-block</code> <code>flex</code> <code>inline-flex</code> <code>none</code></td><td><code>inline-block</code> は block として、<code>inline-flex</code> は flex として扱います。</td></tr>
+<tr><td><code>position</code></td><td><code>static</code> <code>relative</code> <code>absolute</code></td><td></td></tr>
+<tr><td><code>top right bottom left</code></td><td>長さ</td><td></td></tr>
+<tr><td><code>box-sizing</code></td><td><code>border-box</code> <code>content-box</code></td><td>既定は <code>border-box</code> です。</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>サイズ・余白</h3>
+<table>
+<thead><tr><th>プロパティ</th><th>備考</th></tr></thead>
+<tbody>
+<tr><td><code>width height min-width min-height max-width max-height</code></td><td><code>max-*: none</code> を書けます。</td></tr>
+<tr><td><code>margin</code>、<code>margin-top/right/bottom/left</code></td><td>主軸方向の <code>auto</code> は余白を吸収し、<code>justify-content</code> より先に効きます。<code>margin: 0 auto</code> で中央寄せできます。</td></tr>
+<tr><td><code>padding</code>、<code>padding-top/right/bottom/left</code></td><td></td></tr>
+</tbody>
+</table>
+
+<h3>Flex</h3>
+<div class="table-scroll">
+<table>
+<thead><tr><th>プロパティ</th><th>値</th></tr></thead>
+<tbody>
+<tr><td><code>flex-direction</code></td><td><code>row</code> <code>column</code></td></tr>
+<tr><td><code>flex-wrap</code></td><td><code>nowrap</code> <code>wrap</code></td></tr>
+<tr><td><code>flex-flow</code></td><td>上記 2 つの一括指定</td></tr>
+<tr><td><code>justify-content</code></td><td><code>flex-start</code>/<code>start</code> <code>center</code> <code>flex-end</code>/<code>end</code> <code>space-between</code> <code>space-around</code> <code>space-evenly</code></td></tr>
+<tr><td><code>align-items</code></td><td><code>flex-start</code> <code>center</code> <code>flex-end</code> <code>stretch</code> <code>baseline</code></td></tr>
+<tr><td><code>align-self</code></td><td><code>auto</code> と <code>align-items</code> と同じ値</td></tr>
+<tr><td><code>align-content</code></td><td><code>flex-start</code> <code>center</code> <code>flex-end</code> <code>space-between</code> <code>space-around</code> <code>space-evenly</code> <code>stretch</code></td></tr>
+<tr><td><code>gap row-gap column-gap</code></td><td>長さ</td></tr>
+<tr><td><code>flex</code></td><td><code>none</code> <code>auto</code> <code>&lt;grow&gt; &lt;shrink&gt; &lt;basis&gt;</code></td></tr>
+<tr><td><code>flex-grow flex-shrink flex-basis</code></td><td>数値 / 長さ</td></tr>
+</tbody>
+</table>
+</div>
+<p class="note"><code>baseline</code> は実際のフォント情報を使わず、「<code>font-size</code> × 0.8 + ハーフレディング」で近似します。<code>row-reverse</code> <code>column-reverse</code> <code>wrap-reverse</code> <code>place-*</code> には対応していません。</p>
+
+<h3>見た目</h3>
+<div class="table-scroll">
+<table>
+<thead><tr><th>プロパティ</th><th>備考</th></tr></thead>
+<tbody>
+<tr><td><code>background</code> <code>background-color</code> <code>background-image</code></td><td><code>background</code> は一括指定で、省略した個別プロパティは初期値に戻ります。<code>background-image</code> は <code>url()</code> だけ書けます (グラデーションは不可)。</td></tr>
+<tr><td><code>color</code> <code>opacity</code></td><td></td></tr>
+<tr><td><code>border</code> <code>border-width</code> <code>border-color</code> <code>border-style</code></td><td>四辺共通で指定します。<code>border-style</code> は <code>none</code> / <code>hidden</code> だと枠線が消えます。それ以外の値はすべて実線になります。</td></tr>
+<tr><td><code>border-radius</code></td><td>四隅共通です。複数の値を書くと先頭の値を使い、その旨を報告します。</td></tr>
+<tr><td><code>overflow</code> <code>overflow-x</code> <code>overflow-y</code></td><td><code>hidden</code> <code>clip</code> <code>scroll</code> <code>auto</code> はクリップ (<code>RectMask2D</code>) になります。スクロールはしません。片方の軸だけ指定しても両軸がクリップされます。</td></tr>
+<tr><td><code>object-fit</code></td><td><code>fill</code> <code>contain</code> <code>scale-down</code> <code>none</code>。<code>cover</code> は <code>contain</code> として扱い、<code>ASSET1002</code> (Info) を出します。</td></tr>
+<tr><td><code>accent-color</code> <span class="dev">未リリース</span></td><td>Toggle と Slider の色に使います。</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>テキスト (すべて継承されます)</h3>
+<div class="table-scroll">
+<table>
+<thead><tr><th>プロパティ</th><th>値</th></tr></thead>
+<tbody>
+<tr><td><code>font-family</code></td><td><a href="#fonts">§12</a></td></tr>
+<tr><td><code>font-size</code></td><td>長さ</td></tr>
+<tr><td><code>font-weight</code></td><td><code>normal</code> <code>bold</code> <code>bolder</code> <code>lighter</code> <code>100</code>〜<code>900</code></td></tr>
+<tr><td><code>font-style</code></td><td><code>normal</code> <code>italic</code> <code>oblique</code></td></tr>
+<tr><td><code>text-align</code></td><td><code>left</code>/<code>start</code> <code>center</code> <code>right</code>/<code>end</code> <code>justify</code></td></tr>
+<tr><td><code>text-decoration</code> <code>text-decoration-line</code></td><td><code>none</code> <code>underline</code> <code>line-through</code></td></tr>
+<tr><td><code>line-height</code> <code>letter-spacing</code></td><td><code>normal</code> / 数値 / 長さ</td></tr>
+<tr><td><code>white-space</code></td><td><code>normal</code> <code>nowrap</code> <code>pre</code> <code>pre-wrap</code> <code>pre-line</code> <code>break-spaces</code></td></tr>
+</tbody>
+</table>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="ignored">8. 読み飛ばすプロパティ・at-rule</h2>
+<h3>診断を出さずに無視するプロパティ</h3>
+<p>実際の CSS にはよく出てくるものの、焼き込んだ uGUI には対応するものがないプロパティです。</p>
+<table>
+<tbody>
+<tr><th>印刷</th><td><code>break-* page page-break-* orphans widows</code></td></tr>
+<tr><th>挙動</th><td><code>cursor user-select touch-action transition* animation* will-change contain</code></td></tr>
+<tr><th>改行</th><td><code>overflow-wrap word-wrap word-break line-break hyphens tab-size</code></td></tr>
+<tr><th>字形</th><td><code>font-variant* font-feature-settings font-kerning font-optical-sizing font-synthesis text-rendering *-font-smoothing text-size-adjust quotes</code></td></tr>
+<tr><th>背景</th><td><code>background-attachment background-clip background-origin background-position background-repeat background-size</code></td></tr>
+<tr><th>生成内容</th><td><code>content</code></td></tr>
+</tbody>
+</table>
+<p>見た目が変わるのに再現できないプロパティ (<code>box-shadow</code>、<code>text-transform</code>、<code>border-left</code> など) は <code>CSS1001</code> (Warning) で報告します。</p>
+
+<h3>at-rule</h3>
+<table>
+<thead><tr><th>at-rule</th><th>扱い</th></tr></thead>
+<tbody>
+<tr><td><code>@import</code></td><td>対応</td></tr>
+<tr><td><code>@page</code>、<code>@media print</code></td><td>ブロックごと読み飛ばします。<code>CSS1005</code> (Info)</td></tr>
+<tr><td>その他の <code>@media</code>、その他の at-rule</td><td>ブロックごと読み飛ばします。<code>CSS1005</code> (Warning)</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="extension-props">9. 独自プロパティ</h2>
+<p><code>unity-</code> と <code>vrc-</code> で始まる名前は予約済みのプレフィックスです。コアはこれらの値を解釈せず、そのまま各アダプタへ渡します。外部ライブラリ向けの拡張は <code>&lt;library&gt;-</code> の形のプレフィックスを使います。</p>
+
+<h3><code>unity-</code> (uGUI バックエンド)</h3>
+<table>
+<thead><tr><th>プロパティ</th><th>値</th><th>既定値</th><th>効果</th></tr></thead>
+<tbody>
+<tr><td><code>unity-raycast-target</code></td><td><code>true</code> / <code>false</code></td><td>button・input は true、それ以外は false</td><td>Graphic の <code>raycastTarget</code> を設定します。</td></tr>
+<tr><td><code>unity-interactable</code></td><td><code>true</code> / <code>false</code></td><td>true</td><td>Button・Toggle・Slider の <code>interactable</code> を設定します。HTML の <code>disabled</code> 属性も false にします。</td></tr>
+</tbody>
+</table>
+
+<h3><code>vrc-</code> (VRChat アダプタ)</h3>
+<p><code>body</code> のルールに書いてください。VRChat アダプタを導入していないプロジェクトでは読み飛ばされます。</p>
+<div class="table-scroll">
+<table>
+<thead><tr><th>プロパティ</th><th>値</th><th>既定値</th><th>効果</th></tr></thead>
+<tbody>
+<tr><td><code>vrc-world-space</code></td><td><code>true</code> / <code>false</code></td><td>true</td><td>Canvas を World Space にします。Screen Space の Canvas は他のプレイヤーからは見えず、VR でも表示されません。</td></tr>
+<tr><td><code>vrc-world-scale</code></td><td>数値</td><td><code>0.001</code></td><td>1 論理 px あたりのワールド単位です。0.001 なら幅 1920px が約 1.92m になります。</td></tr>
+<tr><td><code>vrc-ui-shape</code></td><td><code>true</code> / <code>false</code></td><td>ウィンドウの設定に従う (既定 on)</td><td><code>VRCUiShape</code> を付けると、プレイヤーがポインタで指してクリックできるようになります。Worlds SDK がない場合、Canvas が World Space でない場合、別の Canvas の下にある場合は付けません。既存の <code>VRCUiShape</code> を削除することもありません。</td></tr>
+<tr><td><code>vrc-interact</code></td><td><code>true</code> / <code>false</code></td><td>—</td><td>名前だけ予約されています。現時点では効果がありません。</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code>body {
+  vrc-world-space: true;
+  vrc-world-scale: 0.001;
+  vrc-ui-shape: true;
+}</code></pre>
+<p>知らない <code>vrc-</code> プロパティを書くと <code>VRC1004</code>、値が読めないと <code>VRC1003</code> になります。</p>
+
+<!-- ============================================================ -->
+<h2 id="component">10. component 属性と Udon 属性</h2>
+<h3>component 属性</h3>
+<pre><code>&lt;button id="apply"
+        component="Example.CustomButton"
+        component.mode="Primary"
+        component.speed="1.5"&gt;Apply&lt;/button&gt;</code></pre>
+<ul>
+  <li><code>component</code> には型名を書きます。エイリアス → 完全名 → 短い名前の順に探します。短い名前に一致する型が複数あると <code>EXT1002</code> になります。対象は <code>Component</code> の派生型だけです。</li>
+  <li><code>component.&lt;名前&gt;</code> の値は、シリアライズされたフィールド (<code>名前</code>、または <code>m_名前</code>) に書き込みます。フィールドが見つからないと <code>EXT1004</code> です。</li>
+  <li>書き込める型: bool、int、float、string、char、enum、Color、Vector2/3/4、Rect、アセット参照。それ以外の型は <code>EXT1005</code> になります。</li>
+  <li>HTML の属性名は小文字に変換されるため、<code>component.blocksRaycasts</code> のように大文字を含む名前は指定できません。1 単語の名前だけ使えます。</li>
+  <li>そのコンポーネントがまだ付いていなければ追加します。Editor 専用アセンブリにある型は追加できません。</li>
+  <li>処理を担当する Extension (<code>IHtmlUiExtension</code>) がプロジェクト内にあれば、その Extension に渡されます。Extension は存在するだけで自動的に使われます。例は Core パッケージのサンプル <strong>Extension Example</strong> を参照してください。</li>
+</ul>
+
+
+<h3 id="udon">VRChat Udon 属性 <span class="dev">未リリース</span></h3>
+<p>VRChat アダプタと Worlds SDK が必要です。</p>
+<pre><code>&lt;div id="door-panel" vrc-udon="./DoorPanel.asset"&gt;
+  &lt;button vrc-event="Open"&gt;開ける&lt;/button&gt;
+  &lt;input type="checkbox" vrc-event="ToggleLight"&gt;
+  &lt;input type="range" vrc-event="SetVolume" vrc-target="#audio"&gt;
+&lt;/div&gt;</code></pre>
+<div class="table-scroll">
+<table>
+<thead><tr><th>属性</th><th>対象</th><th>意味</th></tr></thead>
+<tbody>
+<tr><td><code>vrc-udon</code></td><td>全要素</td><td>要素の GameObject に <code>UdonBehaviour</code> を付け、program を設定します。値には Udon program asset (Udon Graph / UdonSharp)、または UdonSharp のスクリプトを指定します。指定方法は HTML からの相対パス、<code>Assets/</code> からのパス、GUID のいずれかです。</td></tr>
+<tr><td><code>vrc-event</code></td><td>button / checkbox / range</td><td><code>onClick</code> (button) または <code>onValueChanged</code> (checkbox・range) に <code>UdonBehaviour.SendCustomEvent("&lt;名前&gt;")</code> を登録します。</td></tr>
+<tr><td><code>vrc-target</code></td><td><code>vrc-event</code> を持つ要素</td><td>イベントの受け手を指定します。<code>#id</code> は文書内の要素、<code>/Path/In/Scene</code> はシーン上のオブジェクトです (シーンに出力するときだけ使えます)。省略すると、自分自身から祖先へ向かって最初に <code>UdonBehaviour</code> を持つ要素が受け手になります。</td></tr>
+</tbody>
+</table>
+</div>
+<ul>
+  <li>呼び出すメソッドは <code>SendCustomEvent</code> に固定されています。マークアップで選べるのはイベント名と受け手だけで、任意のメソッドは呼べません。</li>
+  <li>Inspector で手動追加した <code>UdonBehaviour</code> も受け手にできます。Update 後も保持されます。</li>
+  <li>metadata に記録されるのはコンパイラが追加したリスナーだけで、次回のコンパイルではそれだけを差し替えます。手で追加したリスナーは削除しません。</li>
+  <li><code>vrc-udon</code> を削除しても、追加済みの <code>UdonBehaviour</code> は削除しません。Inspector で public 変数を設定している可能性があるためです。</li>
+  <li>失敗すると <code>VRC1006</code> (Warning) が出ます。Worlds SDK が入っていないのにこれらの属性があると <code>VRC1005</code> (Warning) が出ます。</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="assets">11. 画像とアセット参照</h2>
+<p><code>&lt;img src="…"&gt;</code> と CSS の <code>url("…")</code> で、次の形式の参照を書けます。</p>
+<table>
+<thead><tr><th>形式</th><th>例</th></tr></thead>
+<tbody>
+<tr><td>相対パス (書いたファイルからの相対)</td><td><code>./images/icon.png</code></td></tr>
+<tr><td>プロジェクトパス</td><td><code>Assets/UI/icon.png</code></td></tr>
+<tr><td>GUID</td><td>アセットの GUID</td></tr>
+<tr><td><code>data:</code> URI</td><td><code>data:image/png;base64,…</code></td></tr>
+</tbody>
+</table>
+<ul>
+  <li><code>data:</code> URI で書ける形式は png、jpeg、gif、bmp、tga (base64)、svg+xml (base64 と UTF-8) です。</li>
+  <li>埋め込み画像は <code>&lt;出力フォルダ&gt;/Embedded/</code> にアセットとして書き出します。ファイル名は内容のハッシュなので、同じ画像は 1 つのアセットにまとまります。</li>
+  <li>SVG は Vector Graphics パッケージで PNG にラスタライズします。解像度は既定で 2px / 論理 px、1 辺の上限は 4096px です。インラインの <code>&lt;svg&gt;</code> 要素には対応していないので、<code>&lt;img src="data:image/svg+xml,…"&gt;</code> の形で書いてください。</li>
+  <li>読めない画像があっても文書全体の生成は止まりません。その画像の箱は空 (透明) のまま残り、Warning が 1 件出ます。Strict Mode では Error になります。</li>
+  <li>HTTP(S) の URL は参照できません。</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="fonts">12. フォントと絵文字</h2>
+<ul>
+  <li><code>font-family</code> のリストを先頭から順に調べ、最初に見つかった TMP Font Asset を使います。</li>
+  <li>照合する対象はアセット名とフォントのファミリー名で、どちらも小文字化して英数字以外を取り除いてから比べます。完全一致を優先し、なければ前方一致を使います。そのため <code>"Noto Sans JP"</code> は <code>NotoSansJP-Regular SDF</code> に一致します。</li>
+  <li>総称ファミリー (<code>sans-serif</code> など) は Default TMP Font として扱います。リストの途中に総称ファミリーがあると、その後ろの候補は調べません。</li>
+  <li>どの候補も解決できないと Warning が 1 件出ます。</li>
+  <li>フォントにない文字は「どのフォントにどの文字 (U+XXXX) がないか」を 1 件だけ報告します。フォント自身のフォールバックと、TMP Settings の Fallback Font Assets も調べたうえで判定します。</li>
+  <li>絵文字は <code>font-family</code> とは別に、Emoji TMP Font (既定は Segoe UI Emoji) で描きます。プロジェクトにそのフォントのアセットがなければ、インストール済みのフォントをプロジェクトにコピーしてから生成します。カラー絵文字は TMP の Sprite として出力されます。</li>
+  <li>プロジェクトにコピーしたフォントはビルドに含まれるので、ライセンスを確認してください。</li>
+  <li>TMP Essential Resources が必要です (Window &gt; TextMeshPro &gt; Import TMP Essential Resources)。</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="update">13. Update コンパイル</h2>
+<ul>
+  <li><code>Update</code> モードでは、前回の出力と metadata アセットを使って差分だけを適用します。要素の照合には <code>id</code> を使います。</li>
+  <li>コンパイラが書き換えるのは、自分で生成したプロパティだけです。<code>Button.onClick</code> などの UnityEvent と、手で追加したコンポーネントは保持されます。</li>
+  <li>手を加えた生成オブジェクトが HTML から消えた場合は、オブジェクトを残して <code>UNITY1006</code> を出します。保持の設定を切っている場合は削除して <code>UNITY1007</code> を出します。</li>
+  <li>metadata がないと、どこがユーザーの変更か判断できないため、更新を拒否します (<code>UNITY1008</code>)。<code>Create</code> で既存の出力に上書きしようとすると <code>UNITY1005</code> です。</li>
+  <li>Extension が追加したコンポーネントは metadata に記録されないため、ユーザーが追加したものとして扱われ、Update で削除されません。</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="diagnostics">14. 診断コード</h2>
+<p>コードは公開仕様の一部です。一度公開したコードの意味は変えません。</p>
+<div class="table-scroll">
+<table>
+<thead><tr><th>コード</th><th>意味</th></tr></thead>
+<tbody>
+<tr><th colspan="2">HTML</th></tr>
+<tr><td><code>HTML1001</code></td><td>どの開始タグにも対応しない終了タグ</td></tr>
+<tr><td><code>HTML1002</code></td><td><code>id</code> の重複</td></tr>
+<tr><td><code>HTML1003</code></td><td>非対応・未知の要素、または非対応の <code>input type</code></td></tr>
+<tr><td><code>HTML1004</code></td><td>閉じられていない要素</td></tr>
+<tr><td><code>HTML1005</code></td><td>壊れたタグ</td></tr>
+<tr><td><code>HTML1006</code></td><td>属性の重複 (最初の値を採用)</td></tr>
+<tr><th colspan="2">CSS</th></tr>
+<tr><td><code>CSS1001</code></td><td>未知・非対応のプロパティ</td></tr>
+<tr><td><code>CSS1002</code></td><td>値を解釈できない</td></tr>
+<tr><td><code>CSS1003</code></td><td>非対応のセレクタ構文</td></tr>
+<tr><td><code>CSS1004</code></td><td>循環した <code>@import</code></td></tr>
+<tr><td><code>CSS1005</code></td><td>非対応の at-rule (読み飛ばし)</td></tr>
+<tr><td><code>CSS1006</code></td><td>閉じられていないブロック</td></tr>
+<tr><td><code>CSS1007</code></td><td>ルールより後ろにある <code>@import</code></td></tr>
+<tr><th colspan="2">LAYOUT</th></tr>
+<tr><td><code>LAYOUT1001</code></td><td>自分自身に依存する <code>auto</code> サイズ</td></tr>
+<tr><td><code>LAYOUT1002</code></td><td>親のサイズが決まっていないのに <code>%</code> を使っている</td></tr>
+<tr><td><code>LAYOUT1003</code></td><td>計算結果の幅・高さが負</td></tr>
+<tr><td><code>LAYOUT1004</code></td><td>内容がルート (Canvas) の外にはみ出している。<code>body</code> に付けた <code>padding</code> が典型的な原因です。</td></tr>
+<tr><th colspan="2">UNITY</th></tr>
+<tr><td><code>UNITY1001</code></td><td>コンポーネントを作成できない</td></tr>
+<tr><td><code>UNITY1002</code></td><td>Prefab を書き込めない</td></tr>
+<tr><td><code>UNITY1003</code></td><td>トランザクションをロールバックした (何も出力していない)</td></tr>
+<tr><td><code>UNITY1004</code></td><td>廃止</td></tr>
+<tr><td><code>UNITY1005</code></td><td>Create で既存の出力に上書きしようとした</td></tr>
+<tr><td><code>UNITY1006</code></td><td>手を加えた生成オブジェクトを保持した</td></tr>
+<tr><td><code>UNITY1007</code></td><td>手を加えた生成オブジェクトを削除した</td></tr>
+<tr><td><code>UNITY1008</code></td><td>Update に必要な出力・metadata が見つからない</td></tr>
+<tr><th colspan="2">ASSET</th></tr>
+<tr><td><code>ASSET1001</code></td><td>参照先が見つからない</td></tr>
+<tr><td><code>ASSET1002</code></td><td>参照先の型・形式が使えない (<code>object-fit: cover</code> の縮退もこのコード)</td></tr>
+<tr><th colspan="2">EXT</th></tr>
+<tr><td><code>EXT1001</code></td><td>必要な Extension やライブラリが入っていない</td></tr>
+<tr><td><code>EXT1002</code></td><td>型名が曖昧</td></tr>
+<tr><td><code>EXT1003</code></td><td>Extension が例外を投げた (隔離して処理を続行)</td></tr>
+<tr><td><code>EXT1004</code></td><td><code>component.*</code> のフィールドがない</td></tr>
+<tr><td><code>EXT1005</code></td><td>マークアップから設定できない型のフィールド</td></tr>
+<tr><td><code>EXT1006</code></td><td>同じ優先度の Extension が衝突した</td></tr>
+<tr><td><code>EXT1007</code></td><td>Extension を生成できない</td></tr>
+<tr><th colspan="2">VRC</th></tr>
+<tr><td><code>VRC1001</code></td><td>ワールドで期待どおりに動かない Canvas 構成 (Screen Space、GraphicRaycaster がないなど)</td></tr>
+<tr><td><code>VRC1002</code></td><td>検証していない SDK バージョン</td></tr>
+<tr><td><code>VRC1003</code></td><td><code>vrc-</code> の値が読めない</td></tr>
+<tr><td><code>VRC1004</code></td><td>未知の <code>vrc-</code> プロパティ</td></tr>
+<tr><td><code>VRC1005</code></td><td>VRChat SDK が入っていないため SDK 依存の処理を省略した</td></tr>
+<tr><td><code>VRC1006</code> <span class="dev">未リリース</span></td><td><code>vrc-udon</code> / <code>vrc-event</code> / <code>vrc-target</code> を適用できない</td></tr>
+<tr><th colspan="2">INTERNAL</th></tr>
+<tr><td><code>INTERNAL9001</code></td><td>コンパイラ内部の例外</td></tr>
+<tr><td><code>INTERNAL9002</code></td><td>不正な CompileRequest</td></tr>
+</tbody>
+</table>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="limits">15. 非対応の機能</h2>
+<ul>
+  <li>レイアウト: <code>float</code>、<code>grid</code>、<code>table</code>、インライン整形、マージンの相殺</li>
+  <li>要素: フォーム部品 (checkbox・range 以外の <code>input</code>、<code>select</code>、<code>textarea</code>)、インラインの <code>&lt;svg&gt;</code></li>
+  <li>CSS: <code>calc()</code>、<code>vw</code>/<code>vh</code>、グラデーション、<code>box-shadow</code>、<code>transform</code>、辺ごとの <code>border-*</code>、角ごとの <code>border-radius</code></li>
+  <li>動的な機能: 擬似クラス、アニメーション、スクリプト、スクロール</li>
+  <li>外部参照: HTTP(S) の画像やフォント</li>
+</ul>
+<p>対応している機能をひととおり使った見本として、uGUI パッケージのサンプル <strong>Feature Showcase</strong> があります。</p>
+
+<p class="meta" style="margin-top:3rem">
+<a href="../">トップ</a> ·
+<a href="https://github.com/ChikumaTateshina/Rectloom">GitHub</a> ·
+<a href="https://github.com/ChikumaTateshina/Rectloom/blob/main/CHANGELOG.md">変更履歴</a>
+</p>
+
+</div>
+</body>
+</html>
