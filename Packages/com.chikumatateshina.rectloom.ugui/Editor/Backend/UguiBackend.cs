@@ -325,7 +325,7 @@ namespace Rectloom.Ugui.Backend
                 RectTransformBaker.StretchToContent(transform, node.Rect);
 
                 TMP_Text text = GetOrAdd<TextMeshProUGUI>(label, entry, TextProperties);
-                TmpTextApplier.Apply(text, node.TextContent, node.TextStyle, ResolveFont(node), _backend._fonts.EmojiFont, _backend._fonts.EmojiSprites);
+                TmpTextApplier.Apply(text, node.TextContent, node.TextStyle, ResolveFont(node), _backend._fonts.EmojiFont, _backend._fonts.EmojiSprites, node.TextSpans);
 
                 // A label never swallows clicks meant for the box it belongs to.
                 text.raycastTarget = false;
@@ -487,7 +487,7 @@ namespace Rectloom.Ugui.Backend
                 }
 
                 TMP_Text text = GetOrAdd<TextMeshProUGUI>(target, entry, TextProperties);
-                TmpTextApplier.Apply(text, node.TextContent, node.TextStyle, ResolveFont(node), _backend._fonts.EmojiFont, _backend._fonts.EmojiSprites);
+                TmpTextApplier.Apply(text, node.TextContent, node.TextStyle, ResolveFont(node), _backend._fonts.EmojiFont, _backend._fonts.EmojiSprites, node.TextSpans);
                 text.raycastTarget = _backend.ReadRaycastTarget(node);
             }
 

@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Collections.Generic;
 using Rectloom.Core.Css.Computed;
 
 namespace Rectloom.Core.Layout
@@ -64,5 +65,21 @@ namespace Rectloom.Core.Layout
         /// </param>
         /// <returns>The size the text needs.</returns>
         TextMeasurement Measure(string text, TextStyle style, float availableWidth);
+
+        /// <summary>
+        /// Measures text made of differently styled runs, such as a paragraph with a bold word in it.
+        /// </summary>
+        /// <param name="spans">The runs, in order.</param>
+        /// <param name="style">Style of the box the text is in.</param>
+        /// <param name="availableWidth">Width available for wrapping, or infinity for none.</param>
+        /// <returns>The size of the text.</returns>
+        /// <remarks>
+        /// By default the runs are measured as plain text in the box's style. A measurer that can apply
+        /// inline formatting should override this, so that a larger or bolder run is measured as such.
+        /// </remarks>
+        TextMeasurement MeasureSpans(IReadOnlyList<TextSpan> spans, TextStyle style, float availableWidth)
+        {
+            return Measure(TextSpan.Join(spans), style, availableWidth);
+        }
     }
 }

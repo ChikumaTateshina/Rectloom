@@ -590,7 +590,9 @@ namespace Rectloom.Ugui.Windows
         /// asked to update output that does not exist yet. For a scene object that failed outright,
         /// because its record is kept per document. With no record and no output there is nothing an
         /// update could preserve, so creating is what was meant. Existing output, or a record of one,
-        /// keeps Update, so nothing is ever overwritten this way.
+        /// keeps Update, so nothing is ever overwritten this way. A scene object the document already
+        /// produced, found by name at the top of an open scene, also keeps Update: creating would put a
+        /// second copy beside it.
         /// </remarks>
         internal static CompileMode ResolveInitialMode(CompileRequest request)
         {
@@ -601,10 +603,39 @@ namespace Rectloom.Ugui.Windows
             }
 
             bool outputExists = request.OutputType == CompileOutputType.Prefab
-                && !string.IsNullOrWhiteSpace(request.OutputPath)
-                && AssetDatabase.LoadMainAssetAtPath(request.OutputPath) != null;
+                ? !string.IsNullOrWhiteSpace(request.OutputPath)
+                    && AssetDatabase.LoadMainAssetAtPath(request.OutputPath) != null
+                : SceneHasRoot(Path.GetFileNameWithoutExtension(request.HtmlAssetPath ?? string.Empty));
 
             return outputExists ? CompileMode.Update : CompileMode.Create;
+        }
+
+        private static bool SceneHasRoot(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                return false;
+            }
+
+            for (int index = 0; index < UnityEngine.SceneManagement.SceneManager.sceneCount; index++)
+            {
+                UnityEngine.SceneManagement.Scene scene = UnityEngine.SceneManagement.SceneManager.GetSceneAt(index);
+
+                if (!scene.isLoaded)
+                {
+                    continue;
+                }
+
+                foreach (GameObject root in scene.GetRootGameObjects())
+                {
+                    if (string.Equals(root.name, name, StringComparison.Ordinal))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         private static string Summarise(CompileResult result, bool validateOnly)

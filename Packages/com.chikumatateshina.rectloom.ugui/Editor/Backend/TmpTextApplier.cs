@@ -31,8 +31,11 @@ namespace Rectloom.Ugui.Backend
         /// </param>
         /// <param name="emojiFont">Font explicitly used for emoji runs.</param>
         /// <param name="emojiSprites">Color emoji sprites that retain the font's palette independently of text color.</param>
+        /// <param name="spans">Differently styled runs of the text, or null when it is all in <paramref name="style"/>.</param>
+        /// <param name="links">Receives the target of each link run, in the order of their link ids, or null.</param>
         public static void Apply(TMP_Text text, string? content, UiTextStyle style, TMP_FontAsset? font = null,
-            TMP_FontAsset? emojiFont = null, IReadOnlyDictionary<uint, TMP_SpriteAsset>? emojiSprites = null)
+            TMP_FontAsset? emojiFont = null, IReadOnlyDictionary<uint, TMP_SpriteAsset>? emojiSprites = null,
+            IReadOnlyList<UiTextSpan>? spans = null, List<string>? links = null)
         {
             if (text == null || style == null)
             {
@@ -45,14 +48,15 @@ namespace Rectloom.Ugui.Backend
             }
 
             text.spriteAsset = emojiSprites != null && emojiSprites.Count > 0 ? emojiSprites.First().Value : null;
-            text.text = EmojiText.FormatColor(content ?? string.Empty, emojiFont, emojiSprites);
+            text.text = TmpRichText.Build(content ?? string.Empty, spans, style, emojiSprites, links, out bool rich);
             text.color = style.Color;
             text.fontSize = style.FontSize;
             text.fontStyle = ResolveFontStyle(style);
             text.alignment = ResolveAlignment(style.Alignment);
             text.enableWordWrapping = style.Wrap;
-            // Markup is only ever written for emoji sprites; otherwise the text is shown exactly as written.
-            text.richText = emojiSprites != null && emojiSprites.Count > 0;
+            // Markup is only ever written by the compiler, for inline formatting and emoji sprites;
+            // otherwise the text is shown exactly as written.
+            text.richText = rich;
 
             // TextMeshPro expresses both of these as a percentage of the font size rather than in
             // pixels, so a style that says 1.5 line height becomes 50 extra percent.

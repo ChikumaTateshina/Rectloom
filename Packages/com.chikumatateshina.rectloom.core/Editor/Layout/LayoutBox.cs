@@ -60,6 +60,12 @@ namespace Rectloom.Core.Layout
         /// </summary>
         public string? TextContent { get; internal set; }
 
+        /// <summary>
+        /// The text split into differently styled runs, or null when all of it is in this box's own
+        /// style. <see cref="TextContent"/> is always the plain text the runs make up.
+        /// </summary>
+        public IReadOnlyList<TextSpan>? Spans { get; internal set; }
+
         /// <summary>Position in the source file this box came from.</summary>
         public SourceLocation Source { get; }
 

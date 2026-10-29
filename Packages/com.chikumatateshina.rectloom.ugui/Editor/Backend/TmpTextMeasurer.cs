@@ -88,6 +88,29 @@ namespace Rectloom.Ugui.Backend
         /// <inheritdoc />
         public TextMeasurement Measure(string text, TextStyle style, float availableWidth)
         {
+            return Measure(text, null, style, availableWidth);
+        }
+
+        /// <inheritdoc />
+        public TextMeasurement MeasureSpans(IReadOnlyList<TextSpan> spans, TextStyle style, float availableWidth)
+        {
+            if (spans == null || spans.Count == 0)
+            {
+                return TextMeasurement.Empty;
+            }
+
+            var mapped = new List<UiTextSpan>(spans.Count);
+
+            foreach (TextSpan span in spans)
+            {
+                mapped.Add(new UiTextSpan(span.Text, UiStyleFactory.FromComputed(span.Style), span.Href));
+            }
+
+            return Measure(TextSpan.Join(spans), mapped, style, availableWidth);
+        }
+
+        private TextMeasurement Measure(string text, IReadOnlyList<UiTextSpan>? spans, TextStyle style, float availableWidth)
+        {
             if (_disposed || _probe == null || string.IsNullOrEmpty(text) || style == null)
             {
                 return TextMeasurement.Empty;
@@ -101,7 +124,7 @@ namespace Rectloom.Ugui.Backend
                 return ApproximateTextMeasurer.Instance.Measure(text, style, availableWidth);
             }
 
-            TmpTextApplier.Apply(_probe, text, resolved, font, _fonts.EmojiFont, _fonts.EmojiSprites);
+            TmpTextApplier.Apply(_probe, text, resolved, font, _fonts.EmojiFont, _fonts.EmojiSprites, spans);
 
             bool wraps = style.WrapsText
                 && availableWidth > 0f

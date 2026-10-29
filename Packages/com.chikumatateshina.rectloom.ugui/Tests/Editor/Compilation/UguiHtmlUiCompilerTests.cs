@@ -154,8 +154,14 @@ namespace Rectloom.Ugui.Tests.Compilation
         [Test]
         public void Window_SceneUpdateDoesNotCreateADuplicateHierarchy()
         {
-            Assert.That(WindowMode(Request(CompileOutputType.SceneObject, CompileMode.Update)),
-                Is.EqualTo(CompileMode.Update));
+            // An object the document produced is already in the scene, but its record is gone.
+            // Creating would put a second hierarchy beside it, so Update is kept and reports the
+            // missing record instead.
+            CompileRequest request = Request(CompileOutputType.SceneObject, CompileMode.Update);
+            var existing = new GameObject(System.IO.Path.GetFileNameWithoutExtension(request.HtmlAssetPath));
+            _sceneObjects.Add(existing);
+
+            Assert.That(WindowMode(request), Is.EqualTo(CompileMode.Update));
         }
 
         [Test]

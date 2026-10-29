@@ -3,6 +3,8 @@
 using System;
 using System.Collections.Generic;
 using Rectloom.Core.Css.Computed;
+using Rectloom.Core.Css.Values;
+using Rectloom.Core.Diagnostics;
 using Rectloom.Core.Dom;
 
 namespace Rectloom.Core.Layout
@@ -51,9 +53,99 @@ namespace Rectloom.Core.Layout
                 return null;
             }
 
+            // The children of a flex container are flex items, each a box of its own, so text-level
+            // elements inside one are laid out separately, as CSS does. Everywhere else text and
+            // text-level elements share one run of formatted text.
+            return style.Display == CssDisplay.Flex
+                ? BuildFlexContainer(element, style, styles)
+                : BuildFlow(element, style, styles);
+        }
+
+        private static LayoutBox BuildFlow(DomElement element, ComputedStyle style, ComputedStyleTree styles)
+        {
             var box = new LayoutBox(element, style);
             var childBoxes = new List<LayoutBox>();
-            var textRuns = new List<(string Text, Diagnostics.SourceLocation Source)>();
+            var inline = new InlineContent();
+
+            foreach (DomNode node in element.Children)
+            {
+                switch (node)
+                {
+                    case DomText text:
+                        inline.AddText(text.Text, style.Text, null, text.Source);
+                        break;
+
+                    case DomElement child when !inline.IsEmpty
+                        && string.Equals(child.TagName, HtmlElements.LineBreak, StringComparison.Ordinal):
+                        // Inside a run of text a line break is a line break in the text. Between blocks
+                        // it stays a box, which is how it always behaved.
+                        inline.AddBreak(style.Text, null, child.Source);
+                        break;
+
+                    case DomElement child when InlineContent.CanFold(child, styles):
+                        inline.AddElement(child, styles, null);
+                        break;
+
+                    case DomElement child:
+                    {
+                        LayoutBox? childBox = BuildElement(child, styles);
+
+                        if (childBox != null)
+                        {
+                            FlushInline(style, inline, childBoxes);
+                            childBoxes.Add(childBox);
+                        }
+
+                        break;
+                    }
+                }
+            }
+
+            if (childBoxes.Count == 0)
+            {
+                // Nothing but text: the element itself renders it, which is what lets a paragraph
+                // compile straight to one text object instead of an empty box wrapping one.
+                IReadOnlyList<TextSpan>? spans = inline.Take(style.Text, out string text);
+                box.TextContent = text.Length == 0 ? null : text;
+                box.Spans = text.Length == 0 ? null : spans;
+                return box;
+            }
+
+            FlushInline(style, inline, childBoxes);
+
+            foreach (LayoutBox child in childBoxes)
+            {
+                box.AddChild(child);
+            }
+
+            return box;
+        }
+
+        private static void FlushInline(ComputedStyle style, InlineContent inline, List<LayoutBox> target)
+        {
+            if (inline.IsEmpty)
+            {
+                return;
+            }
+
+            SourceLocation source = inline.FirstSource;
+            IReadOnlyList<TextSpan>? spans = inline.Take(style.Text, out string text);
+
+            if (text.Length == 0)
+            {
+                return;
+            }
+
+            LayoutBox anonymous = LayoutBox.CreateAnonymousText(style, text, source);
+            anonymous.Spans = spans;
+            target.Add(anonymous);
+        }
+
+        private static LayoutBox BuildFlexContainer(DomElement element, ComputedStyle style, ComputedStyleTree styles)
+        {
+            var box = new LayoutBox(element, style);
+            var childBoxes = new List<LayoutBox>();
+            var textRuns = new List<(string Text, SourceLocation Source)>();
 
             foreach (DomNode node in element.Children)
             {
@@ -90,10 +182,6 @@ namespace Rectloom.Core.Layout
 
             if (childBoxes.Count == 0)
             {
-                // Nothing but text: the element itself renders it, which is what lets a paragraph
-                // compile straight to one text object instead of an empty box wrapping one. An
-                // element with no text at all keeps a null content, so it is not treated as a text
-                // box with an empty string.
                 string text = JoinRuns(textRuns);
                 box.TextContent = text.Length == 0 ? null : text;
                 return box;
@@ -111,7 +199,7 @@ namespace Rectloom.Core.Layout
 
         private static void FlushTextRuns(
             ComputedStyle style,
-            List<(string Text, Diagnostics.SourceLocation Source)> runs,
+            List<(string Text, SourceLocation Source)> runs,
             List<LayoutBox> target)
         {
             if (runs.Count == 0)
@@ -123,7 +211,7 @@ namespace Rectloom.Core.Layout
             runs.Clear();
         }
 
-        private static string JoinRuns(List<(string Text, Diagnostics.SourceLocation Source)> runs)
+        private static string JoinRuns(List<(string Text, SourceLocation Source)> runs)
         {
             if (runs.Count == 0)
             {

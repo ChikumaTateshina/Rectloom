@@ -198,7 +198,8 @@ namespace Rectloom.Core.Tests.Layout
         {
             LayoutResult root = _harness.Solve(
                 "<body><span id=\"a\">abcd</span></body>",
-                "#a { display: inline; font-size: 10px; }");
+                // A background keeps the span a box of its own; a plain span joins the text around it.
+                "#a { display: inline; font-size: 10px; background-color: #eeeeee; }");
 
             Assert.That(LayoutTestHarness.Find(root, "a").Width, Is.EqualTo(20f));
         }

@@ -543,7 +543,7 @@ namespace Rectloom.Core.Layout
 
             if (box.IsTextBox)
             {
-                inner = _measurer.Measure(box.TextContent!, style.Text, float.PositiveInfinity).Width;
+                inner = MeasureText(box, float.PositiveInfinity).Width;
             }
             else if (style.Display == CssDisplay.Flex && style.Flex.Direction == CssFlexDirection.Row)
             {
@@ -586,11 +586,6 @@ namespace Rectloom.Core.Layout
             }
 
             return Clamp(inner + frame, style.MinWidth, style.MaxWidth, containingWidth);
-        }
-
-        private TextMeasurement MeasureText(LayoutBox box, float contentWidth)
-        {
-            return _measurer.Measure(box.TextContent!, box.Style.Text, contentWidth);
         }
 
         /// <summary>
@@ -642,6 +637,13 @@ namespace Rectloom.Core.Layout
                 "Give the parent an explicit height, or size this box in px.");
 
             return false;
+        }
+
+        private TextMeasurement MeasureText(LayoutBox box, float availableWidth)
+        {
+            return box.Spans != null
+                ? _measurer.MeasureSpans(box.Spans, box.Style.Text, availableWidth)
+                : _measurer.Measure(box.TextContent!, box.Style.Text, availableWidth);
         }
 
         private float NonNegative(LayoutBox box, float value, string axis, bool declared)

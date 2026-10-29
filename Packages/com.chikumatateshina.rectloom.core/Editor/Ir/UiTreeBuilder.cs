@@ -137,6 +137,7 @@ namespace Rectloom.Core.Ir
                     result.ContentWidth,
                     result.ContentHeight),
                 TextContent = box.TextContent,
+                TextSpans = MapSpans(box.Spans),
                 Visual = UiStyleFactory.FromComputed(box.Style.Visual),
                 TextStyle = UiStyleFactory.FromComputed(box.Style.Text),
                 Asset = asset,
@@ -293,6 +294,23 @@ namespace Rectloom.Core.Ir
             }
 
             return UiNodeKind.Container;
+        }
+
+        private static IReadOnlyList<UiTextSpan>? MapSpans(IReadOnlyList<TextSpan>? spans)
+        {
+            if (spans == null)
+            {
+                return null;
+            }
+
+            var mapped = new List<UiTextSpan>(spans.Count);
+
+            foreach (TextSpan span in spans)
+            {
+                mapped.Add(new UiTextSpan(span.Text, UiStyleFactory.FromComputed(span.Style), span.Href));
+            }
+
+            return mapped;
         }
 
         private static IReadOnlyDictionary<string, string> ReadAttributes(DomElement? element)

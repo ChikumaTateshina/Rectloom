@@ -137,4 +137,30 @@ namespace Rectloom.Core.Ir
         /// <summary>Whether the text is struck through.</summary>
         public bool LineThrough { get; internal set; }
     }
+
+    /// <summary>
+    /// A run of text in its own style, inside a node that renders several.
+    /// </summary>
+    public sealed class UiTextSpan
+    {
+        /// <summary>Creates a run.</summary>
+        /// <param name="text">The text; a line break is <c>\n</c>.</param>
+        /// <param name="style">How the run looks.</param>
+        /// <param name="href">Target of the link the run is in, or null.</param>
+        public UiTextSpan(string text, UiTextStyle style, string? href)
+        {
+            Text = text ?? throw new ArgumentNullException(nameof(text));
+            Style = style ?? throw new ArgumentNullException(nameof(style));
+            Href = href;
+        }
+
+        /// <summary>The text.</summary>
+        public string Text { get; }
+
+        /// <summary>How the run looks.</summary>
+        public UiTextStyle Style { get; }
+
+        /// <summary>Target of the enclosing link, or null.</summary>
+        public string? Href { get; }
+    }
 }

@@ -153,10 +153,10 @@ namespace Rectloom.Core.Tests.Ir
         {
             UiNode paragraph = Find(Build("<p id=\"x\">a<br>b</p>"), "x");
 
-            Assert.That(
-                paragraph.Children.Select(c => c.TextContent),
-                Is.EqualTo(new[] { "a", "b" }),
-                "the break only splits the text; it needs no object of its own");
+            // The break is a line break inside the paragraph's text; it needs no object of its own,
+            // and the paragraph stays one text object rather than splitting around it.
+            Assert.That(paragraph.Children, Is.Empty);
+            Assert.That(paragraph.TextContent, Is.EqualTo("a\nb"));
         }
 
         [Test]

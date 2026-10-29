@@ -125,6 +125,11 @@ namespace Rectloom.Core.Ir
         public string? TextContent { get; internal set; }
 
         /// <summary>
+        /// The text in differently styled runs, or null when it is all in <see cref="TextStyle"/>.
+        /// </summary>
+        public IReadOnlyList<UiTextSpan>? TextSpans { get; internal set; }
+
+        /// <summary>
         /// Image this node paints, from an <c>img</c> source or a <c>background-image</c>.
         /// </summary>
         public AssetReference Asset { get; internal set; }
