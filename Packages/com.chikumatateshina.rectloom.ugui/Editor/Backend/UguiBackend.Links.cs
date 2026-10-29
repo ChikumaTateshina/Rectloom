@@ -39,6 +39,12 @@ namespace Rectloom.Ugui.Backend
 
         private const string SetActiveMethod = "SetActive";
 
+        private const string CopyHintJapanese = "URL を選択して Ctrl+C でコピーできます";
+        private const string CopyHintEnglish = "Select the address and press Ctrl+C to copy it";
+
+        /// <summary>Every character the compiler itself may write into the output.</summary>
+        internal const string GeneratedText = CopyHintJapanese + CopyHintEnglish + "\u00D7";
+
         /// <summary>Name of the clipped area inside a text field.</summary>
         public const string TextAreaName = "Text Area";
 
@@ -506,7 +512,7 @@ namespace Rectloom.Ugui.Backend
 
             private static string CopyHint(TMP_FontAsset? font)
             {
-                const string japanese = "URL を選択して Ctrl+C でコピーできます";
+                const string japanese = CopyHintJapanese;
 
                 try
                 {
@@ -520,7 +526,7 @@ namespace Rectloom.Ugui.Backend
                     // A font that cannot answer is treated as one without the glyphs.
                 }
 
-                return "Select the address and press Ctrl+C to copy it";
+                return CopyHintEnglish;
             }
 
             private static string Hash(string href)

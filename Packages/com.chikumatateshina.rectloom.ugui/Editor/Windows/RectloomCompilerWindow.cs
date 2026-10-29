@@ -53,6 +53,7 @@ namespace Rectloom.Ugui.Windows
         [SerializeField] private bool _worldSpace = true;
         [SerializeField] private bool _documentBackground;
         [SerializeField] private bool _fitCanvasToContent = true;
+        [SerializeField] private bool _bakeUsedCharacters = true;
         [SerializeField] private bool _batchMode;
         [SerializeField] private List<string> _htmlPaths = new List<string>();
         [SerializeField] private string _batchOutputFolder = "Assets/UI/Generated";
@@ -113,6 +114,12 @@ namespace Rectloom.Ugui.Windows
             _documentBackground = EditorGUILayout.Toggle("Document Background", _documentBackground);
             using (new EditorGUI.DisabledScope(!_worldSpace || _documentBackground))
                 _fitCanvasToContent = EditorGUILayout.Toggle("Fit Canvas to Content", _fitCanvasToContent);
+            _bakeUsedCharacters = EditorGUILayout.Toggle(
+                new GUIContent(
+                    "Bake Used Characters",
+                    "Replace dynamic TMP fonts with static copies holding only the characters this document "
+                        + "uses, so the font file is left out of the build. Recommended for VRChat worlds."),
+                _bakeUsedCharacters);
 
             _defaultFont = (TMP_FontAsset?)EditorGUILayout.ObjectField(
                 "Default TMP Font", _defaultFont, typeof(TMP_FontAsset), false);
@@ -553,6 +560,7 @@ namespace Rectloom.Ugui.Windows
                     WorldUnitsPerPixel = 0.001f,
                     RenderDocumentBackground = _documentBackground,
                     FitCanvasToContent = _fitCanvasToContent,
+                    BakeUsedCharacters = _bakeUsedCharacters,
                 },
             };
         }

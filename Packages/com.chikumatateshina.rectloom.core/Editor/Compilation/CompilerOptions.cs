@@ -27,6 +27,12 @@ namespace Rectloom.Core.Compilation
         public bool FitCanvasToContent { get; set; }
 
         /// <summary>
+        /// Replace each dynamic font with a static copy holding only the characters the document uses,
+        /// so that the font file is not part of the build. On by default.
+        /// </summary>
+        public bool BakeUsedCharacters { get; set; } = true;
+
+        /// <summary>
         /// Pixels rendered per logical pixel when a vector image is rasterized. Defaults to 2.
         /// </summary>
         /// <remarks>
@@ -105,6 +111,7 @@ namespace Rectloom.Core.Compilation
                 WorldUnitsPerPixel = WorldUnitsPerPixel,
                 RenderDocumentBackground = RenderDocumentBackground,
                 FitCanvasToContent = FitCanvasToContent,
+                BakeUsedCharacters = BakeUsedCharacters,
                 VectorImageScale = VectorImageScale,
                 StrictMode = StrictMode,
                 UseDefaultStyleSheet = UseDefaultStyleSheet,

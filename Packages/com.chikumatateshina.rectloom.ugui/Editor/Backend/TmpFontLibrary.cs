@@ -40,6 +40,7 @@ namespace Rectloom.Ugui.Backend
         private readonly HashSet<string> _reported = new HashSet<string>(StringComparer.Ordinal);
         private readonly IDiagnosticSink? _diagnostics;
         private readonly TMP_FontAsset? _fallback;
+        private readonly Func<TMP_FontAsset?, TMP_FontAsset?>? _substitute;
 
         private List<Entry>? _index;
 
@@ -55,9 +56,12 @@ namespace Rectloom.Ugui.Backend
         /// </param>
         /// <param name="emojiFont">Font explicitly used for emoji runs, independent of body font fallback.</param>
         /// <param name="emojiSprites">Color sprites generated from that font, or null for monochrome font runs.</param>
+        /// <param name="substitute">Replaces each font found, or null to use fonts as they are.</param>
         public TmpFontLibrary(TMP_FontAsset? fallback = null, IDiagnosticSink? diagnostics = null,
-            TMP_FontAsset? emojiFont = null, IReadOnlyDictionary<uint, TMP_SpriteAsset>? emojiSprites = null)
+            TMP_FontAsset? emojiFont = null, IReadOnlyDictionary<uint, TMP_SpriteAsset>? emojiSprites = null,
+            Func<TMP_FontAsset?, TMP_FontAsset?>? substitute = null)
         {
+            _substitute = substitute;
             _fallback = fallback;
             EmojiFont = emojiFont;
             EmojiSprites = emojiSprites;
@@ -128,6 +132,14 @@ namespace Rectloom.Ugui.Backend
             }
 
             TMP_FontAsset? found = Search(key);
+
+            // Every font the text will use goes through here, which is what lets a compile swap in a
+            // copy holding only the characters it needs.
+            if (found != null && _substitute != null)
+            {
+                found = _substitute(found) ?? found;
+            }
+
             _byFamily[key] = found;
             return found;
         }

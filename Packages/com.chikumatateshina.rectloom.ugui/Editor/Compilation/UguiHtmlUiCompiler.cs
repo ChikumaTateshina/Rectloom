@@ -260,7 +260,21 @@ namespace Rectloom.Ugui.Compilation
                     "Use an emoji font with TrueType outlines, such as Segoe UI Emoji, and import TMP "
                         + "Essential Resources.");
             }
-            var fonts = new TmpFontLibrary(_defaultFont, diagnostics, emoji, sprites);
+            // The output's text is fixed now, so each dynamic font can be swapped for a static copy of
+            // just the glyphs it needs. Only when committing: validation measures with the same metrics.
+            FontSubsetter? subsetter = commitOutput && options.BakeUsedCharacters
+                ? new FontSubsetter(CollectCharacters(document), options.GeneratedAssetFolder, diagnostics)
+                : null;
+            TMP_FontAsset? defaultFont = _defaultFont;
+
+            if (subsetter != null)
+            {
+                defaultFont = subsetter.Substitute(_defaultFont
+                    ?? (TMP_Settings.instance != null ? TMP_Settings.defaultFontAsset : null));
+            }
+
+            var fonts = new TmpFontLibrary(defaultFont, diagnostics, emoji, sprites,
+                subsetter == null ? null : (Func<TMP_FontAsset?, TMP_FontAsset?>)subsetter.Substitute);
             ITextMeasurer measurer = CreateMeasurer(diagnostics, fonts);
 
             try
@@ -742,6 +756,34 @@ namespace Rectloom.Ugui.Compilation
             }
 
             result.ProcessorState = new Dictionary<string, string>(context.State, StringComparer.Ordinal);
+        }
+
+        /// <summary>
+        /// Gathers every character the output can show: the text, attribute values that become text
+        /// (values, placeholders, link addresses), and the labels the compiler writes itself.
+        /// </summary>
+        private static string CollectCharacters(DomDocument document)
+        {
+            var builder = new System.Text.StringBuilder(UguiBackend.GeneratedText);
+
+            foreach (DomNode node in document.DescendantsAndSelf())
+            {
+                switch (node)
+                {
+                    case DomText text:
+                        builder.Append(text.Text);
+                        break;
+                    case DomElement element:
+                        foreach (DomAttribute attribute in element.Attributes)
+                        {
+                            builder.Append(attribute.Value);
+                        }
+
+                        break;
+                }
+            }
+
+            return builder.ToString();
         }
 
         /// <summary>
