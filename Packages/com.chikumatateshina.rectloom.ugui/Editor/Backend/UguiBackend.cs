@@ -32,7 +32,7 @@ namespace Rectloom.Ugui.Backend
     /// properties an update writes are exactly the ones a create writes and no others.
     /// </para>
     /// </remarks>
-    public sealed class UguiBackend
+    public sealed partial class UguiBackend
     {
         /// <summary>Name given to the label object a button or painted box generates.</summary>
         public const string LabelObjectName = "Label";
@@ -202,7 +202,7 @@ namespace Rectloom.Ugui.Backend
         /// <summary>
         /// One backend pass, holding the bookkeeping that a create or an update accumulates.
         /// </summary>
-        private sealed class Pass
+        private sealed partial class Pass
         {
             private readonly UguiBackend _backend;
             private readonly RectloomDocumentMetadata? _previous;
@@ -269,6 +269,11 @@ namespace Rectloom.Ugui.Backend
                     contentOffset -= frame.position;
                 var siblingNames = new HashSet<string>(StringComparer.Ordinal);
 
+                // Link panels exist before any link is wired to them, and go last so they draw on top.
+                List<string> popups = isRoot
+                    ? ApplyLinkPopups(node, target, transformPath, siblingNames)
+                    : new List<string>();
+
                 foreach (UiNode child in node.Children)
                 {
                     GameObject childObject = Resolve(child.StableId, target, child.Name, out bool created);
@@ -296,6 +301,9 @@ namespace Rectloom.Ugui.Backend
                 {
                     ApplySliderParts(node, target, transformPath, siblingNames, expected);
                 }
+
+                ApplyLinkOverlays(node, target, transformPath, siblingNames, expected);
+                expected.AddRange(popups);
 
                 RemoveObsoleteChildren(target, transformPath, expected);
                 Reorder(target, expected);
@@ -404,6 +412,7 @@ namespace Rectloom.Ugui.Backend
                         break;
                 }
 
+                ApplyLinkButton(node, target, entry);
                 ApplyClipping(node, target, entry);
                 ApplyOpacity(node, target, entry);
                 RemoveObsoleteComponents(target, node.StableId, entry);
