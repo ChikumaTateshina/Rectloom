@@ -1,5 +1,6 @@
 #nullable enable
 
+using Rectloom.Core.Css.Selectors;
 using System;
 using System.Collections.Generic;
 using Rectloom.Core.Css.Ast;
@@ -126,12 +127,74 @@ namespace Rectloom.Core.Css.Computed
             IReadOnlyList<CssDeclaration> declarations = cascade.Resolve(element, inline);
             ComputedStyle style = builder.Build(declarations, parentStyle, diagnostics);
 
+            if (cascade.HasStateRules && IsControl(element))
+            {
+                style.States = BuildStates(element, inline, parentStyle, style, cascade, builder);
+            }
+
             styles[element] = style;
 
             foreach (DomElement child in element.ElementChildren)
             {
                 BuildElement(child, style, cascade, builder, diagnostics, styles);
             }
+        }
+
+        private static readonly CssElementState[] InteractionStates =
+        {
+            CssElementState.Hover, CssElementState.Active, CssElementState.Focus, CssElementState.Disabled,
+        };
+
+        /// <summary>
+        /// Gets a value indicating whether an element compiles to a control that changes with state.
+        /// </summary>
+        private static bool IsControl(DomElement element)
+        {
+            switch (element.TagName)
+            {
+                case "button":
+                case "input":
+                    return true;
+                case "a":
+                    return element.TryGetAttribute("href", out _);
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// Computes the element's style once per interaction state, keeping those that differ.
+        /// </summary>
+        /// <remarks>
+        /// A state rule applies only when the element is in that state, so the ordinary style never
+        /// sees it. Each state is cascaded again on its own; diagnostics are not repeated, because the
+        /// declarations are the same ones the ordinary pass already reported on.
+        /// </remarks>
+        private static Dictionary<CssElementState, ComputedStyle> BuildStates(
+            DomElement element,
+            IReadOnlyList<CssDeclaration> inline,
+            ComputedStyle? parentStyle,
+            ComputedStyle normal,
+            CascadeResolver cascade,
+            ComputedStyleBuilder builder)
+        {
+            var states = new Dictionary<CssElementState, ComputedStyle>();
+            var quiet = new DiagnosticSink();
+
+            foreach (CssElementState state in InteractionStates)
+            {
+                IReadOnlyList<CssDeclaration> declarations = cascade.Resolve(element, inline, state);
+
+                if (declarations.Count == cascade.Resolve(element, inline).Count)
+                {
+                    continue;
+                }
+
+                ComputedStyle styled = builder.Build(declarations, parentStyle, quiet);
+                states[state] = styled;
+            }
+
+            return states;
         }
 
         private static IReadOnlyList<CssDeclaration> ReadInlineDeclarations(

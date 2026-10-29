@@ -25,6 +25,20 @@ namespace Rectloom.Core.Css.Cascade
         /// <exception cref="ArgumentNullException"><paramref name="selector"/> is null.</exception>
         public static bool Matches(CssSelector selector, DomElement? element)
         {
+            return Matches(selector, element, CssElementState.None);
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether a selector matches an element that is in the given
+        /// interaction state. A selector that asks for a state matches only when the element is in it.
+        /// </summary>
+        public static bool Matches(CssSelector selector, DomElement? element, CssElementState state)
+        {
+            if (selector != null && (selector.State & ~state) != 0)
+            {
+                return false;
+            }
+
             if (selector == null)
             {
                 throw new ArgumentNullException(nameof(selector));

@@ -30,6 +30,33 @@ namespace Rectloom.Core.Css.Selectors
     /// the same element.
     /// </remarks>
     /// <summary>
+    /// Interaction states a selector can ask for, such as <c>:hover</c>.
+    /// </summary>
+    /// <remarks>
+    /// Baked output has no pointer, so these never decide which ordinary rules apply. They are kept so
+    /// that the background a control should have in each state can be handed to uGUI, whose
+    /// selectables change colour by state on their own.
+    /// </remarks>
+    [Flags]
+    public enum CssElementState
+    {
+        /// <summary>No state: the ordinary style.</summary>
+        None = 0,
+
+        /// <summary><c>:hover</c>, uGUI's highlighted state.</summary>
+        Hover = 1,
+
+        /// <summary><c>:active</c>, uGUI's pressed state.</summary>
+        Active = 2,
+
+        /// <summary><c>:focus</c> and <c>:focus-visible</c>, uGUI's selected state.</summary>
+        Focus = 4,
+
+        /// <summary><c>:disabled</c>, uGUI's disabled state.</summary>
+        Disabled = 8,
+    }
+
+    /// <summary>
     /// How an attribute selector compares the attribute's value.
     /// </summary>
     public enum CssAttributeOperator
@@ -187,7 +214,8 @@ namespace Rectloom.Core.Css.Selectors
             string? id,
             IReadOnlyList<string>? classes,
             bool requiresRoot = false,
-            IReadOnlyList<CssAttributeSelector>? attributes = null)
+            IReadOnlyList<CssAttributeSelector>? attributes = null,
+            CssElementState state = CssElementState.None)
         {
             Combinator = combinator;
             TagName = tagName;
@@ -195,6 +223,7 @@ namespace Rectloom.Core.Css.Selectors
             Classes = classes ?? NoClasses;
             RequiresRoot = requiresRoot;
             Attributes = attributes ?? NoAttributes;
+            State = state;
         }
 
         /// <summary>How this part relates to the part before it.</summary>
@@ -224,14 +253,29 @@ namespace Rectloom.Core.Css.Selectors
         /// <summary>Attribute conditions, such as <c>[type="range"]</c>.</summary>
         public IReadOnlyList<CssAttributeSelector> Attributes { get; }
 
+        /// <summary>Interaction states this part requires, such as <c>:hover</c>.</summary>
+        public CssElementState State { get; }
+
         /// <summary>Specificity contributed by this part.</summary>
         /// <remarks>
         /// A pseudo-class counts as a class, which is what the selector specification says.
         /// </remarks>
         public CssSpecificity Specificity => new CssSpecificity(
             Id == null ? 0 : 1,
-            Classes.Count + Attributes.Count + (RequiresRoot ? 1 : 0),
+            Classes.Count + Attributes.Count + CountStates(State) + (RequiresRoot ? 1 : 0),
             TagName == null ? 0 : 1);
+
+        private static int CountStates(CssElementState state)
+        {
+            int count = 0;
+
+            for (int bits = (int)state; bits != 0; bits &= bits - 1)
+            {
+                count++;
+            }
+
+            return count;
+        }
 
         /// <summary>
         /// Tests this part against one element, ignoring combinators.
@@ -306,6 +350,11 @@ namespace Rectloom.Core.Css.Selectors
                 text += ":root";
             }
 
+            if ((State & CssElementState.Hover) != 0) text += ":hover";
+            if ((State & CssElementState.Active) != 0) text += ":active";
+            if ((State & CssElementState.Focus) != 0) text += ":focus";
+            if ((State & CssElementState.Disabled) != 0) text += ":disabled";
+
             switch (Combinator)
             {
                 case CssCombinator.Child:
@@ -373,6 +422,9 @@ namespace Rectloom.Core.Css.Selectors
 
         /// <summary>Total specificity of the selector.</summary>
         public CssSpecificity Specificity { get; }
+
+        /// <summary>The interaction states the selector requires of the element it styles.</summary>
+        public CssElementState State => Parts[Parts.Count - 1].State;
 
         /// <inheritdoc />
         public override string ToString() => RawText;

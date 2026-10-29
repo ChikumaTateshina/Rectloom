@@ -105,6 +105,14 @@ namespace Rectloom.Core.Css.Computed
         /// </summary>
         public bool IsInFlow => Display != CssDisplay.None && Position != CssPosition.Absolute;
 
+
+        /// <summary>
+        /// The element's style in each interaction state whose rules change it, such as
+        /// <c>button:hover</c>. Empty unless the element is a control and some rule asks for a state.
+        /// </summary>
+        public IReadOnlyDictionary<Selectors.CssElementState, ComputedStyle> States { get; internal set; }
+            = new Dictionary<Selectors.CssElementState, ComputedStyle>();
+
         /// <summary>
         /// Gets a value indicating whether the element and its subtree produce any output.
         /// </summary>

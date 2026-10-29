@@ -186,6 +186,7 @@ namespace Rectloom.Ugui.Backend
                 button.transition = Selectable.Transition.None;
                 button.targetGraphic = graphic;
                 button.interactable = _backend.ReadInteractable(node);
+                ApplyStateColors(node, button, graphic as Image);
                 Wire(button, popup, active: true);
             }
 

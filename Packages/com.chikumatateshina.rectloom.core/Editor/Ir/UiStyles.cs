@@ -76,6 +76,13 @@ namespace Rectloom.Core.Ir
         public Color? AccentColor { get; internal set; }
 
         /// <summary>
+        /// Background colour in each interaction state that changes it, from rules such as
+        /// <c>button:hover</c>. Empty when nothing does.
+        /// </summary>
+        public IReadOnlyDictionary<UiInteractionState, Color> StateBackgrounds { get; internal set; }
+            = new Dictionary<UiInteractionState, Color>();
+
+        /// <summary>
         /// Gets a value indicating whether this node needs a graphic component.
         /// </summary>
         public bool PaintsAnything =>
@@ -136,6 +143,24 @@ namespace Rectloom.Core.Ir
 
         /// <summary>Whether the text is struck through.</summary>
         public bool LineThrough { get; internal set; }
+    }
+
+    /// <summary>
+    /// The states a uGUI selectable draws differently.
+    /// </summary>
+    public enum UiInteractionState
+    {
+        /// <summary>The pointer is over it: CSS <c>:hover</c>.</summary>
+        Highlighted = 0,
+
+        /// <summary>It is being pressed: CSS <c>:active</c>.</summary>
+        Pressed = 1,
+
+        /// <summary>It has focus: CSS <c>:focus</c>.</summary>
+        Selected = 2,
+
+        /// <summary>It does not accept input: CSS <c>:disabled</c>.</summary>
+        Disabled = 3,
     }
 
     /// <summary>

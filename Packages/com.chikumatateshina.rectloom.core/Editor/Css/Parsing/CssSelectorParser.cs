@@ -116,6 +116,16 @@ namespace Rectloom.Core.Css.Parsing
                 return false;
             }
 
+            for (int index2 = 0; index2 < parts.Count - 1; index2++)
+            {
+                if (parts[index2].State != CssElementState.None)
+                {
+                    Unsupported(raw, source, diagnostics,
+                        "An interaction state such as :hover only works on the element being styled, not on an ancestor.");
+                    return false;
+                }
+            }
+
             selector = new CssSelector(parts, raw, source);
             return true;
         }
@@ -135,6 +145,7 @@ namespace Rectloom.Core.Css.Parsing
             List<string>? classes = null;
             List<CssAttributeSelector>? attributes = null;
             bool requiresRoot = false;
+            CssElementState state = CssElementState.None;
             bool consumedAnything = false;
 
             while (index < raw.Length)
@@ -206,7 +217,7 @@ namespace Rectloom.Core.Css.Parsing
 
                 if (current == ':')
                 {
-                    if (!TryParsePseudo(raw, source, diagnostics, ref index, ref requiresRoot))
+                    if (!TryParsePseudo(raw, source, diagnostics, ref index, ref requiresRoot, ref state))
                     {
                         return false;
                     }
@@ -243,7 +254,7 @@ namespace Rectloom.Core.Css.Parsing
                 return false;
             }
 
-            part = new CssCompoundSelector(combinator, tagName, id, classes, requiresRoot, attributes);
+            part = new CssCompoundSelector(combinator, tagName, id, classes, requiresRoot, attributes, state);
             return true;
         }
 
@@ -372,7 +383,8 @@ namespace Rectloom.Core.Css.Parsing
             SourceLocation source,
             IDiagnosticSink diagnostics,
             ref int index,
-            ref bool requiresRoot)
+            ref bool requiresRoot,
+            ref CssElementState state)
         {
             bool isElement = index + 1 < raw.Length && raw[index + 1] == ':';
             index += isElement ? 2 : 1;
@@ -409,6 +421,26 @@ namespace Rectloom.Core.Css.Parsing
             {
                 requiresRoot = true;
                 return true;
+            }
+
+            if (!functional)
+            {
+                switch (name)
+                {
+                    case "hover":
+                        state |= CssElementState.Hover;
+                        return true;
+                    case "active":
+                        state |= CssElementState.Active;
+                        return true;
+                    case "focus":
+                    case "focus-visible":
+                        state |= CssElementState.Focus;
+                        return true;
+                    case "disabled":
+                        state |= CssElementState.Disabled;
+                        return true;
+                }
             }
 
             Unsupported(

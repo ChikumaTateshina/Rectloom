@@ -77,9 +77,13 @@ namespace Rectloom.Core.Css.Cascade
         /// per property separately would keep both.
         /// </remarks>
         /// <exception cref="ArgumentNullException"><paramref name="element"/> is null.</exception>
+        /// <summary>Gets a value indicating whether any rule asks for an interaction state.</summary>
+        public bool HasStateRules { get; private set; }
+
         public IReadOnlyList<CssDeclaration> Resolve(
             DomElement element,
-            IReadOnlyList<CssDeclaration>? inlineDeclarations = null)
+            IReadOnlyList<CssDeclaration>? inlineDeclarations = null,
+            CssElementState state = CssElementState.None)
         {
             if (element == null)
             {
@@ -90,7 +94,7 @@ namespace Rectloom.Core.Css.Cascade
 
             foreach (RuleEntry entry in _entries)
             {
-                if (!TryGetMatchSpecificity(entry.Rule, element, out CssSpecificity specificity))
+                if (!TryGetMatchSpecificity(entry.Rule, element, state, out CssSpecificity specificity))
                 {
                     continue;
                 }
@@ -145,6 +149,7 @@ namespace Rectloom.Core.Css.Cascade
         private static bool TryGetMatchSpecificity(
             CssRule rule,
             DomElement element,
+            CssElementState state,
             out CssSpecificity specificity)
         {
             specificity = CssSpecificity.Zero;
@@ -153,7 +158,7 @@ namespace Rectloom.Core.Css.Cascade
             // A rule applies with the specificity of its strongest matching selector.
             foreach (CssSelector selector in rule.Selectors)
             {
-                if (!SelectorMatcher.Matches(selector, element))
+                if (!SelectorMatcher.Matches(selector, element, state))
                 {
                     continue;
                 }
@@ -181,6 +186,11 @@ namespace Rectloom.Core.Css.Cascade
                 foreach (CssRule rule in sheet.Rules)
                 {
                     _entries.Add(new RuleEntry(rule, origin, _sheetOrder));
+
+                    foreach (CssSelector selector in rule.Selectors)
+                    {
+                        HasStateRules |= selector.State != CssElementState.None;
+                    }
                 }
 
                 _sheetOrder++;

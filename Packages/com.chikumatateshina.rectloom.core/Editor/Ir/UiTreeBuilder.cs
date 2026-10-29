@@ -146,6 +146,7 @@ namespace Rectloom.Core.Ir
             };
 
             node.Visual.AccentColor = box.Style.Text.AccentColor;
+            node.Visual.StateBackgrounds = ReadStateBackgrounds(box);
 
             AddComponentRequests(node, box.Element);
 
@@ -294,6 +295,60 @@ namespace Rectloom.Core.Ir
             }
 
             return UiNodeKind.Container;
+        }
+
+        /// <summary>
+        /// Reads the background each interaction state asks for, and reports what else it asks for.
+        /// </summary>
+        /// <remarks>
+        /// A uGUI selectable changes the colour of one graphic by state, and nothing else. A state that
+        /// also changes the text colour, the border or the size cannot be shown, and since the author will
+        /// expect to see it, that is a warning.
+        /// </remarks>
+        private IReadOnlyDictionary<UiInteractionState, UnityEngine.Color> ReadStateBackgrounds(LayoutBox box)
+        {
+            var colours = new Dictionary<UiInteractionState, UnityEngine.Color>();
+
+            foreach (KeyValuePair<Css.Selectors.CssElementState, ComputedStyle> pair in box.Style.States)
+            {
+                UiInteractionState state;
+
+                switch (pair.Key)
+                {
+                    case Css.Selectors.CssElementState.Hover: state = UiInteractionState.Highlighted; break;
+                    case Css.Selectors.CssElementState.Active: state = UiInteractionState.Pressed; break;
+                    case Css.Selectors.CssElementState.Focus: state = UiInteractionState.Selected; break;
+                    case Css.Selectors.CssElementState.Disabled: state = UiInteractionState.Disabled; break;
+                    default: continue;
+                }
+
+                ComputedStyle styled = pair.Value;
+                UnityEngine.Color normal = box.Style.Visual.BackgroundColor ?? UnityEngine.Color.clear;
+                UnityEngine.Color changed = styled.Visual.BackgroundColor ?? UnityEngine.Color.clear;
+
+                if (changed != normal)
+                {
+                    colours[state] = changed;
+                }
+
+                if (styled.Text.Color != box.Style.Text.Color
+                    || styled.Visual.BorderColor != box.Style.Visual.BorderColor
+                    || styled.Visual.BorderWidth != box.Style.Visual.BorderWidth
+                    || styled.Visual.Opacity != box.Style.Visual.Opacity
+                    || styled.Text.FontSize != box.Style.Text.FontSize
+                    || styled.Text.FontWeight != box.Style.Text.FontWeight
+                    || styled.Text.Underline != box.Style.Text.Underline)
+                {
+                    _diagnostics.Warning(
+                        DiagnosticCodes.Css.UnknownSelectorSyntax,
+                        "Only background-color can change with :" + pair.Key.ToString().ToLowerInvariant()
+                            + "; the other properties this state changes are not shown.",
+                        box.Source,
+                        "Change only background-color in :hover, :active, :focus and :disabled rules.");
+                }
+            }
+
+            return colours;
         }
 
         private static IReadOnlyList<UiTextSpan>? MapSpans(IReadOnlyList<TextSpan>? spans)

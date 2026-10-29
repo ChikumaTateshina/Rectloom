@@ -70,12 +70,12 @@ namespace Rectloom.Ugui.Backend
 
         // Only interactable is written. m_OnClick is the user's, and listing it here would be a
         // licence to overwrite the wiring an update exists to protect.
-        private static readonly string[] ButtonProperties = { "m_Interactable", "m_TargetGraphic" };
+        private static readonly string[] ButtonProperties = { "m_Interactable", "m_TargetGraphic", "m_Colors", "m_Transition" };
 
         // As for Button, the value-changed event is the user's and is never written.
         private static readonly string[] ToggleProperties =
         {
-            "m_Interactable", "m_TargetGraphic", "graphic", "m_IsOn", "toggleTransition",
+            "m_Interactable", "m_TargetGraphic", "graphic", "m_IsOn", "toggleTransition", "m_Colors", "m_Transition",
         };
 
         private static readonly string[] SliderProperties =
@@ -394,8 +394,8 @@ namespace Rectloom.Ugui.Backend
                         ApplyButton(node, target, entry);
                         break;
                     case UiNodeKind.Toggle:
-                        ApplyPaint(node, target, entry, forceGraphic: true);
-                        GetOrAdd<Toggle>(target, entry, ToggleProperties);
+                        Image? box = ApplyPaint(node, target, entry, forceGraphic: true);
+                        ApplyStateColors(node, GetOrAdd<Toggle>(target, entry, ToggleProperties), box);
                         break;
                     case UiNodeKind.Slider:
                         // The box itself only catches the pointer; the track and handle are drawn by
@@ -516,6 +516,7 @@ namespace Rectloom.Ugui.Backend
                 var button = GetOrAdd<Button>(target, entry, ButtonProperties);
                 button.targetGraphic = image;
                 button.interactable = _backend.ReadInteractable(node);
+                ApplyStateColors(node, button, image);
             }
 
             /// <summary>
