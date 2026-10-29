@@ -582,20 +582,29 @@ namespace Rectloom.Ugui.Windows
             Repaint();
         }
 
-        // Recover old windows serialized with Update as the default, without overwriting any
-        // existing output or bypassing ownership metadata for an existing prefab.
-        private static CompileMode ResolveInitialMode(CompileRequest request)
+        /// <summary>
+        /// Turns Update into Create for output that has never been compiled.
+        /// </summary>
+        /// <remarks>
+        /// The window switches to Update after a successful compile, so the next document chosen is
+        /// asked to update output that does not exist yet. For a scene object that failed outright,
+        /// because its record is kept per document. With no record and no output there is nothing an
+        /// update could preserve, so creating is what was meant. Existing output, or a record of one,
+        /// keeps Update, so nothing is ever overwritten this way.
+        /// </remarks>
+        internal static CompileMode ResolveInitialMode(CompileRequest request)
         {
-            if (request.CompileMode == CompileMode.Update
-                && request.OutputType == CompileOutputType.Prefab
-                && !string.IsNullOrWhiteSpace(request.OutputPath)
-                && AssetDatabase.LoadMainAssetAtPath(request.OutputPath) == null
-                && MetadataStore.Load(MetadataStore.GetMetadataPath(request)) == null)
+            if (request.CompileMode != CompileMode.Update
+                || MetadataStore.Load(MetadataStore.GetMetadataPath(request)) != null)
             {
-                return CompileMode.Create;
+                return request.CompileMode;
             }
 
-            return request.CompileMode;
+            bool outputExists = request.OutputType == CompileOutputType.Prefab
+                && !string.IsNullOrWhiteSpace(request.OutputPath)
+                && AssetDatabase.LoadMainAssetAtPath(request.OutputPath) != null;
+
+            return outputExists ? CompileMode.Update : CompileMode.Create;
         }
 
         private static string Summarise(CompileResult result, bool validateOnly)
