@@ -247,9 +247,19 @@ namespace Rectloom.Ugui.Compilation
                     ?? SystemFontProvider.TryCreate(EmojiFontFamily, options.GeneratedAssetFolder, diagnostics);
             }
 
-            if (commitOutput) emoji = EmojiText.EnsureResource(emoji, options.GeneratedAssetFolder, diagnostics);
             var sprites = ColorEmojiSprites.Create(emoji, document.DescendantsAndSelf().OfType<DomText>().Select(text => text.Text),
                 options.GeneratedAssetFolder, diagnostics);
+
+            if (emoji != null && sprites.Count == 0 && HasEmoji(document))
+            {
+                diagnostics.Warning(
+                    DiagnosticCodes.Asset.UnsupportedType,
+                    "No emoji sprites could be made from '" + emoji.name + "', so emoji are drawn by the "
+                        + "text font and its fallbacks, or appear as missing glyphs.",
+                    SourceLocation.None,
+                    "Use an emoji font with TrueType outlines, such as Segoe UI Emoji, and import TMP "
+                        + "Essential Resources.");
+            }
             var fonts = new TmpFontLibrary(_defaultFont, diagnostics, emoji, sprites);
             ITextMeasurer measurer = CreateMeasurer(diagnostics, fonts);
 

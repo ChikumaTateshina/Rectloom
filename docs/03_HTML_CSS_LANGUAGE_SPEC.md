@@ -584,9 +584,24 @@ buildしたworldからは辿れない)。
 絵文字を含まないdocumentでは、この探索も生成も行わない。毎回
 「絵文字fontが無い」と報告されることになるため。
 
-注意: Segoe UI Emoji はcolour font (COLR/CPAL) であり、TextMeshProはcolour fontを
-colourとしては描かない。またprojectへcopyしたfontはbuildに含まれるため、
-licenceを確認すること。どちらも生成時のInfo診断で伝える。
+絵文字は1文字ずつ **TMP Sprite** に変換して `<sprite name="XXXX">` で差し込む。
+
+- COLR/CPALのcolour layerを持つ字形はcolour画像にし、`tint=0` で本文色に染めない。
+- colour layerを持たない字形 (例: ❀ U+2740、✶ U+2736) と、colour tableを持たない絵文字fontの
+  字形は、輪郭を白で塗った単色spriteにし、`tint=1` で本文の文字色に合わせる。
+- spriteは1つのroot sprite assetとそのfallbackに集め、TMP componentの `spriteAsset` に直接指定する。
+  名前による実行時検索に頼らないので、VRChatのworld bundleでも解決できる。
+- `<font="...">` tagは**出力しない**。TMPはfont tagをResources経由で解決するが、
+  VRChatのworld bundleはworldのResourcesを読めないため、tag自体が文字として描画されていた
+  (Editorでは再現しない)。
+- spriteにできない文字 (絵文字fontに字形が無い ☆ U+2606 など) はそのまま書き、本文fontと
+  そのfallbackが描く。描けなければ□になる。
+- spriteは字形を結合できないので、ZWJ (U+200D)、FE0F、20E3 は出力しない。ZWJ列は構成要素が
+  並んで表示される。
+- 絵文字を含むのにspriteが1つも作れなかった場合 (TrueType輪郭を持たないfont、
+  Essential Resources未import) は `ASSET1002` Warningを1件出す。
+
+projectへcopyしたfontはbuildに含まれうるため、licenceを確認すること。
 
 ### 字形が無い場合
 

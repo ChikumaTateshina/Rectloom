@@ -51,7 +51,8 @@ namespace Rectloom.Ugui.Backend
             text.fontStyle = ResolveFontStyle(style);
             text.alignment = ResolveAlignment(style.Alignment);
             text.enableWordWrapping = style.Wrap;
-            text.richText = emojiFont != null || (emojiSprites != null && emojiSprites.Count > 0);
+            // Markup is only ever written for emoji sprites; otherwise the text is shown exactly as written.
+            text.richText = emojiSprites != null && emojiSprites.Count > 0;
 
             // TextMeshPro expresses both of these as a percentage of the font size rather than in
             // pixels, so a style that says 1.5 line height becomes 50 extra percent.

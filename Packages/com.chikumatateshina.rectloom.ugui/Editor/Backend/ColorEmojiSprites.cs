@@ -19,6 +19,7 @@ namespace Rectloom.Ugui.Backend
     internal static class ColorEmojiSprites
     {
         private const int PointSize = 128;
+        internal const string MonochromePrefix = "SegoeEmojiMono_";
 
         internal static IReadOnlyDictionary<uint, TMP_SpriteAsset> Create(TMP_FontAsset? font,
             IEnumerable<string> texts, string folder, IDiagnosticSink diagnostics)
@@ -38,7 +39,9 @@ namespace Rectloom.Ugui.Backend
             {
                 byte[] bytes = File.ReadAllBytes(path);
                 int colr = Table(bytes, "COLR"), cpal = Table(bytes, "CPAL");
-                if (colr < 0 || cpal < 0) return result;
+                // A font without colour tables still has outlines, and every emoji becomes a monochrome
+                // sprite: a font tag is the only other way to reach it, and that breaks in a world bundle.
+                bool colour = colr >= 0 && cpal >= 0;
                 string key = DataUri.ContentHash(bytes);
                 var codes = new SortedSet<uint>();
                 foreach (string text in texts)
@@ -54,9 +57,15 @@ namespace Rectloom.Ugui.Backend
                 folder = folder.TrimEnd('/') + "/Resources/" + resourceFolder;
                 foreach (uint code in codes)
                 {
-                    string name = "SegoeEmoji_" + key + "_" + code.ToString("X");
-                    string destination = folder + "/" + name + ".asset";
-                    var existing = AssetDatabase.LoadAssetAtPath<TMP_SpriteAsset>(destination);
+                    string colourName = "SegoeEmoji_" + key + "_" + code.ToString("X");
+                    string monochromeName = MonochromePrefix + key + "_" + code.ToString("X");
+                    string name = colourName;
+                    var existing = AssetDatabase.LoadAssetAtPath<TMP_SpriteAsset>(folder + "/" + colourName + ".asset");
+                    if (existing == null)
+                    {
+                        name = monochromeName;
+                        existing = AssetDatabase.LoadAssetAtPath<TMP_SpriteAsset>(folder + "/" + monochromeName + ".asset");
+                    }
                     if (existing != null)
                     {
                         existing.hashCode = TMP_TextUtilities.GetSimpleHashCode(name);
@@ -65,10 +74,17 @@ namespace Rectloom.Ugui.Backend
                     }
                     FontEngine.InitializeFontEngine();
                     if (FontEngine.LoadFontFace(path, PointSize) != FontEngineError.Success) continue;
-                    if (!FontEngine.TryGetGlyphIndex(code, out uint glyphIndex)) continue;
-                    int record = FindRecord(bytes, colr, glyphIndex);
-                    if (record < 0) continue;
-                    Texture2D pixels = Rasterize(bytes, colr, cpal, record, glyphIndex, out GlyphMetrics metrics);
+                    if (!FontEngine.TryGetGlyphIndex(code, out uint glyphIndex) || glyphIndex == 0) continue;
+                    // A glyph without a COLR record (e.g. U+2740) still becomes a sprite. A font tag would
+                    // resolve through Resources, which a VRChat world bundle does not expose, and the tag
+                    // would then render as literal text.
+                    int record = colour ? FindRecord(bytes, colr, glyphIndex) : -1;
+                    // The name records the kind, and IsMonochrome reads it back to decide the tint, so it
+                    // has to follow the glyph actually drawn rather than which cache lookup ran last.
+                    name = record < 0 ? monochromeName : colourName;
+                    string destination = folder + "/" + name + ".asset";
+                    Texture2D pixels = record < 0 ? RasterizeMonochrome(bytes, glyphIndex, out GlyphMetrics metrics)
+                        : Rasterize(bytes, colr, cpal, record, glyphIndex, out metrics);
                     try
                     {
                         MetadataStore.EnsureFolder(folder);
@@ -121,7 +137,13 @@ namespace Rectloom.Ugui.Backend
             {
                 diagnostics.Warning(DiagnosticCodes.Asset.UnsupportedType,
                     "Color emoji could not be generated: " + exception.Message,
-                    SourceLocation.None, "Check the source font and TMP Essential Resources. Unsupported glyphs use the font's monochrome outline.");
+                    SourceLocation.None, "Check the source font and TMP Essential Resources. Emoji without a sprite are drawn by the text font.");
+            }
+            finally
+            {
+                // The font engine keeps the file it loaded open, which on Windows stops the generated font
+                // from being moved or deleted until the Editor closes.
+                FontEngine.UnloadFontFace();
             }
             return result;
         }
@@ -148,6 +170,37 @@ namespace Rectloom.Ugui.Backend
                     .Append((color.a / 255f).ToString("R", System.Globalization.CultureInfo.InvariantCulture))
                     .Append("'>").Append(shape).Append("</g>");
             }
+            return Finish(outlines, content.ToString(), left, bottom, right, top, index, out metrics);
+        }
+
+        // Drawn white so that a tinted sprite tag takes the text color, as the font outline would.
+        private static Texture2D RasterizeMonochrome(byte[] data, uint index, out GlyphMetrics metrics)
+        {
+            var outlines = new TrueTypeOutline(data);
+            string shape = outlines.Outline((int)index, out int left, out int bottom, out int right, out int top);
+            return Finish(outlines, "<g fill='#FFFFFF'>" + shape + "</g>", left, bottom, right, top, index, out metrics);
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether a code point was generated from a glyph without color layers.
+        /// </summary>
+        internal static bool IsMonochrome(TMP_SpriteAsset? root, uint code)
+        {
+            if (root == null) return false;
+            var assets = new List<TMP_SpriteAsset> { root };
+            if (root.fallbackSpriteAssets != null) assets.AddRange(root.fallbackSpriteAssets);
+            foreach (TMP_SpriteAsset asset in assets)
+            {
+                if (asset == null || !asset.name.StartsWith(MonochromePrefix, StringComparison.Ordinal)) continue;
+                foreach (TMP_SpriteCharacter character in asset.spriteCharacterTable)
+                    if (character.unicode == code) return true;
+            }
+            return false;
+        }
+
+        private static Texture2D Finish(TrueTypeOutline outlines, string content, int left, int bottom, int right, int top,
+            uint index, out GlyphMetrics metrics)
+        {
             int width = right - left, height = top - bottom;
             if (width <= 0 || height <= 0) throw new FormatException("The color glyph has no bounds.");
             string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='" + left + " " + (-top) + " " + width + " " + height

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Emoji no longer show up as `<font="RectloomEmoji_…">` text in VRChat.** Emoji without colour layers in Segoe UI Emoji (❀ U+2740, ✶ U+2736 and others) were wrapped in a TMP font tag, which TMP resolves through Resources; a VRChat world bundle cannot read the world's Resources, so the tag was drawn as text while the Editor looked correct. Such glyphs now become white monochrome sprites tinted with the text colour, in the same directly referenced sprite set as colour emoji. No font tag is written at all any more: an emoji font without colour tables also becomes monochrome sprites, and a character that cannot become a sprite is written as it is for the text font to draw. Joiners and variation selectors are dropped, since sprites do not combine. The emoji font is no longer copied into a Resources folder, which only font tags needed. This adopts the fix from the WorldTest07 report.
+- Colour emoji generated in a project with no cached sprites were saved under the monochrome name and tinted with the text colour. The name now follows the glyph actually drawn.
+- The emoji font file is released after sprites are generated, so it can be moved or deleted without closing the Editor.
+
 ## [0.6.0] - 2026-10-30
 
 ### Added

@@ -436,7 +436,7 @@ h2[id], h3[id] { scroll-margin-top: 1rem; }
   <li>総称ファミリー (<code>sans-serif</code> など) は Default TMP Font として扱います。リストの途中に総称ファミリーがあると、その後ろの候補は調べません。</li>
   <li>どの候補も解決できないと Warning が 1 件出ます。</li>
   <li>フォントにない文字は「どのフォントにどの文字 (U+XXXX) がないか」を 1 件だけ報告します。フォント自身のフォールバックと、TMP Settings の Fallback Font Assets も調べたうえで判定します。</li>
-  <li>絵文字は <code>font-family</code> とは別に、Emoji TMP Font (既定は Segoe UI Emoji) で描きます。プロジェクトにそのフォントのアセットがなければ、インストール済みのフォントをプロジェクトにコピーしてから生成します。カラー絵文字は TMP の Sprite として出力されます。</li>
+  <li>絵文字は <code>font-family</code> とは別に、Emoji TMP Font (既定は Segoe UI Emoji) で描きます。プロジェクトにそのフォントのアセットがなければ、インストール済みのフォントをプロジェクトにコピーしてから生成します。カラー絵文字は TMP の Sprite として出力され、カラーレイヤーのない絵文字 (❀ など) は本文の文字色で塗られる単色の Sprite になります。<code>&lt;font&gt;</code> タグは出力しないので、VRChat 上でタグがそのまま表示されることはありません。</li>
   <li>プロジェクトにコピーしたフォントはビルドに含まれるので、ライセンスを確認してください。</li>
   <li>TMP Essential Resources が必要です (Window &gt; TextMeshPro &gt; Import TMP Essential Resources)。</li>
 </ul>

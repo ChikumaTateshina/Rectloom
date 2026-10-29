@@ -161,6 +161,54 @@ namespace Rectloom.Ugui.Tests.Compilation
             Assert.That(result.Success, Is.True, Describe(result));
         }
 
+        [Test]
+        public void EmojiText_NeverContainsAFontTag()
+        {
+            // A font tag resolves through Resources, which a VRChat world bundle does not expose, so it
+            // was drawn as literal text in the world. Whatever the project can or cannot make sprites
+            // from, the generated text must not carry one.
+            WriteDocument("<p id=\"name\">KF-16❀️65 👨‍👩 ☆</p>");
+
+            CompileResult result = Compiler().Compile(Request());
+            Assert.That(result.Success, Is.True, Describe(result));
+
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
+            TMPro.TMP_Text[] texts = prefab.GetComponentsInChildren<TMPro.TMP_Text>(true);
+
+            Assert.That(texts, Is.Not.Empty);
+
+            foreach (TMPro.TMP_Text text in texts)
+            {
+                Assert.That(text.text, Does.Not.Contain("<font"), text.name);
+            }
+        }
+
+        [Test]
+        public void ColourAndMonochromeEmoji_BecomeSpritesOfTheirOwnKind()
+        {
+            // Needs what a real project has: the TMP sprite shader and Segoe UI Emoji installed.
+            Assume.That(Shader.Find("TextMeshPro/Sprite"), Is.Not.Null, "needs TMP Essential Resources");
+            Assume.That(
+                File.Exists(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "seguiemj.ttf")),
+                "needs Segoe UI Emoji");
+
+            // U+1F642 has colour layers, U+2740 does not. A colour glyph once got the monochrome name
+            // whenever nothing was cached yet, and the tint that name implies recoloured it.
+            WriteDocument("<p id=\"name\">🙂❀</p>");
+
+            CompileResult result = Compiler().Compile(Request());
+            Assert.That(result.Success, Is.True, Describe(result));
+
+            TMPro.TMP_Text text = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath)
+                .GetComponentsInChildren<TMPro.TMP_Text>(true).Single(t => t.name == "name");
+
+            Assert.That(text.text, Is.EqualTo("<sprite name=\"1F642\" tint=0 color=#FFFFFFFF><sprite name=\"2740\" tint=1>"));
+            Assert.That(text.spriteAsset, Is.Not.Null, "referenced directly, so a world bundle carries it");
+            Assert.That(
+                text.spriteAsset.fallbackSpriteAssets.Select(a => a.name.Substring(0, a.name.IndexOf('_'))),
+                Is.EquivalentTo(new[] { "SegoeEmoji", "SegoeEmojiMono" }));
+        }
+
         /// <summary>A 20 by 10 red rectangle, written as text with its colour percent-encoded.</summary>
         private const string RedSvg =
             "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='10' "

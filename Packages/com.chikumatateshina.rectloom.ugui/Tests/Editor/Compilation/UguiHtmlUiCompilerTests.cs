@@ -239,7 +239,7 @@ namespace Rectloom.Ugui.Tests.Compilation
         }
 
         [Test]
-        public void Emoji_IsExplicitlyAssignedEvenBesideJapaneseAndLiteralMarkup()
+        public void EmojiWithoutSprites_IsNeverWrappedInAFontTag()
         {
             var emoji = ScriptableObject.CreateInstance<TMP_FontAsset>();
             emoji.name = "Segoe UI Emoji";
@@ -248,8 +248,10 @@ namespace Rectloom.Ugui.Tests.Compilation
                 var formatter = typeof(TmpFontLibrary).Assembly.GetType("Rectloom.Ugui.Backend.EmojiText")!;
                 var format = formatter.GetMethod("Format", BindingFlags.NonPublic | BindingFlags.Static)!;
                 string output = (string)format.Invoke(null, new object[] { "日本😀<b>☀️", emoji });
-                Assert.That(output, Is.EqualTo("日本<font=\"Segoe UI Emoji\">😀</font><noparse><</noparse>b>"
-                    + "<font=\"Segoe UI Emoji\">☀️</font>"));
+                // Without sprites the text is left as written: a font tag would be drawn as text in a
+                // VRChat world bundle, which cannot resolve it.
+                Assert.That(output, Is.EqualTo("日本😀<b>☀️"));
+                Assert.That(output, Does.Not.Contain("<font"));
                 Assert.That(emoji.fallbackFontAssetTable, Is.Null.Or.Empty);
             }
             finally { UnityEngine.Object.DestroyImmediate(emoji); }
