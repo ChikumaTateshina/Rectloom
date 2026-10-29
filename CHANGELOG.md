@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-30
+
 ### Added
 
 - **Udon event binding from markup.** `vrc-udon="Program.asset"` puts an UdonBehaviour running that program (Udon Graph or UdonSharp, or an UdonSharp script) on an element. `vrc-event="Name"` on a button, checkbox or range registers `UdonBehaviour.SendCustomEvent("Name")` on its `onClick` / `onValueChanged` at compile time. The receiver is the nearest enclosing element with an UdonBehaviour, or `vrc-target="#id"` / `vrc-target="/Scene/Path"` (scene output only). The method is always `SendCustomEvent`; markup chooses only the event name and the receiver. Listeners the compiler added are recorded in the metadata and replaced on the next compile; listeners wired by hand are never removed.
@@ -496,7 +498,8 @@ console lines that all say the same thing.
   a `MonoBehaviour` from an Editor-only assembly, so an extension's own code may be Editor-only but
   what it attaches may not be.
 
-[Unreleased]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.4.5...v0.5.0
 [0.4.5]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.4.4...v0.4.5
 [0.4.4]: https://github.com/ChikumaTateshina/Rectloom/compare/v0.4.3...v0.4.4
