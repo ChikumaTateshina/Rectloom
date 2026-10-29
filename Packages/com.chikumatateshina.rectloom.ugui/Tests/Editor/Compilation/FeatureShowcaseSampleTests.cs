@@ -236,11 +236,20 @@ namespace Rectloom.Ugui.Tests.Compilation
         {
             GameObject root = Instantiate();
 
-            Assert.That(root.GetComponentsInChildren<UnityEngine.UI.Button>(true).Length, Is.EqualTo(3));
+            // The <button> elements, leaving out what links add: a button for the link itself and the
+            // close button of the panel it opens.
+            UnityEngine.UI.Button[] buttons = root.GetComponentsInChildren<UnityEngine.UI.Button>(true)
+                .Where(b => b.name != "a" && b.GetComponentsInParent<Transform>(true)
+                    .All(t => !t.name.StartsWith(UguiBackend.LinkPopupName, StringComparison.Ordinal)))
+                .ToArray();
+
+            Assert.That(buttons.Length, Is.EqualTo(3));
+            Assert.That(buttons.Count(b => !b.interactable), Is.EqualTo(1), "unity-interactable: false");
+
             Assert.That(
-                root.GetComponentsInChildren<UnityEngine.UI.Button>(true).Count(b => !b.interactable),
+                root.transform.Cast<Transform>().Count(t => t.name.StartsWith(UguiBackend.LinkPopupName, StringComparison.Ordinal)),
                 Is.EqualTo(1),
-                "unity-interactable: false");
+                "the sample's one link opens one panel");
 
             Assert.That(Find(root, "ok-button").GetComponent<UnityEngine.UI.Button>(), Is.Not.Null);
 
