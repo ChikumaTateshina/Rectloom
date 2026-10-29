@@ -26,5 +26,8 @@ namespace Rectloom.VRChat
 
         /// <summary>The VRChat SDK is not installed, so SDK-specific work was skipped.</summary>
         public const string SdkNotInstalled = "VRC1005";
+
+        /// <summary>A <c>vrc-udon</c>, <c>vrc-event</c> or <c>vrc-target</c> attribute could not be applied.</summary>
+        public const string UdonBindingFailed = "VRC1006";
     }
 }

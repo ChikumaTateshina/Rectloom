@@ -94,11 +94,40 @@ h1 { font-size: 36px; color: #ffffff; }
 
 ## 4. ボタンに処理を繋ぐ
 
-生成された Button は普通の `UnityEngine.UI.Button` です。
-`OnClick` へ Udon Behaviour の `SendCustomEvent` を設定してください。
+### HTML で指定する (おすすめ)
 
-その後 CSS を変更して `Compile Mode` を `Update` にして再コンパイルすると、
-**見た目だけが更新され、設定した `OnClick` は保持されます。**
+`vrc-udon` で Udon を置き、`vrc-event` でボタンから呼ぶイベント名を書くと、
+コンパイル時に `OnClick` へ `UdonBehaviour.SendCustomEvent` が自動で設定されます。
+
+```html
+<div id="door-panel" vrc-udon="./DoorPanel.asset">
+  <button vrc-event="Open">開ける</button>
+  <button vrc-event="Close">閉める</button>
+  <input type="checkbox" vrc-event="ToggleLight">
+  <input type="range" min="0" max="10" vrc-event="SetVolume">
+</div>
+```
+
+UdonSharp なら、`DoorPanel` に `public void Open() { ... }` のような public メソッドを
+用意しておきます。チェックボックスとスライダーは値が変わるたびにイベントを送るので、
+Udon 側で `Toggle.isOn` / `Slider.value` を読んでください。
+
+- `vrc-udon` には Udon Graph / UdonSharp のプログラムアセット (`.asset`) か、
+  UdonSharp のスクリプト (`.cs`) を指定します。HTML からの相対パスで書けます。
+- 受け手は、ボタン自身から親へ向かって最初に `UdonBehaviour` を持つ要素です。
+  別の要素へ送るときは `vrc-target="#id"`、シーンに置いた Udon へ送るときは
+  `vrc-target="/World/DoorController"` (Scene Object 出力のときだけ) を書きます。
+- Prefab からシーンのオブジェクトは参照できません。Prefab 出力ではイベントの受け手を
+  HTML の中 (`vrc-udon`) に置いてください。
+
+### Inspector で設定する
+
+生成された Button は普通の `UnityEngine.UI.Button` です。
+`OnClick` へ Udon Behaviour の `SendCustomEvent` を手で設定しても構いません。
+
+どちらの方法でも、CSS を変更して `Compile Mode` を `Update` にして再コンパイルすると、
+**見た目だけが更新され、手で設定した `OnClick` は保持されます。** `vrc-event` で
+コンパイラが追加したものだけが、HTML の内容に合わせて差し替わります。
 
 ## 5. 日本語フォント
 

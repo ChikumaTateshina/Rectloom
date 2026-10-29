@@ -41,6 +41,7 @@ Rectloom がコンパイルできる HTML / CSS の機能を、1 枚の 1920×10
 | 3 列目 justify-content | `flex-start` `center` `flex-end` `space-between` `space-around` `space-evenly` |
 | 3 列目 align-items | `flex-start` `center` `flex-end` `stretch` `baseline`、`align-self`、主軸方向の `margin-left: auto` |
 | 3 列目 grow, shrink, basis, wrap | `flex` と `flex-grow` / `flex-shrink` / `flex-basis`、`flex-wrap`、`row-gap` / `column-gap`、`align-content` |
+| 4 列目 Form controls | `<input type="checkbox">` → Toggle、`<input type="range">` → Slider、`checked` `min` `max` `step` `value` `disabled`、`accent-color`、属性セレクタ `[type="range"]` |
 | 4 列目 Text | `h1`〜`h6`、`font-weight` `font-style` `text-decoration` `letter-spacing` `line-height` `text-align` `white-space`、色の書式 6 種、`<br>`、日本語と絵文字 |
 | フッター | `!important` と詳細度 |
 
@@ -65,7 +66,14 @@ Rectloom がコンパイルできる HTML / CSS の機能を、1 枚の 1920×10
   はみ出すと `LAYOUT1004` の警告になります。余白は内側の要素に付けます。
 - **`component.<名前>` は 1 単語のプロパティだけ。** HTML の属性名は小文字に揃えられるので、
   `component.blocksRaycasts` のような複数語の名前には届きません。
-- **使えないもの。** `float`、`grid`、`table`、フォーム部品、インラインの `<svg>` 要素、
+- **使えないもの。** `float`、`grid`、`table`、`checkbox` と `range` 以外のフォーム部品、インラインの `<svg>` 要素、
   `flex-direction: row-reverse` / `column-reverse`、辺ごとの `border-left` などは未対応で、
   書くと警告になります。SVG は `<img src="data:image/svg+xml,...">` の形で使います。
 - **マージンの相殺は行いません。** 上下に並んだ箱のマージンはそのまま足されます。
+
+## Udon との接続
+
+このサンプルは VRChat SDK の無いプロジェクトでも警告なしでコンパイルできるよう、Udon の属性を
+使っていません。ボタンやチェックボックスから Udon のイベントを呼ぶ方法は、パッケージの
+`docs/VCC_INSTALL.md` の「4. ボタンに処理を繋ぐ」を見てください (`vrc-udon` / `vrc-event` /
+`vrc-target`)。

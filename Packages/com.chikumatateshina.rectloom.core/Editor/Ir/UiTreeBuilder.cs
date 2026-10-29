@@ -141,7 +141,10 @@ namespace Rectloom.Core.Ir
                 TextStyle = UiStyleFactory.FromComputed(box.Style.Text),
                 Asset = asset,
                 SourceTag = box.Element?.TagName ?? string.Empty,
+                Attributes = ReadAttributes(box.Element),
             };
+
+            node.Visual.AccentColor = box.Style.Text.AccentColor;
 
             AddComponentRequests(node, box.Element);
 
@@ -233,6 +236,11 @@ namespace Rectloom.Core.Ir
                 return UiNodeKind.Image;
             }
 
+            if (string.Equals(tagName, HtmlElements.Input, StringComparison.Ordinal))
+            {
+                return ResolveInputKind(box);
+            }
+
             if (string.Equals(tagName, HtmlElements.Paragraph, StringComparison.Ordinal)
                 || HtmlElements.IsHeading(tagName))
             {
@@ -247,6 +255,61 @@ namespace Rectloom.Core.Ir
             // A box whose only content is text renders that text itself, whatever its tag. Wrapping
             // it in an empty container would double the object count for no gain.
             return box.IsTextBox ? UiNodeKind.Text : UiNodeKind.Container;
+        }
+
+        /// <summary>
+        /// Picks the control an input element becomes.
+        /// </summary>
+        /// <remarks>
+        /// A checkbox and a range have a direct counterpart in uGUI. A text field does too, but the
+        /// one TextMeshPro provides needs a caret, a viewport and a placeholder laid out for it, so it
+        /// is left to a later version rather than generated half working; it and every other type
+        /// compile to a plain box and say so.
+        /// </remarks>
+        private UiNodeKind ResolveInputKind(LayoutBox box)
+        {
+            string type = (box.Element!.GetAttribute("type") ?? "text").Trim().ToLowerInvariant();
+
+            switch (type)
+            {
+                case "checkbox":
+                    return UiNodeKind.Toggle;
+                case "range":
+                    return UiNodeKind.Slider;
+            }
+
+            string message = "<input type=\"" + type + "\"> is not supported. It compiles to a plain "
+                + "box, and its own behaviour is not reproduced.";
+
+            if (_options.StrictMode)
+            {
+                _diagnostics.Error(DiagnosticCodes.Html.UnknownElement, message, box.Source,
+                    "Use type=\"checkbox\" or type=\"range\", or turn strict mode off.");
+            }
+            else
+            {
+                _diagnostics.Warning(DiagnosticCodes.Html.UnknownElement, message, box.Source,
+                    "Use type=\"checkbox\" or type=\"range\", or a button.");
+            }
+
+            return UiNodeKind.Container;
+        }
+
+        private static IReadOnlyDictionary<string, string> ReadAttributes(DomElement? element)
+        {
+            if (element == null || element.Attributes.Count == 0)
+            {
+                return new Dictionary<string, string>(0, StringComparer.Ordinal);
+            }
+
+            var attributes = new Dictionary<string, string>(element.Attributes.Count, StringComparer.Ordinal);
+
+            foreach (DomAttribute attribute in element.Attributes)
+            {
+                attributes[attribute.Name] = attribute.Value ?? string.Empty;
+            }
+
+            return attributes;
         }
 
         private void ReportUnsupportedElement(LayoutBox box, string tagName)

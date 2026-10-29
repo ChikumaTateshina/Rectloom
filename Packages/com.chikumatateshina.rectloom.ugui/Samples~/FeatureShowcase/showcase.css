@@ -374,7 +374,7 @@ h1, h2, h3, h4, h5, h6 { margin: 0; }
 .under    { text-decoration: underline; }
 .strike   { text-decoration: line-through; }
 .spaced   { letter-spacing: 4px; }
-.tall     { line-height: 32px; }
+.tall     { line-height: 28px; }
 
 .t-left    { text-align: left; }
 .t-center  { text-align: center; }
@@ -429,6 +429,14 @@ pre { margin: 0; }
   border-radius: 12px;
   background: #202028 url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAJ0lEQVR42mP4f4ThPzLW0DBAwYTkGYaBAaRqQJcfDgaMpoPRdADEANaPIJ/IIbxzAAAAAElFTkSuQmCC") no-repeat center;
 }
+
+/* ---- Form controls ---------------------------------------------------------- */
+
+/* Attribute selectors match what the source says, so they work at compile time. */
+.controls { align-items: center; }
+.controls input[type="range"] { width: 120px; }
+.controls input.fine { accent-color: var(--warn); }
+.controls input[disabled] { opacity: 0.5; }
 
 /* ---- Buttons and Unity ------------------------------------------------------ */
 

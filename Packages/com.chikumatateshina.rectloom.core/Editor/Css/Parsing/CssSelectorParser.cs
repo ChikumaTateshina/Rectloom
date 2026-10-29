@@ -133,6 +133,7 @@ namespace Rectloom.Core.Css.Parsing
             string? tagName = null;
             string? id = null;
             List<string>? classes = null;
+            List<CssAttributeSelector>? attributes = null;
             bool requiresRoot = false;
             bool consumedAnything = false;
 
@@ -190,6 +191,19 @@ namespace Rectloom.Core.Css.Parsing
                     continue;
                 }
 
+                if (current == '[')
+                {
+                    if (!TryParseAttribute(raw, source, diagnostics, ref index, out CssAttributeSelector attribute))
+                    {
+                        return false;
+                    }
+
+                    attributes ??= new List<CssAttributeSelector>();
+                    attributes.Add(attribute);
+                    consumedAnything = true;
+                    continue;
+                }
+
                 if (current == ':')
                 {
                     if (!TryParsePseudo(raw, source, diagnostics, ref index, ref requiresRoot))
@@ -229,7 +243,7 @@ namespace Rectloom.Core.Css.Parsing
                 return false;
             }
 
-            part = new CssCompoundSelector(combinator, tagName, id, classes, requiresRoot);
+            part = new CssCompoundSelector(combinator, tagName, id, classes, requiresRoot, attributes);
             return true;
         }
 
@@ -240,6 +254,119 @@ namespace Rectloom.Core.Css.Parsing
         /// <see langword="true"/> when the pseudo is one the compiler supports. Otherwise the whole
         /// selector is dropped and a diagnostic has already been reported.
         /// </returns>
+        /// <summary>
+        /// Reads one <c>[name]</c>, <c>[name=value]</c> or <c>[name op "value" i]</c> condition.
+        /// </summary>
+        private static bool TryParseAttribute(
+            string raw,
+            SourceLocation source,
+            IDiagnosticSink diagnostics,
+            ref int index,
+            out CssAttributeSelector attribute)
+        {
+            attribute = null!;
+            index++;
+            SkipWhitespace(raw, ref index);
+
+            string name = ReadIdentifier(raw, ref index).ToLowerInvariant();
+
+            if (name.Length == 0)
+            {
+                Unsupported(raw, source, diagnostics, "'[' is not followed by an attribute name.");
+                return false;
+            }
+
+            SkipWhitespace(raw, ref index);
+
+            if (index < raw.Length && raw[index] == ']')
+            {
+                index++;
+                attribute = new CssAttributeSelector(name, CssAttributeOperator.Exists, null);
+                return true;
+            }
+
+            CssAttributeOperator op;
+
+            if (index < raw.Length && raw[index] == '=')
+            {
+                op = CssAttributeOperator.Equals;
+                index++;
+            }
+            else if (index + 1 < raw.Length && raw[index + 1] == '=')
+            {
+                switch (raw[index])
+                {
+                    case '~': op = CssAttributeOperator.Includes; break;
+                    case '^': op = CssAttributeOperator.Prefix; break;
+                    case '$': op = CssAttributeOperator.Suffix; break;
+                    case '*': op = CssAttributeOperator.Substring; break;
+                    case '|': op = CssAttributeOperator.DashMatch; break;
+                    default:
+                        Unsupported(raw, source, diagnostics, "'" + raw[index] + "=' is not an attribute operator.");
+                        return false;
+                }
+
+                index += 2;
+            }
+            else
+            {
+                Unsupported(raw, source, diagnostics, "The attribute selector is not closed with ']'.");
+                return false;
+            }
+
+            SkipWhitespace(raw, ref index);
+
+            string value;
+
+            if (index < raw.Length && (raw[index] == '"' || raw[index] == '\''))
+            {
+                char quote = raw[index];
+                int end = raw.IndexOf(quote, index + 1);
+
+                if (end < 0)
+                {
+                    Unsupported(raw, source, diagnostics, "The attribute value is not closed.");
+                    return false;
+                }
+
+                value = raw.Substring(index + 1, end - index - 1);
+                index = end + 1;
+            }
+            else
+            {
+                value = ReadIdentifier(raw, ref index);
+            }
+
+            SkipWhitespace(raw, ref index);
+
+            bool ignoreCase = false;
+
+            if (index < raw.Length && (raw[index] == 'i' || raw[index] == 'I' || raw[index] == 's' || raw[index] == 'S'))
+            {
+                ignoreCase = raw[index] == 'i' || raw[index] == 'I';
+                index++;
+                SkipWhitespace(raw, ref index);
+            }
+
+            if (index >= raw.Length || raw[index] != ']')
+            {
+                Unsupported(raw, source, diagnostics, "The attribute selector is not closed with ']'.");
+                return false;
+            }
+
+            index++;
+            attribute = new CssAttributeSelector(name, op, value, ignoreCase);
+            return true;
+        }
+
+        private static void SkipWhitespace(string raw, ref int index)
+        {
+            while (index < raw.Length && IsWhitespace(raw[index]))
+            {
+                index++;
+            }
+        }
+
         private static bool TryParsePseudo(
             string raw,
             SourceLocation source,
@@ -361,7 +488,7 @@ namespace Rectloom.Core.Css.Parsing
                 DiagnosticCodes.Css.UnknownSelectorSyntax,
                 "Selector '" + raw + "' is not supported: " + reason + " The rule is skipped for this selector.",
                 source,
-                "Use tag, class, id, descendant or child selectors.");
+                "Use tag, class, id, attribute, descendant or child selectors.");
         }
 
         private static bool IsIdentifierChar(char value)

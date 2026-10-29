@@ -210,6 +210,17 @@ namespace Rectloom.Core.Css.Computed
                     case "color":
                         Colour(declaration, value, v => _style.Text.Color = v);
                         return true;
+                    case "accent-color":
+                        if (string.Equals(value.Trim(), "auto", StringComparison.OrdinalIgnoreCase))
+                        {
+                            _style.Text.AccentColor = null;
+                        }
+                        else
+                        {
+                            Colour(declaration, value, v => _style.Text.AccentColor = v);
+                        }
+
+                        return true;
                     case "font-family":
                         ApplyFontFamily(declaration, value);
                         return true;

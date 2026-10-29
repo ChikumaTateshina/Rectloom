@@ -71,6 +71,11 @@ namespace Rectloom.Core.Ir
         public UiImageFit ImageFit { get; internal set; } = UiImageFit.Fill;
 
         /// <summary>
+        /// Colour of a form control's checked part, or <see langword="null"/> for the default.
+        /// </summary>
+        public Color? AccentColor { get; internal set; }
+
+        /// <summary>
         /// Gets a value indicating whether this node needs a graphic component.
         /// </summary>
         public bool PaintsAnything =>

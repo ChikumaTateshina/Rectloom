@@ -321,7 +321,7 @@ namespace Rectloom.Ugui.Compilation
             BackendResult staged = backend.Build(ir, parent: null);
 
             RunExtensions(request, ir, staged, diagnostics);
-            RunOutputProcessors(request, ir, staged.Root, diagnostics);
+            RunOutputProcessors(request, ir, staged, previous: null, diagnostics);
 
             backendTimer.Stop();
             Record(statistics, staged, backendTimer);
@@ -431,7 +431,7 @@ namespace Rectloom.Ugui.Compilation
                     .Update(ir, contents, previous);
 
                 RunExtensions(request, ir, result, diagnostics);
-                RunOutputProcessors(request, ir, result.Root, diagnostics);
+                RunOutputProcessors(request, ir, result, previous, diagnostics);
 
                 backendTimer.Stop();
                 Record(statistics, result, backendTimer);
@@ -504,7 +504,7 @@ namespace Rectloom.Ugui.Compilation
                 .Update(ir, existing, previous);
 
             RunExtensions(request, ir, result, diagnostics);
-            RunOutputProcessors(request, ir, result.Root, diagnostics);
+            RunOutputProcessors(request, ir, result, previous, diagnostics);
 
             backendTimer.Stop();
             Record(statistics, result, backendTimer);
@@ -555,6 +555,7 @@ namespace Rectloom.Ugui.Compilation
             metadata.SourceHash = ComputeSourceHash(request, html);
             metadata.RootGlobalObjectId = MetadataStore.CaptureGlobalObjectId(committed ?? result.Root);
             metadata.SetNodes(result.Nodes);
+            metadata.SetProcessorState(result.ProcessorState);
 
             MetadataStore.Save(metadataPath, metadata);
         }
@@ -697,15 +698,22 @@ namespace Rectloom.Ugui.Compilation
         private static void RunOutputProcessors(
             CompileRequest request,
             UiNode ir,
-            GameObject root,
+            BackendResult result,
+            RectloomDocumentMetadata? previous,
             DiagnosticSink diagnostics)
         {
-            if (root == null || diagnostics.HasErrors)
+            if (result.Root == null || diagnostics.HasErrors)
             {
                 return;
             }
 
-            var context = new OutputProcessorContext(request, ir, root, diagnostics);
+            var context = new OutputProcessorContext(
+                request,
+                ir,
+                result.Root,
+                diagnostics,
+                result.Objects,
+                previous?.GetProcessorState());
 
             foreach (IOutputProcessor processor in OutputProcessorRegistry.Discover(diagnostics))
             {
@@ -722,6 +730,8 @@ namespace Rectloom.Ugui.Compilation
                         SourceLocation.None);
                 }
             }
+
+            result.ProcessorState = new Dictionary<string, string>(context.State, StringComparer.Ordinal);
         }
 
         /// <summary>

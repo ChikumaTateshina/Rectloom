@@ -30,6 +30,7 @@ layout上の意味がboxまたは継承text styleに尽きるelementを対象と
 
 ```text
 body div span p h1 h2 h3 h4 h5 h6 button img br
+input[type=checkbox] input[type=range]
 
 article section header footer nav main aside hgroup address
 figure figcaption blockquote pre hr
@@ -39,6 +40,21 @@ a strong b em i u s strike small big
 code kbd samp var mark cite q abbr time
 label sub sup ins del bdi bdo ruby rt rp
 ```
+
+### Form controls
+
+| 要素 | 生成物 | 読む属性 |
+|---|---|---|
+| `<button>` | `Button` | `disabled` |
+| `<input type="checkbox">` | `Toggle` + 子 `Checkmark` | `checked` `disabled` |
+| `<input type="range">` | `Slider` + 子 `Background` / `Fill Area/Fill` / `Handle Slide Area/Handle` | `min`(0) `max`(100) `step`(1) `value`(中央) `disabled` |
+
+- 既定サイズはbuilt-in stylesheetで、checkboxは20x20、rangeは160x20。
+- checkboxの箱はCSSの `background` / `border` で描き、チェックは `accent-color` (既定 `#3080ff`) で塗る。
+- rangeは `step` と `min` / `max` がすべて整数のとき `wholeNumbers`。それ以外の `step` は連続値になる。
+- `disabled` と `unity-interactable: false` はどちらも `interactable = false` にする。
+- `onClick` / `onValueChanged` はユーザーのもの。compilerは書き換えない (Update後も保持)。
+- その他の `type` (`text` `radio` など) は未対応。plain boxになり `HTML1003` を報告する。
 
 ### Metadata
 
@@ -108,9 +124,16 @@ button
 #id
 :root
 button.primary
+[type]
+input[type="range"]
+[data-x~="a"] [href^="https"] [href$=".png"] [href*="example"] [lang|="ja"]
+[type="RANGE" i]
 A B
 A > B
 ```
+
+attribute selectorはsourceに書かれた値で決まるので、compile時に解決して失うものが無い。
+specificityはclassと同じ (10)。
 
 `:root` はdocumentのroot elementに一致する。`html` と `head` はparse時に
 unwrapされるため、compile後のroot elementは `body` である。
@@ -125,7 +148,8 @@ unwrapされるため、compile後のroot elementは `body` である。
   stylesheetで警告が溢れると読むべき診断が埋まる。
 - **その他のpseudo-class** (`:hover` `:first-child` など) — selectorを捨て、
   `CSS1003` をWarningとして報告する。
-- attribute selector、sibling combinator。
+- sibling combinator (`+` `~`)。
+- `:checked` `:disabled` などの状態pseudo-class。代わりに `[checked]` `[disabled]` を使う。
 
 Specificity:
 
@@ -403,6 +427,8 @@ vrc-
 <library>-
 ```
 
+`accent-color` (継承) はcheckboxのチェックとrangeの塗りの色。`auto` で既定色。
+
 ## 18. Component Attribute
 
 ```html
@@ -415,6 +441,28 @@ vrc-
 ```
 
 `component.*` はComponent BinderまたはExtensionへ渡す。
+
+### VRChat Udon属性 (VRChat adapter)
+
+```html
+<div id="door-panel" vrc-udon="./DoorPanel.asset">
+  <button vrc-event="Open">開ける</button>
+  <input type="checkbox" vrc-event="ToggleLight">
+  <input type="range" vrc-event="SetVolume" vrc-target="#audio">
+</div>
+```
+
+| 属性 | 意味 |
+|---|---|
+| `vrc-udon` | この要素のobjectへ `UdonBehaviour` を付け、programを設定する。値はUdon program asset (Graph / UdonSharp)、またはUdonSharpのscript。HTMLからの相対path、`Assets/` からのpath、GUID |
+| `vrc-event` | button / checkbox / range の `onClick` / `onValueChanged` に `UdonBehaviour.SendCustomEvent("<名前>")` を登録する |
+| `vrc-target` | 受け手。`#id` はこのdocument内の要素、`/Path/In/Scene` はscene上のobject (scene出力時のみ)。省略時は自分から祖先へ向かって最初に `UdonBehaviour` を持つ要素 |
+
+- 呼ぶmethodは `SendCustomEvent` 固定。markupが選べるのはevent名と受け手だけで、任意method呼び出しにはならない。
+- Inspectorで手動追加した `UdonBehaviour` も受け手になる (Update後も保持される)。
+- compilerが追加したlistenerだけをmetadataに記録し、次回compileでそれだけを差し替える。手で追加したlistenerは消さない。
+- `vrc-udon` を消しても追加済みの `UdonBehaviour` は消さない (public変数をInspectorで設定している可能性がある)。
+- 失敗は `VRC1006` (Warning)。Worlds SDKが無い場合、これらの属性があれば `VRC1005` (Warning)。
 
 ## 19. Custom Property
 

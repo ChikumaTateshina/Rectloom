@@ -72,6 +72,23 @@ namespace Rectloom.Ugui.Backend
         // licence to overwrite the wiring an update exists to protect.
         private static readonly string[] ButtonProperties = { "m_Interactable", "m_TargetGraphic" };
 
+        // As for Button, the value-changed event is the user's and is never written.
+        private static readonly string[] ToggleProperties =
+        {
+            "m_Interactable", "m_TargetGraphic", "graphic", "m_IsOn", "toggleTransition",
+        };
+
+        private static readonly string[] SliderProperties =
+        {
+            "m_Interactable", "m_TargetGraphic", "m_FillRect", "m_HandleRect", "m_Direction",
+            "m_MinValue", "m_MaxValue", "m_WholeNumbers", "m_Value",
+        };
+
+        /// <summary>Accent colour of a checked box or a filled track when CSS gives none.</summary>
+        public static readonly Color DefaultAccentColor = new Color32(0x30, 0x80, 0xFF, 0xFF);
+
+        private static readonly Color DefaultTrackColor = new Color32(0xD5, 0xD9, 0xE2, 0xFF);
+
         private static readonly string[] CanvasGroupProperties = { "m_Alpha" };
 
         private static readonly string[] CanvasProperties = { "m_RenderMode" };
@@ -271,6 +288,15 @@ namespace Rectloom.Ugui.Backend
                     ApplyLabel(node, target, transformPath, siblingNames, expected);
                 }
 
+                if (node.Kind == UiNodeKind.Toggle)
+                {
+                    ApplyToggleParts(node, target, transformPath, siblingNames, expected);
+                }
+                else if (node.Kind == UiNodeKind.Slider)
+                {
+                    ApplySliderParts(node, target, transformPath, siblingNames, expected);
+                }
+
                 RemoveObsoleteChildren(target, transformPath, expected);
                 Reorder(target, expected);
             }
@@ -358,6 +384,16 @@ namespace Rectloom.Ugui.Backend
                         break;
                     case UiNodeKind.Button:
                         ApplyButton(node, target, entry);
+                        break;
+                    case UiNodeKind.Toggle:
+                        ApplyPaint(node, target, entry, forceGraphic: true);
+                        GetOrAdd<Toggle>(target, entry, ToggleProperties);
+                        break;
+                    case UiNodeKind.Slider:
+                        // The box itself only catches the pointer; the track and handle are drawn by
+                        // the parts, so an unstyled slider paints nothing here.
+                        ApplyPaint(node, target, entry, forceGraphic: true);
+                        GetOrAdd<Slider>(target, entry, SliderProperties);
                         break;
                     case UiNodeKind.Text:
                         ApplyText(node, target, entry);
@@ -470,7 +506,213 @@ namespace Rectloom.Ugui.Backend
 
                 var button = GetOrAdd<Button>(target, entry, ButtonProperties);
                 button.targetGraphic = image;
-                button.interactable = _backend.ReadBoolProperty(node, InteractableProperty, true);
+                button.interactable = _backend.ReadInteractable(node);
+            }
+
+            /// <summary>
+            /// Creates the checkmark a toggle shows, and wires the toggle to it.
+            /// </summary>
+            /// <remarks>
+            /// The box itself is the background, painted from CSS like any other box, so a checkbox is
+            /// styled with the properties an author already knows. The mark is a filled square inset
+            /// from it in the accent colour.
+            /// </remarks>
+            private void ApplyToggleParts(
+                UiNode node,
+                GameObject target,
+                string transformPath,
+                HashSet<string> siblingNames,
+                List<string> expected)
+            {
+                float width = node.Rect.Width;
+                float height = node.Rect.Height;
+                float inset = Mathf.Max(2f, Mathf.Round(Mathf.Min(width, height) * 0.2f)) + node.Visual.BorderWidth;
+                Color accent = node.Visual.AccentColor ?? DefaultAccentColor;
+
+                GameObject mark = ApplyPart(node, target, transformPath, "/@checkmark", "Checkmark", siblingNames, expected,
+                    out GeneratedNodeMetadata entry);
+
+                RectTransform rect = GetOrAdd<RectTransform>(mark, entry, RectTransformProperties);
+                Stretch(rect, inset, inset, inset, inset);
+
+                Image image = GetOrAdd<Image>(mark, entry, ImageProperties);
+                PaintShape(image, Mathf.Max(0f, node.Visual.BorderRadius - inset), 0f, accent, accent);
+                image.raycastTarget = false;
+
+                var toggle = target.GetComponent<Toggle>();
+                toggle.graphic = image;
+                toggle.targetGraphic = target.GetComponent<Image>();
+                toggle.toggleTransition = Toggle.ToggleTransition.None;
+                toggle.interactable = _backend.ReadInteractable(node);
+                toggle.SetIsOnWithoutNotify(node.TryGetAttribute("checked", out _));
+
+                FinishPart(mark, entry);
+            }
+
+            /// <summary>
+            /// Creates a slider's track, fill and handle, laid out the way uGUI's own slider is.
+            /// </summary>
+            private void ApplySliderParts(
+                UiNode node,
+                GameObject target,
+                string transformPath,
+                HashSet<string> siblingNames,
+                List<string> expected)
+            {
+                float height = node.Rect.Height;
+                float radius = height / 2f;
+                float track = Mathf.Max(2f, Mathf.Round(height * 0.3f));
+                float trackInset = (height - track) / 2f;
+                Color accent = node.Visual.AccentColor ?? DefaultAccentColor;
+
+                GameObject background = ApplyPart(node, target, transformPath, "/@track", "Background", siblingNames,
+                    expected, out GeneratedNodeMetadata backgroundEntry);
+                Stretch(GetOrAdd<RectTransform>(background, backgroundEntry, RectTransformProperties), 0f, trackInset, 0f, trackInset);
+                Image trackImage = GetOrAdd<Image>(background, backgroundEntry, ImageProperties);
+                PaintShape(trackImage, track / 2f, 0f, DefaultTrackColor, DefaultTrackColor);
+                trackImage.raycastTarget = false;
+                FinishPart(background, backgroundEntry);
+
+                GameObject fillArea = ApplyPart(node, target, transformPath, "/@fill-area", "Fill Area", siblingNames,
+                    expected, out GeneratedNodeMetadata fillAreaEntry);
+                Stretch(GetOrAdd<RectTransform>(fillArea, fillAreaEntry, RectTransformProperties), radius, trackInset, radius, trackInset);
+                FinishPart(fillArea, fillAreaEntry);
+
+                GameObject fill = ApplyPart(node, fillArea, Join(transformPath, fillArea.name), "/@fill", "Fill",
+                    new HashSet<string>(StringComparer.Ordinal), new List<string>(), out GeneratedNodeMetadata fillEntry);
+                RectTransform fillRect = GetOrAdd<RectTransform>(fill, fillEntry, RectTransformProperties);
+                fillRect.pivot = new Vector2(0f, 0.5f);
+                fillRect.anchorMin = new Vector2(0f, 0f);
+                fillRect.anchorMax = new Vector2(0f, 1f);
+
+                // The slider moves only the anchors, so these offsets survive it: the fill starts at the
+                // track's left end, a handle's radius before the area it is anchored in.
+                fillRect.offsetMin = new Vector2(-radius, 0f);
+                fillRect.offsetMax = Vector2.zero;
+                Image fillImage = GetOrAdd<Image>(fill, fillEntry, ImageProperties);
+                PaintShape(fillImage, track / 2f, 0f, accent, accent);
+                fillImage.raycastTarget = false;
+                FinishPart(fill, fillEntry);
+
+                GameObject handleArea = ApplyPart(node, target, transformPath, "/@handle-area", "Handle Slide Area",
+                    siblingNames, expected, out GeneratedNodeMetadata handleAreaEntry);
+                Stretch(GetOrAdd<RectTransform>(handleArea, handleAreaEntry, RectTransformProperties), radius, 0f, radius, 0f);
+                FinishPart(handleArea, handleAreaEntry);
+
+                GameObject handle = ApplyPart(node, handleArea, Join(transformPath, handleArea.name), "/@handle", "Handle",
+                    new HashSet<string>(StringComparer.Ordinal), new List<string>(), out GeneratedNodeMetadata handleEntry);
+                RectTransform handleRect = GetOrAdd<RectTransform>(handle, handleEntry, RectTransformProperties);
+                handleRect.pivot = new Vector2(0.5f, 0.5f);
+                handleRect.anchorMin = new Vector2(0f, 0f);
+                handleRect.anchorMax = new Vector2(0f, 1f);
+                handleRect.sizeDelta = new Vector2(height, 0f);
+                handleRect.anchoredPosition = Vector2.zero;
+                Image handleImage = GetOrAdd<Image>(handle, handleEntry, ImageProperties);
+                PaintShape(handleImage, radius, Mathf.Max(1f, Mathf.Round(height * 0.1f)), Color.white, accent);
+                handleImage.raycastTarget = true;
+                FinishPart(handle, handleEntry);
+
+                var slider = target.GetComponent<Slider>();
+                slider.fillRect = fillRect;
+                slider.handleRect = handleRect;
+                slider.targetGraphic = handleImage;
+                slider.direction = Slider.Direction.LeftToRight;
+                slider.interactable = _backend.ReadInteractable(node);
+
+                float min = _backend.ReadFloatAttribute(node, "min", 0f);
+                float max = _backend.ReadFloatAttribute(node, "max", 100f);
+
+                if (max < min)
+                {
+                    _backend._diagnostics.Warning(
+                        DiagnosticCodes.Css.InvalidValue,
+                        "max (" + max + ") is below min (" + min + "), so the range was swapped.",
+                        node.Source,
+                        "Give max a value above min.");
+
+                    (min, max) = (max, min);
+                }
+
+                // A step that is a whole number over whole bounds is what wholeNumbers means; any other
+                // step has no uGUI equivalent and the slider moves continuously.
+                string stepText = node.TryGetAttribute("step", out string step) ? step.Trim() : "1";
+                bool whole = !string.Equals(stepText, "any", StringComparison.OrdinalIgnoreCase)
+                    && IsWhole(_backend.ReadFloatAttribute(node, "step", 1f)) && IsWhole(min) && IsWhole(max);
+
+                slider.minValue = min;
+                slider.maxValue = max;
+                slider.wholeNumbers = whole;
+
+                // The HTML default is halfway, rounded to the step.
+                float initial = _backend.ReadFloatAttribute(node, "value", min + ((max - min) / 2f));
+                slider.SetValueWithoutNotify(Mathf.Clamp(whole ? Mathf.Round(initial) : initial, min, max));
+            }
+
+            private static bool IsWhole(float value) => Mathf.Approximately(value, Mathf.Round(value));
+
+            /// <summary>
+            /// Finds or creates one generated child of a control, with its own stable id.
+            /// </summary>
+            private GameObject ApplyPart(
+                UiNode node,
+                GameObject parent,
+                string parentPath,
+                string idSuffix,
+                string name,
+                HashSet<string> siblingNames,
+                List<string> expected,
+                out GeneratedNodeMetadata entry)
+            {
+                string id = node.StableId + idSuffix;
+                GameObject part = Resolve(id, parent, UniqueName(name, siblingNames), out bool created);
+                siblingNames.Add(part.name);
+                expected.Add(part.name);
+
+                if (!created)
+                {
+                    _counters.Updated++;
+                }
+
+                entry = NewEntry(id, Join(parentPath, part.name), node, UiNodeKind.Image);
+                return part;
+            }
+
+            private void FinishPart(GameObject part, GeneratedNodeMetadata entry)
+            {
+                RemoveObsoleteComponents(part, entry.StableId, entry);
+                _nodes.Add(entry);
+                _objects[entry.StableId] = part;
+            }
+
+            private static void Stretch(RectTransform rect, float left, float top, float right, float bottom)
+            {
+                rect.pivot = new Vector2(0.5f, 0.5f);
+                rect.anchorMin = Vector2.zero;
+                rect.anchorMax = Vector2.one;
+                rect.offsetMin = new Vector2(left, bottom);
+                rect.offsetMax = new Vector2(-right, -top);
+            }
+
+            /// <summary>
+            /// Paints a rounded shape, or a flat colour when it has no corners or border.
+            /// </summary>
+            private void PaintShape(Image image, float radius, float borderWidth, Color fill, Color border)
+            {
+                Sprite? shape = RoundedBoxSpriteLibrary.NeedsSprite(radius, borderWidth, borderWidth > 0f)
+                    ? _backend._sprites.GetSprite(radius, borderWidth, fill, border)
+                    : null;
+
+                if (shape != null)
+                {
+                    image.sprite = shape;
+                    image.type = Image.Type.Sliced;
+                    image.color = Color.white;
+                    return;
+                }
+
+                image.sprite = null;
+                image.type = Image.Type.Simple;
+                image.color = fill;
             }
 
             internal Image EnsureImage(GameObject target, GeneratedNodeMetadata entry)
@@ -923,7 +1165,44 @@ namespace Rectloom.Ugui.Backend
         /// </remarks>
         private bool ReadRaycastTarget(UiNode node)
         {
-            return ReadBoolProperty(node, RaycastTargetProperty, node.Kind == UiNodeKind.Button);
+            bool control = node.Kind == UiNodeKind.Button
+                || node.Kind == UiNodeKind.Toggle
+                || node.Kind == UiNodeKind.Slider;
+
+            return ReadBoolProperty(node, RaycastTargetProperty, control);
+        }
+
+        /// <summary>
+        /// Gets whether a control accepts input: not when the HTML disables it, and not when
+        /// <c>unity-interactable</c> turns it off.
+        /// </summary>
+        private bool ReadInteractable(UiNode node)
+        {
+            return !node.TryGetAttribute("disabled", out _)
+                && ReadBoolProperty(node, InteractableProperty, true);
+        }
+
+        private float ReadFloatAttribute(UiNode node, string attribute, float defaultValue)
+        {
+            if (!node.TryGetAttribute(attribute, out string raw) || string.IsNullOrWhiteSpace(raw))
+            {
+                return defaultValue;
+            }
+
+            if (float.TryParse(raw.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out float value)
+                && !float.IsNaN(value) && !float.IsInfinity(value))
+            {
+                return value;
+            }
+
+            _diagnostics.Warning(
+                DiagnosticCodes.Css.InvalidValue,
+                "'" + raw + "' is not a number, so " + attribute + " was left at "
+                    + defaultValue.ToString(CultureInfo.InvariantCulture) + ".",
+                node.Source,
+                "Write a plain number, such as 0, 50 or 0.5.");
+
+            return defaultValue;
         }
 
         private bool ReadBoolProperty(UiNode node, string property, bool defaultValue)

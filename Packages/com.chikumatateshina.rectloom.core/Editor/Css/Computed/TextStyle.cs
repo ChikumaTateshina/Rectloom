@@ -47,6 +47,12 @@ namespace Rectloom.Core.Css.Computed
         /// <summary>Text colour. Initial value is opaque black.</summary>
         public Color Color { get; internal set; } = Color.black;
 
+        /// <summary>
+        /// Colour of the checked part of a form control, or <see langword="null"/> for the
+        /// compiler's default. Inherited, as <c>accent-color</c> is in CSS.
+        /// </summary>
+        public Color? AccentColor { get; internal set; }
+
         /// <summary>Font size in logical pixels. Initial value is 16.</summary>
         public float FontSize { get; internal set; } = DefaultFontSize;
 
@@ -148,6 +154,7 @@ namespace Rectloom.Core.Css.Computed
             return new TextStyle
             {
                 Color = Color,
+                AccentColor = AccentColor,
                 FontSize = FontSize,
                 RootFontSize = RootFontSize,
                 FontFamily = FontFamily,

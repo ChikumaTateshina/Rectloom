@@ -61,5 +61,10 @@ namespace Rectloom.Ugui.Backend
         /// worked on them.
         /// </summary>
         public int PreservedCount { get; internal set; }
+
+        /// <summary>
+        /// What output processors asked to have saved with the metadata, for the next compile.
+        /// </summary>
+        public IReadOnlyDictionary<string, string>? ProcessorState { get; set; }
     }
 }

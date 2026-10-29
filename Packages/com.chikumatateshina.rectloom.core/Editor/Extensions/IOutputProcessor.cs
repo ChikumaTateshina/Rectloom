@@ -48,18 +48,43 @@ namespace Rectloom.Core.Extensions
         /// <param name="root">Root IR node the output was generated from.</param>
         /// <param name="rootObject">Root of the generated hierarchy.</param>
         /// <param name="diagnostics">Sink the processor reports through.</param>
-        /// <exception cref="ArgumentNullException">An argument is null.</exception>
+        /// <param name="objects">Generated object for each IR node, by stable id, or null for none.</param>
+        /// <param name="previousState">What processors recorded on the previous compile, or null.</param>
+        /// <exception cref="ArgumentNullException">A required argument is null.</exception>
         public OutputProcessorContext(
             CompileRequest request,
             UiNode root,
             GameObject rootObject,
-            IDiagnosticSink diagnostics)
+            IDiagnosticSink diagnostics,
+            IReadOnlyDictionary<string, GameObject>? objects = null,
+            IReadOnlyDictionary<string, string>? previousState = null)
         {
             Request = request ?? throw new ArgumentNullException(nameof(request));
             Root = root ?? throw new ArgumentNullException(nameof(root));
             RootObject = rootObject != null ? rootObject : throw new ArgumentNullException(nameof(rootObject));
             Diagnostics = diagnostics ?? throw new ArgumentNullException(nameof(diagnostics));
+            Objects = objects ?? new Dictionary<string, GameObject>(StringComparer.Ordinal);
+            PreviousState = previousState ?? new Dictionary<string, string>(StringComparer.Ordinal);
         }
+
+        /// <summary>Generated object for each IR node, by stable id.</summary>
+        public IReadOnlyDictionary<string, GameObject> Objects { get; }
+
+        /// <summary>
+        /// What processors recorded in <see cref="State"/> on the previous compile of this output.
+        /// Empty on a create.
+        /// </summary>
+        /// <remarks>
+        /// This is how a processor tells what it put into the output last time from what the user
+        /// put there by hand, so an update can replace the one and leave the other alone.
+        /// </remarks>
+        public IReadOnlyDictionary<string, string> PreviousState { get; }
+
+        /// <summary>
+        /// Values saved with the output's metadata for the next compile to read back. Keys should be
+        /// prefixed with the processor's id.
+        /// </summary>
+        public IDictionary<string, string> State { get; } = new Dictionary<string, string>(StringComparer.Ordinal);
 
         /// <summary>The compile request being run.</summary>
         public CompileRequest Request { get; }

@@ -25,6 +25,8 @@ namespace Rectloom.Core.Ir
             Array.Empty<ComponentRequest>();
         private static readonly IReadOnlyDictionary<string, string> NoExtensionProperties =
             new Dictionary<string, string>(0, StringComparer.Ordinal);
+        private static readonly IReadOnlyDictionary<string, string> NoAttributes =
+            new Dictionary<string, string>(0, StringComparer.Ordinal);
 
         private readonly List<UiNode> _children = new List<UiNode>();
         private readonly List<ComponentRequest> _components = new List<ComponentRequest>();
@@ -44,6 +46,7 @@ namespace Rectloom.Core.Ir
         /// because an adapter building a node for its own tests needs them set, while the IR must
         /// stay read-only once a backend has it.
         /// </param>
+        /// <param name="attributes">The source element's attributes, or null for none.</param>
         /// <exception cref="ArgumentException">
         /// <paramref name="stableId"/> or <paramref name="name"/> is null, empty or whitespace.
         /// </exception>
@@ -52,7 +55,8 @@ namespace Rectloom.Core.Ir
             UiNodeKind kind,
             string name,
             SourceLocation source,
-            IReadOnlyDictionary<string, string>? extensionProperties = null)
+            IReadOnlyDictionary<string, string>? extensionProperties = null,
+            IReadOnlyDictionary<string, string>? attributes = null)
         {
             if (string.IsNullOrWhiteSpace(stableId))
             {
@@ -69,6 +73,7 @@ namespace Rectloom.Core.Ir
             Name = name;
             Source = source;
             ExtensionProperties = extensionProperties ?? NoExtensionProperties;
+            Attributes = attributes ?? NoAttributes;
         }
 
         /// <summary>
@@ -154,6 +159,28 @@ namespace Rectloom.Core.Ir
         /// </remarks>
         public IReadOnlyDictionary<string, string> ExtensionProperties { get; internal set; }
             = NoExtensionProperties;
+
+
+        /// <summary>
+        /// The source element's attributes, by lower-cased name.
+        /// </summary>
+        /// <remarks>
+        /// Carried so that a backend can read what a form control starts as, and so that an adapter
+        /// can act on attributes of its own, such as <c>vrc-event</c>, without the core knowing what
+        /// they mean. Empty for anonymous text.
+        /// </remarks>
+        public IReadOnlyDictionary<string, string> Attributes { get; internal set; } = NoAttributes;
+
+        /// <summary>
+        /// Gets an attribute of the source element.
+        /// </summary>
+        /// <param name="name">Lower-cased attribute name.</param>
+        /// <param name="value">The value when present.</param>
+        /// <returns><see langword="true"/> when the element has the attribute.</returns>
+        public bool TryGetAttribute(string name, out string value)
+        {
+            return Attributes.TryGetValue(name, out value!);
+        }
 
         /// <summary>
         /// Gets a value indicating whether this node renders text.

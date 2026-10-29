@@ -34,6 +34,9 @@ namespace Rectloom.Core.Dom
         /// <summary>The img tag.</summary>
         public const string Image = "img";
 
+        /// <summary>The input tag. Checkboxes and ranges compile to a Toggle and a Slider.</summary>
+        public const string Input = "input";
+
         /// <summary>The br tag.</summary>
         public const string LineBreak = "br";
 

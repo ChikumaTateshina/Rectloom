@@ -83,6 +83,23 @@ hr {
     background-color: #a0a0a0;
 }
 
+input {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+}
+
+input[type=checkbox] {
+    background-color: #ffffff;
+    border-width: 1px;
+    border-color: #767676;
+    border-radius: 3px;
+}
+
+input[type=range] {
+    width: 160px;
+}
+
 button {
     display: flex;
     justify-content: center;

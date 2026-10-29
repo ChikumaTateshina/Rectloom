@@ -116,7 +116,7 @@ namespace Rectloom.Core.Tests.Css
         [TestCase("")]
         [TestCase("   ")]
         [TestCase("div:hover")]
-        [TestCase("input[type=text]")]
+        [TestCase("input[type=text")]
         [TestCase("a + b")]
         [TestCase("a ~ b")]
         [TestCase("> div")]

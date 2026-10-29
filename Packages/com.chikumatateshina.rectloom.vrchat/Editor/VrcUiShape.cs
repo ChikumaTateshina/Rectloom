@@ -179,7 +179,7 @@ namespace Rectloom.VRChat
     }
 
     /// <summary>
-    /// Runs the VRChat adapter's canvas setup as part of every compile.
+    /// Runs the VRChat adapter's canvas setup and Udon bindings as part of every compile.
     /// </summary>
     public sealed class VrcOutputProcessor : IOutputProcessor
     {
@@ -200,6 +200,8 @@ namespace Rectloom.VRChat
                 VrcAdapterSettings.AddUiShape,
                 VrcUiShape.ResolveType(),
                 context.Diagnostics);
+
+            VrcUdonBinding.Apply(context, ReflectionUdonApi.Instance);
         }
     }
 

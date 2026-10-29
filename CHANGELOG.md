@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Udon event binding from markup.** `vrc-udon="Program.asset"` puts an UdonBehaviour running that program (Udon Graph or UdonSharp, or an UdonSharp script) on an element. `vrc-event="Name"` on a button, checkbox or range registers `UdonBehaviour.SendCustomEvent("Name")` on its `onClick` / `onValueChanged` at compile time. The receiver is the nearest enclosing element with an UdonBehaviour, or `vrc-target="#id"` / `vrc-target="/Scene/Path"` (scene output only). The method is always `SendCustomEvent`; markup chooses only the event name and the receiver. Listeners the compiler added are recorded in the metadata and replaced on the next compile; listeners wired by hand are never removed.
+- **Checkboxes and sliders.** `<input type="checkbox">` compiles to a `Toggle` with a checkmark and `<input type="range">` to a `Slider` with track, fill and handle, reading `checked`, `min`, `max`, `step`, `value` and `disabled`. Their user-wired events survive an update, as a button's do. Other input types are reported and compile to a plain box.
+- `disabled` on a button, checkbox or range turns `interactable` off.
+- `accent-color` colours a checkbox's checkmark and a slider's fill.
+- **Attribute selectors**: `[attr]`, `[attr=value]`, `~=`, `^=`, `$=`, `*=`, `|=` and the `i` flag, with class specificity. The built-in stylesheet sizes inputs with them.
+- `OutputProcessorContext` now carries the generated objects by stable id and a per-output state store that is saved with the metadata, so a processor can tell what it added last time from what the user added.
+
 ## [0.5.0] - 2026-10-06
 
 ### Added

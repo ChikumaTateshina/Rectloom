@@ -64,6 +64,49 @@ namespace Rectloom.Core.Metadata
         [SerializeField] private string _sourceHash = string.Empty;
         [SerializeField] private string _rootGlobalObjectId = string.Empty;
         [SerializeField] private List<GeneratedNodeMetadata> _nodes = new List<GeneratedNodeMetadata>();
+        [SerializeField] private List<string> _processorStateKeys = new List<string>();
+        [SerializeField] private List<string> _processorStateValues = new List<string>();
+
+        /// <summary>
+        /// Reads what output processors saved on this compile.
+        /// </summary>
+        /// <returns>The saved values, by key.</returns>
+        public IReadOnlyDictionary<string, string> GetProcessorState()
+        {
+            var state = new Dictionary<string, string>(StringComparer.Ordinal);
+            int count = Math.Min(_processorStateKeys.Count, _processorStateValues.Count);
+
+            for (int index = 0; index < count; index++)
+            {
+                state[_processorStateKeys[index]] = _processorStateValues[index] ?? string.Empty;
+            }
+
+            return state;
+        }
+
+        /// <summary>
+        /// Replaces what output processors saved.
+        /// </summary>
+        /// <param name="state">Values to save, or null for none.</param>
+        public void SetProcessorState(IEnumerable<KeyValuePair<string, string>>? state)
+        {
+            _processorStateKeys.Clear();
+            _processorStateValues.Clear();
+
+            if (state == null)
+            {
+                return;
+            }
+
+            var sorted = new List<KeyValuePair<string, string>>(state);
+            sorted.Sort(static (left, right) => string.CompareOrdinal(left.Key, right.Key));
+
+            foreach (KeyValuePair<string, string> pair in sorted)
+            {
+                _processorStateKeys.Add(pair.Key);
+                _processorStateValues.Add(pair.Value ?? string.Empty);
+            }
+        }
 
         /// <summary>Layout version this asset was written with.</summary>
         public int SchemaVersion

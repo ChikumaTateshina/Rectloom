@@ -252,7 +252,7 @@
         <p class="t-left">text-align: left</p>
         <p class="t-center">text-align: center</p>
         <p class="t-right">text-align: right</p>
-        <p class="t-justify tall">text-align: justify, with a line-height of 32px, wrapping onto a second line.</p>
+        <p class="t-justify tall">text-align: justify, with a line-height of 28px, wrapping onto a second line.</p>
         <p class="ws-nowrap">nowrap stays on one line.</p>
         <pre class="ws-pre">pre   keeps   spaces
 and line breaks</pre>
@@ -260,6 +260,18 @@ and line breaks</pre>
 line breaks only</p>
         <p>A br element<br>starts a new line.</p>
         <p>日本語と絵文字 🎉 も表示できます。</p>
+      </article>
+
+      <article class="card">
+        <h2 class="card-title">Form controls</h2>
+        <!-- input becomes a Toggle or a Slider. checked, min, max, step, value and disabled are read. -->
+        <div class="row controls">
+          <input id="sound" type="checkbox" checked>
+          <input type="checkbox">
+          <input type="checkbox" disabled>
+          <input id="volume" type="range" min="0" max="10" value="7">
+          <input class="fine" type="range" min="0" max="1" step="0.01" value="0.25" disabled>
+        </div>
       </article>
 
     </section>

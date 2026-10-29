@@ -29,9 +29,147 @@ namespace Rectloom.Core.Css.Selectors
     /// A compound selector is the largest run without a combinator. All of its conditions apply to
     /// the same element.
     /// </remarks>
+    /// <summary>
+    /// How an attribute selector compares the attribute's value.
+    /// </summary>
+    public enum CssAttributeOperator
+    {
+        /// <summary><c>[name]</c>: the attribute is present, whatever its value.</summary>
+        Exists = 0,
+
+        /// <summary><c>[name=value]</c>: the value is exactly this.</summary>
+        Equals = 1,
+
+        /// <summary><c>[name~=value]</c>: one of the whitespace-separated words is this.</summary>
+        Includes = 2,
+
+        /// <summary><c>[name^=value]</c>: the value starts with this.</summary>
+        Prefix = 3,
+
+        /// <summary><c>[name$=value]</c>: the value ends with this.</summary>
+        Suffix = 4,
+
+        /// <summary><c>[name*=value]</c>: the value contains this.</summary>
+        Substring = 5,
+
+        /// <summary><c>[name|=value]</c>: the value is this, or this followed by a hyphen.</summary>
+        DashMatch = 6,
+    }
+
+    /// <summary>
+    /// One <c>[attribute]</c> condition of a compound selector.
+    /// </summary>
+    /// <remarks>
+    /// Attributes are fixed in the source, so matching them is as static as matching a class: the
+    /// result is known at compile time and baking it in loses nothing. That is what makes
+    /// <c>input[type="range"]</c> usable here when state pseudo-classes are not.
+    /// </remarks>
+    public sealed class CssAttributeSelector
+    {
+        /// <summary>
+        /// Creates an attribute condition.
+        /// </summary>
+        /// <param name="name">Lower-cased attribute name.</param>
+        /// <param name="op">How the value is compared.</param>
+        /// <param name="value">Value to compare with; ignored for <see cref="CssAttributeOperator.Exists"/>.</param>
+        /// <param name="ignoreCase">Whether the value is compared without regard to case, as the <c>i</c> flag asks.</param>
+        public CssAttributeSelector(string name, CssAttributeOperator op, string? value, bool ignoreCase = false)
+        {
+            Name = name ?? throw new ArgumentNullException(nameof(name));
+            Operator = op;
+            Value = value ?? string.Empty;
+            IgnoreCase = ignoreCase;
+        }
+
+        /// <summary>Lower-cased attribute name.</summary>
+        public string Name { get; }
+
+        /// <summary>How the value is compared.</summary>
+        public CssAttributeOperator Operator { get; }
+
+        /// <summary>Value compared against.</summary>
+        public string Value { get; }
+
+        /// <summary>Whether the comparison ignores case.</summary>
+        public bool IgnoreCase { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether an element satisfies this condition.
+        /// </summary>
+        /// <param name="element">Element to test.</param>
+        /// <returns><see langword="true"/> when it does.</returns>
+        public bool Matches(DomElement element)
+        {
+            if (element == null || !element.TryGetAttribute(Name, out DomAttribute attribute))
+            {
+                return false;
+            }
+
+            if (Operator == CssAttributeOperator.Exists)
+            {
+                return true;
+            }
+
+            string actual = attribute.Value ?? string.Empty;
+            StringComparison comparison = IgnoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+
+            switch (Operator)
+            {
+                case CssAttributeOperator.Equals:
+                    return string.Equals(actual, Value, comparison);
+                case CssAttributeOperator.Includes:
+                    if (Value.Length == 0)
+                    {
+                        return false;
+                    }
+
+                    foreach (string word in actual.Split(new[] { ' ', '\t', '\n', '\r', '\f' }, StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        if (string.Equals(word, Value, comparison))
+                        {
+                            return true;
+                        }
+                    }
+
+                    return false;
+                case CssAttributeOperator.Prefix:
+                    return Value.Length > 0 && actual.StartsWith(Value, comparison);
+                case CssAttributeOperator.Suffix:
+                    return Value.Length > 0 && actual.EndsWith(Value, comparison);
+                case CssAttributeOperator.Substring:
+                    return Value.Length > 0 && actual.IndexOf(Value, comparison) >= 0;
+                case CssAttributeOperator.DashMatch:
+                    return string.Equals(actual, Value, comparison)
+                        || actual.StartsWith(Value + "-", comparison);
+                default:
+                    return false;
+            }
+        }
+
+        /// <inheritdoc />
+        public override string ToString()
+        {
+            string op;
+
+            switch (Operator)
+            {
+                case CssAttributeOperator.Equals: op = "="; break;
+                case CssAttributeOperator.Includes: op = "~="; break;
+                case CssAttributeOperator.Prefix: op = "^="; break;
+                case CssAttributeOperator.Suffix: op = "$="; break;
+                case CssAttributeOperator.Substring: op = "*="; break;
+                case CssAttributeOperator.DashMatch: op = "|="; break;
+                default: return "[" + Name + "]";
+            }
+
+            return "[" + Name + op + "\"" + Value + "\"" + (IgnoreCase ? " i" : string.Empty) + "]";
+        }
+    }
+
     public sealed class CssCompoundSelector
     {
         private static readonly IReadOnlyList<string> NoClasses = Array.Empty<string>();
+        private static readonly IReadOnlyList<CssAttributeSelector> NoAttributes = Array.Empty<CssAttributeSelector>();
 
         /// <summary>
         /// Creates a compound selector.
@@ -48,13 +186,15 @@ namespace Rectloom.Core.Css.Selectors
             string? tagName,
             string? id,
             IReadOnlyList<string>? classes,
-            bool requiresRoot = false)
+            bool requiresRoot = false,
+            IReadOnlyList<CssAttributeSelector>? attributes = null)
         {
             Combinator = combinator;
             TagName = tagName;
             Id = id;
             Classes = classes ?? NoClasses;
             RequiresRoot = requiresRoot;
+            Attributes = attributes ?? NoAttributes;
         }
 
         /// <summary>How this part relates to the part before it.</summary>
@@ -81,13 +221,16 @@ namespace Rectloom.Core.Css.Selectors
         /// </remarks>
         public bool RequiresRoot { get; }
 
+        /// <summary>Attribute conditions, such as <c>[type="range"]</c>.</summary>
+        public IReadOnlyList<CssAttributeSelector> Attributes { get; }
+
         /// <summary>Specificity contributed by this part.</summary>
         /// <remarks>
         /// A pseudo-class counts as a class, which is what the selector specification says.
         /// </remarks>
         public CssSpecificity Specificity => new CssSpecificity(
             Id == null ? 0 : 1,
-            Classes.Count + (RequiresRoot ? 1 : 0),
+            Classes.Count + Attributes.Count + (RequiresRoot ? 1 : 0),
             TagName == null ? 0 : 1);
 
         /// <summary>
@@ -126,6 +269,14 @@ namespace Rectloom.Core.Css.Selectors
                 }
             }
 
+            foreach (CssAttributeSelector attribute in Attributes)
+            {
+                if (!attribute.Matches(element))
+                {
+                    return false;
+                }
+            }
+
             return true;
         }
 
@@ -133,7 +284,7 @@ namespace Rectloom.Core.Css.Selectors
         public override string ToString()
         {
             string text = TagName
-                ?? (Id == null && Classes.Count == 0 && !RequiresRoot ? "*" : string.Empty);
+                ?? (Id == null && Classes.Count == 0 && Attributes.Count == 0 && !RequiresRoot ? "*" : string.Empty);
 
             if (Id != null)
             {
@@ -143,6 +294,11 @@ namespace Rectloom.Core.Css.Selectors
             foreach (string className in Classes)
             {
                 text += "." + className;
+            }
+
+            foreach (CssAttributeSelector attribute in Attributes)
+            {
+                text += attribute.ToString();
             }
 
             if (RequiresRoot)
