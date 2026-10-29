@@ -67,6 +67,15 @@ namespace Rectloom.Core.Ir
         /// <summary>Whether content outside this node's rectangle is clipped away.</summary>
         public bool ClipsContent { get; internal set; }
 
+        /// <summary>Whether content wider than the node can be scrolled sideways.</summary>
+        public bool ScrollsX { get; internal set; }
+
+        /// <summary>Whether content taller than the node can be scrolled.</summary>
+        public bool ScrollsY { get; internal set; }
+
+        /// <summary>Whether the node scrolls along either axis.</summary>
+        public bool Scrolls => ScrollsX || ScrollsY;
+
         /// <summary>How an image this node paints fills its rectangle.</summary>
         public UiImageFit ImageFit { get; internal set; } = UiImageFit.Fill;
 

@@ -67,6 +67,8 @@ namespace Rectloom.Core.Ir
                 BorderColor = visual.BorderColor,
                 BorderRadius = visual.BorderRadius,
                 ClipsContent = visual.ClipsContent,
+                ScrollsX = visual.ScrollsX,
+                ScrollsY = visual.ScrollsY,
                 ImageFit = MapImageFit(visual.ObjectFit),
             };
         }

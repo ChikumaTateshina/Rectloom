@@ -274,18 +274,38 @@ namespace Rectloom.Ugui.Backend
                     ? ApplyLinkPopups(node, target, transformPath, siblingNames)
                     : new List<string>();
 
+                // A scrolling box holds its children in a content object the scroll rect moves.
+                GameObject childParent = target;
+                string childPath = transformPath;
+                HashSet<string> childNames = siblingNames;
+                List<string> childExpected = expected;
+
+                if (node.Visual.Scrolls && node.Children.Count > 0)
+                {
+                    childParent = ApplyScrollContent(node, target, transformPath, siblingNames, expected);
+                    childPath = Join(transformPath, childParent.name);
+                    childNames = new HashSet<string>(StringComparer.Ordinal);
+                    childExpected = new List<string>();
+                }
+
                 foreach (UiNode child in node.Children)
                 {
-                    GameObject childObject = Resolve(child.StableId, target, child.Name, out bool created);
-                    siblingNames.Add(childObject.name);
-                    expected.Add(childObject.name);
+                    GameObject childObject = Resolve(child.StableId, childParent, child.Name, out bool created);
+                    childNames.Add(childObject.name);
+                    childExpected.Add(childObject.name);
 
                     if (!created)
                     {
                         _counters.Updated++;
                     }
 
-                    ApplyTree(child, childObject, Join(transformPath, childObject.name), false, contentOffset);
+                    ApplyTree(child, childObject, Join(childPath, childObject.name), false, contentOffset);
+                }
+
+                if (!ReferenceEquals(childParent, target))
+                {
+                    RemoveObsoleteChildren(childParent, childPath, childExpected);
+                    Reorder(childParent, childExpected);
                 }
 
                 if (node.NeedsLabelChild)
@@ -413,6 +433,7 @@ namespace Rectloom.Ugui.Backend
                 }
 
                 ApplyLinkButton(node, target, entry);
+                ApplyScrollRect(node, target, entry);
                 ApplyClipping(node, target, entry);
                 ApplyOpacity(node, target, entry);
                 RemoveObsoleteComponents(target, node.StableId, entry);

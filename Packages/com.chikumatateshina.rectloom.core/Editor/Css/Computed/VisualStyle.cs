@@ -71,6 +71,18 @@ namespace Rectloom.Core.Css.Computed
         public CssOverflow Overflow { get; internal set; } = CssOverflow.Visible;
 
         /// <summary>
+        /// Whether content wider than the box can be scrolled sideways: <c>overflow-x</c> is
+        /// <c>scroll</c> or <c>auto</c>.
+        /// </summary>
+        public bool ScrollsX { get; internal set; }
+
+        /// <summary>
+        /// Whether content taller than the box can be scrolled: <c>overflow-y</c> is <c>scroll</c> or
+        /// <c>auto</c>.
+        /// </summary>
+        public bool ScrollsY { get; internal set; }
+
+        /// <summary>
         /// How an image is sized inside its box. Initial value is fill, which is what an
         /// <c>img</c> with a declared width and height does in CSS.
         /// </summary>
@@ -109,6 +121,8 @@ namespace Rectloom.Core.Css.Computed
                 BorderRadius = BorderRadius,
                 Overflow = Overflow,
                 ObjectFit = ObjectFit,
+                ScrollsX = ScrollsX,
+                ScrollsY = ScrollsY,
             };
         }
     }

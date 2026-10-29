@@ -792,19 +792,31 @@ namespace Rectloom.Core.Css.Computed
 
             private void ApplyOverflow(CssDeclaration declaration, string value)
             {
-                foreach (string part in Split(value))
+                string property = declaration.Property.ToLowerInvariant();
+                IReadOnlyList<string> parts = Split(value);
+
+                for (int index = 0; index < parts.Count; index++)
                 {
-                    switch (part.ToLowerInvariant())
+                    // overflow: x y names both axes; one value, or overflow-x and overflow-y, names one.
+                    bool x = property == "overflow-x" || (property == "overflow" && (parts.Count == 1 || index == 0));
+                    bool y = property == "overflow-y" || (property == "overflow" && (parts.Count == 1 || index == 1));
+
+                    switch (parts[index].ToLowerInvariant())
                     {
                         case "visible":
                             continue;
                         case "hidden":
                         case "clip":
-                        case "scroll":
-                        case "auto":
                             // uGUI clips a rectangle rather than an axis, so any axis asking to be
                             // clipped clips the box.
                             _style.Visual.Overflow = CssOverflow.Hidden;
+                            continue;
+                        case "scroll":
+                        case "auto":
+                            // Clipped, and the content can be dragged along this axis.
+                            _style.Visual.Overflow = CssOverflow.Hidden;
+                            _style.Visual.ScrollsX |= x;
+                            _style.Visual.ScrollsY |= y;
                             continue;
                         default:
                             Report(declaration, _diagnostics, "'visible', 'hidden', 'clip', 'scroll' or 'auto'");
