@@ -135,6 +135,18 @@ namespace Rectloom.Ugui.Windows
                     + "from the installed font, which copies that font into the project.",
                 MessageType.Info);
 
+            bool automatic = EditorGUILayout.Toggle(
+                new GUIContent(
+                    "Update on Save",
+                    "Compile an output again, in Update mode, whenever its HTML or a stylesheet it uses is "
+                        + "saved. Applies to output compiled with this version or later."),
+                RectloomAutoUpdate.Enabled);
+
+            if (automatic != RectloomAutoUpdate.Enabled)
+            {
+                RectloomAutoUpdate.Enabled = automatic;
+            }
+
             DrawSettingsSections();
             DrawModeHelp();
 

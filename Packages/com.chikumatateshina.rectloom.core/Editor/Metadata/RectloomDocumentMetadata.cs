@@ -55,6 +55,47 @@ namespace Rectloom.Core.Metadata
         /// <summary>Whether the canvas was fitted to top-level content bounds.</summary>
         public bool FitCanvasToContent { get => _fitCanvasToContent; set => _fitCanvasToContent = value; }
 
+        [SerializeField] private bool _hasRecompileSettings;
+        [SerializeField] private Compilation.CompileOutputType _outputType;
+        [SerializeField] private string _outputPath = string.Empty;
+        [SerializeField] private Vector2 _referenceResolution;
+        [SerializeField] private bool _strictMode;
+        [SerializeField] private bool _useDefaultStyleSheet = true;
+        [SerializeField] private bool _bakeUsedCharacters = true;
+        [SerializeField] private string _generatedAssetFolder = string.Empty;
+        [SerializeField] private string _defaultFontGuid = string.Empty;
+        [SerializeField] private string _emojiFontGuid = string.Empty;
+        [SerializeField] private List<string> _dependencyPaths = new List<string>();
+
+        /// <summary>
+        /// Whether this record holds everything needed to compile the output again without the
+        /// compiler window, which records written before automatic updates do not.
+        /// </summary>
+        public bool HasRecompileSettings { get => _hasRecompileSettings; set => _hasRecompileSettings = value; }
+        /// <summary>Whether the output is a prefab or a scene object.</summary>
+        public Compilation.CompileOutputType OutputType { get => _outputType; set => _outputType = value; }
+        /// <summary>Path of the prefab written, or empty for a scene object.</summary>
+        public string OutputPath { get => _outputPath; set => _outputPath = value ?? string.Empty; }
+        /// <summary>Reference resolution the document was laid out at.</summary>
+        public Vector2 ReferenceResolution { get => _referenceResolution; set => _referenceResolution = value; }
+        /// <summary>Whether strict mode was on.</summary>
+        public bool StrictMode { get => _strictMode; set => _strictMode = value; }
+        /// <summary>Whether the built-in stylesheet took part.</summary>
+        public bool UseDefaultStyleSheet { get => _useDefaultStyleSheet; set => _useDefaultStyleSheet = value; }
+        /// <summary>Whether dynamic fonts were replaced by copies of the characters used.</summary>
+        public bool BakeUsedCharacters { get => _bakeUsedCharacters; set => _bakeUsedCharacters = value; }
+        /// <summary>Folder generated assets were written to.</summary>
+        public string GeneratedAssetFolder { get => _generatedAssetFolder; set => _generatedAssetFolder = value ?? string.Empty; }
+        /// <summary>GUID of the default TMP font chosen in the window, or empty.</summary>
+        public string DefaultFontGuid { get => _defaultFontGuid; set => _defaultFontGuid = value ?? string.Empty; }
+        /// <summary>GUID of the emoji TMP font chosen in the window, or empty.</summary>
+        public string EmojiFontGuid { get => _emojiFontGuid; set => _emojiFontGuid = value ?? string.Empty; }
+        /// <summary>
+        /// Every source file the compile read: the HTML, stylesheets it linked or imported, and the ones
+        /// passed in. A change to any of them makes the output out of date.
+        /// </summary>
+        public List<string> DependencyPaths => _dependencyPaths;
+
         [SerializeField] private int _schemaVersion = CurrentSchemaVersion;
         [SerializeField] private string _compilerVersion = RectloomVersion.Current;
         [SerializeField] private string _sourceHtmlGuid = string.Empty;

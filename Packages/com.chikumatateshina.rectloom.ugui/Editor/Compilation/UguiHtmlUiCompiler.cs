@@ -57,6 +57,9 @@ namespace Rectloom.Ugui.Compilation
     public sealed class UguiHtmlUiCompiler : IHtmlUiCompiler
     {
         private readonly ISourceTextLoader _sources;
+
+        // Every source path the running compile read, for the metadata to record as dependencies.
+        private readonly List<string> _loaded = new List<string>();
         private readonly IAssetResolver _assets;
         private readonly Func<ITextMeasurer>? _measurerFactory;
         private readonly IEmbeddedImageStore? _images;
@@ -166,7 +169,10 @@ namespace Rectloom.Ugui.Compilation
 
             var parse = Stopwatch.StartNew();
 
-            if (!_sources.TryLoad(request.HtmlAssetPath!, out string html))
+            _loaded.Clear();
+            var sources = new RecordingSourceLoader(_sources, _loaded);
+
+            if (!sources.TryLoad(request.HtmlAssetPath!, out string html))
             {
                 diagnostics.Fatal(
                     DiagnosticCodes.Asset.NotFound,
@@ -201,7 +207,7 @@ namespace Rectloom.Ugui.Compilation
 
             // The document's own <style> and <link> sheets cascade after the ones the request names, so a
             // self-contained HTML file styles itself without the request having to list its CSS.
-            IReadOnlyList<CssStyleSheet> authorSheets = new CssImportResolver(_sources)
+            IReadOnlyList<CssStyleSheet> authorSheets = new CssImportResolver(sources)
                 .Resolve(request.CssAssetPaths, document.StyleSheets, request.HtmlAssetPath, diagnostics);
 
             IReadOnlyList<CssStyleSheet>? userAgent = options.UseDefaultStyleSheet
@@ -579,9 +585,61 @@ namespace Rectloom.Ugui.Compilation
             metadata.SourceHash = ComputeSourceHash(request, html);
             metadata.RootGlobalObjectId = MetadataStore.CaptureGlobalObjectId(committed ?? result.Root);
             metadata.SetNodes(result.Nodes);
+
+            // Enough to compile this output again from the record alone, which is what an automatic
+            // update after a source file is saved does.
+            metadata.HasRecompileSettings = true;
+            metadata.OutputType = request.OutputType;
+            metadata.OutputPath = request.OutputPath ?? string.Empty;
+            metadata.ReferenceResolution = request.Options.ReferenceResolution;
+            metadata.StrictMode = request.Options.StrictMode;
+            metadata.UseDefaultStyleSheet = request.Options.UseDefaultStyleSheet;
+            metadata.BakeUsedCharacters = request.Options.BakeUsedCharacters;
+            metadata.GeneratedAssetFolder = request.Options.GeneratedAssetFolder;
+            metadata.DefaultFontGuid = Guid(_defaultFont);
+            metadata.EmojiFontGuid = Guid(_emojiFont);
+
+            foreach (string path in _loaded)
+            {
+                if (!metadata.DependencyPaths.Contains(path))
+                {
+                    metadata.DependencyPaths.Add(path);
+                }
+            }
             metadata.SetProcessorState(result.ProcessorState);
 
             MetadataStore.Save(metadataPath, metadata);
+        }
+
+        private static string Guid(UnityEngine.Object? asset)
+        {
+            string path = asset == null ? string.Empty : AssetDatabase.GetAssetPath(asset);
+            return string.IsNullOrEmpty(path) ? string.Empty : AssetDatabase.AssetPathToGUID(path);
+        }
+
+        /// <summary>A source loader that remembers which paths it was asked for.</summary>
+        private sealed class RecordingSourceLoader : ISourceTextLoader
+        {
+            private readonly ISourceTextLoader _inner;
+            private readonly List<string> _loaded;
+
+            internal RecordingSourceLoader(ISourceTextLoader inner, List<string> loaded)
+            {
+                _inner = inner;
+                _loaded = loaded;
+            }
+
+            public bool TryLoad(string assetPath, out string source)
+            {
+                bool found = _inner.TryLoad(assetPath, out source);
+
+                if (found && !_loaded.Contains(assetPath))
+                {
+                    _loaded.Add(assetPath);
+                }
+
+                return found;
+            }
         }
 
         private string ComputeSourceHash(CompileRequest request, string html)
